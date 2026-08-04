@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOTS | Gestão de Frota</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16794a">
+<link rel="icon" href="assets/lots-logo-192.png">
+<link rel="apple-touch-icon" href="assets/lots-logo-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --bg:#eef4f0;
+    --surface:#ffffff;
+    --surface-2:#f3f7f4;
+    --line:#e0e6e2;
+    --line-soft:#eaeeec;
+    --accent:#16794a;
+    --accent-dim:#a9d1bd;
+    --accent-ink:#ffffff;
+    --go:#16794a;
+    --go-dim:#c9e6d7;
+    --danger:#d8383f;
+    --danger-dim:#f6dcdd;
+    --text:#161a18;
+    --text-muted:#5c6b63;
+    --text-faint:#8a978f;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    background-image: radial-gradient(circle at 15% 0%, rgba(22,121,74,0.06), transparent 45%), radial-gradient(circle at 100% 100%, rgba(22,121,74,0.05), transparent 45%);
+  }
+  .mono{font-family:'Roboto Mono',monospace;}
+  .display{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.03em;}
+  ::selection{background:var(--accent); color:#ffffff;}
+  a{color:inherit;}
+
+  /* ---------- lane divider signature element ---------- */
+  .lane{
+    height:0;
+    border-top:2px dashed var(--line);
+    margin:18px 0;
+  }
+  .lane.accent{border-top-color:var(--accent-dim);}
+
+  /* ---------- buttons & inputs ---------- */
+  button{
+    font-family:'Inter',sans-serif;
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    padding:10px 16px;
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.02em;
+    transition:transform .08s ease, filter .15s ease;
+  }
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:var(--accent); color:#ffffff;}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-ghost{background:transparent; color:var(--text-muted); border:1px solid var(--line);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--text-muted);}
+  .btn-danger{background:var(--danger); color:#ffffff;}
+  .btn-danger:hover{filter:brightness(1.1);}
+  .btn-sm{padding:6px 10px; font-size:12px; border-radius:6px;}
+
+  input,select{
+    font-family:'Inter',sans-serif;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:13.5px;
+    width:100%;
+    outline:none;
+  }
+  input:focus,select:focus{border-color:var(--accent);}
+  label{font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:6px;}
+  .field{margin-bottom:14px;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+
+  /* ---------- plate badge signature ---------- */
+  .plate{
+    display:inline-block;
+    font-family:'Roboto Mono',monospace;
+    font-weight:700;
+    letter-spacing:0.12em;
+    background:#101214;
+    border:1.5px solid var(--line);
+    border-radius:6px;
+    padding:4px 9px;
+    font-size:13px;
+    color:var(--accent);
+  }
+
+  /* ================= LOGIN SCREEN ================= */
+  #login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .login-card{
+    width:100%;
+    max-width:420px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:24px;
+    padding:44px 40px 36px 40px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 24px 48px rgba(20,40,30,0.08);
+  }
+  .login-card::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:6px;
+    background:var(--accent);
+  }
+  .login-logo{
+    display:flex; flex-direction:column; align-items:center;
+    margin-bottom:8px; margin-top:4px;
+  }
+  .login-logo-img{width:auto; height:76px; object-fit:contain;}
+  .login-logo .lots-wordmark{
+    font-family:'Oswald',sans-serif;
+    font-size:26px; font-weight:700; letter-spacing:0.02em;
+    text-transform:uppercase; text-align:center; line-height:1.05;
+    margin-top:10px; color:var(--text);
+  }
+  .login-logo .lots-wordmark small{display:block; font-size:13px; font-weight:600; letter-spacing:0.2em; color:var(--text-muted);}
+  .login-title{font-family:'Inter',sans-serif; font-size:30px; text-transform:none; text-align:center; margin:20px 0 4px 0; font-weight:600; color:var(--text);}
+  .login-sub{color:var(--text-muted); font-size:14px; margin-bottom:28px; text-align:center;}
+  .login-card label{color:var(--text); font-weight:700; font-size:13px; letter-spacing:0.04em;}
+  .login-card select{text-transform:uppercase; font-weight:700; font-size:13.5px; color:var(--text); border-radius:10px; padding:14px 14px; border-color:#e4e8e5;}
+  .login-card input[type=password]{border-radius:10px; padding:14px 14px; letter-spacing:0.15em; border-color:#e4e8e5;}
+  .login-card .btn-primary{border-radius:12px; padding:15px 16px; font-size:15px; margin-top:6px;}
+  .login-footnote{color:var(--text-muted); font-size:13px; text-align:center; margin-top:22px;}
+  .err-msg{color:var(--danger); font-size:12.5px; margin-top:10px; min-height:16px;}
+  .toggle-row{margin-top:18px; text-align:center; font-size:12.5px; color:var(--text-muted);}
+  .toggle-row button{background:none; border:none; color:var(--accent); font-weight:600; padding:0; font-size:12.5px;}
+
+  /* ================= APP SHELL ================= */
+  #app-screen{display:none; min-height:100vh;}
+  .shell{display:flex; min-height:100vh;}
+  .sidebar{
+    width:220px;
+    background:var(--surface);
+    border-right:1px dashed var(--line);
+    padding:22px 14px;
+    display:flex; flex-direction:column;
+    flex-shrink:0;
+  }
+  .brand{
+    font-family:'Oswald',sans-serif;
+    font-size:15px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    padding:0 8px 20px 8px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .brand svg{width:26px; height:26px; flex-shrink:0;}
+  .brand-logo-img{height:30px; width:auto; object-fit:contain;}
+  .brand-sub-only small{display:block; font-size:8px; color:var(--text-muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase;}
+  .brand small{display:block; font-size:9px; color:var(--text-muted); letter-spacing:0.15em; font-weight:600;}
+  .nav-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:8px;
+    color:var(--text-muted); font-size:13.5px; font-weight:500;
+    cursor:pointer; margin-bottom:2px;
+    border-left:2px solid transparent;
+  }
+  .nav-item:hover{color:var(--text); background:var(--surface-2);}
+  .nav-item.active{color:var(--accent); background:var(--surface-2); border-left:2px solid var(--accent);}
+  .nav-ico{width:16px; text-align:center; font-family:'Roboto Mono',monospace; font-size:12px;}
+  .sidebar-footer{margin-top:auto; padding-top:14px; border-top:1px dashed var(--line);}
+  .who{padding:8px; font-size:12px;}
+  .who-name{color:var(--text); font-weight:600;}
+  .who-role{color:var(--text-faint); text-transform:uppercase; font-size:10px; letter-spacing:0.06em;}
+
+  .main{flex:1; padding:28px 34px; overflow-x:auto;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;}
+  .page-title{font-family:'Oswald',sans-serif; font-size:24px; text-transform:uppercase; letter-spacing:0.03em;}
+  .page-sub{color:var(--text-muted); font-size:12.5px; margin-top:2px;}
+
+  /* ---------- KPI gauges ---------- */
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:26px;}
+  .kpi{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; display:flex; align-items:center; gap:14px;
+  }
+  .gauge{
+    width:46px; height:46px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:conic-gradient(var(--accent) var(--pct,60%), var(--line-soft) 0);
+  }
+  .gauge-inner{width:34px; height:34px; border-radius:50%; background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--text-faint);}
+  .kpi-val{font-family:'Roboto Mono',monospace; font-size:20px; font-weight:700;}
+  .kpi-label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
+
+  /* ---------- cards & tables ---------- */
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:18px;}
+  .card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
+  .card-title{font-family:'Oswald',sans-serif; font-size:15px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text);}
+
+  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
+  th{text-align:left; color:var(--text-faint); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px; border-bottom:1px dashed var(--line);}
+  td{padding:10px 10px; border-bottom:1px solid var(--line-soft); color:var(--text);}
+  tr:last-child td{border-bottom:none;}
+  .empty-row td{color:var(--text-faint); text-align:center; padding:24px; font-style:italic;}
+
+  .badge{display:inline-block; padding:3px 9px; border-radius:5px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;}
+  .badge-ok{background:rgba(22,121,74,0.12); color:var(--go);}
+  .badge-pending{background:rgba(201,138,17,0.14); color:#a5710f;}
+  .badge-danger{background:rgba(216,56,63,0.12); color:var(--danger);}
+
+  .rank-pos{font-family:'Roboto Mono',monospace; font-weight:700; color:var(--accent); width:28px; display:inline-block;}
+
+  .modal-bg{display:none; position:fixed; inset:0; background:rgba(10,11,12,0.7); align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .modal{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:26px; width:100%; max-width:440px; max-height:90vh; overflow-y:auto;}
+  .modal-title{font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:17px; letter-spacing:0.03em; margin-bottom:18px;}
+  .modal-actions{display:flex; gap:10px; margin-top:20px;}
+
+  .action-links{display:flex; gap:8px;}
+  .icon-btn{background:none; border:none; color:var(--text-faint); font-size:12px; padding:4px 6px;}
+  .icon-btn:hover{color:var(--accent);}
+  .icon-btn.danger:hover{color:var(--danger);}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+
+  .toast{position:fixed; bottom:20px; right:20px; background:var(--surface-2); border:1px solid var(--accent-dim); color:var(--text); padding:12px 18px; border-radius:8px; font-size:13px; z-index:100; opacity:0; transform:translateY(10px); transition:all .25s ease;}
+  .toast.show{opacity:1; transform:translateY(0);}
+
+  @media (max-width:760px){
+    .shell{flex-direction:column;}
+    .sidebar{width:100%; flex-direction:row; overflow-x:auto; padding:12px;}
+    .sidebar-footer{display:none;}
+    .brand{display:none;}
+    .nav-item{flex-direction:column; font-size:10px; gap:4px; white-space:nowrap;}
+    .main{padding:18px;}
+    .field-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="assets/lots-logo.png" alt="LOTS Group" class="login-logo-img">
+    </div>
+    <div class="login-title">Gestão de Frota</div>
+    <div class="login-sub">Acesso seguro ao sistema</div>
+
+    <div id="login-mode">
+      <form id="form-login">
+        <div class="field">
+          <label>Usuário</label>
+          <input id="login-user" placeholder="seu.usuario" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="login-pass" placeholder="••••••" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;">Entrar no sistema</button>
+        <div class="err-msg" id="login-err"></div>
+      </form>
+      <div class="toggle-row">Primeiro acesso? <button id="btn-show-setup">Criar administrador</button></div>
+    </div>
+
+    <div id="setup-mode" style="display:none;">
+      <div class="field">
+        <label>Nome do administrador</label>
+        <input id="setup-name" placeholder="Ex: Walisson">
+      </div>
+      <div class="field">
+        <label>Usuário (login)</label>
+        <input id="setup-username" placeholder="Ex: admin" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Criar senha</label>
+        <input type="password" id="setup-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      </div>
+      <button id="btn-setup" class="btn-primary" style="width:100%;">Criar acesso e iniciar</button>
+      <div class="err-msg" id="setup-err"></div>
+      <div class="toggle-row">Já tem acesso? <button id="btn-show-login">Entrar</button></div>
+    </div>
+
+    <div class="login-footnote">Administrador principal: utilize seu acesso autorizado.</div>
+    <button id="btn-download-app" class="btn-ghost btn-sm" style="width:100%; margin-top:16px;">⬇ Baixar aplicativo (.html)</button>
+  </div>
+</div>
+
+<!-- ================= APP SCREEN ================= -->
+<div id="app-screen">
+  <div class="shell">
+    <div class="sidebar">
+      <div class="brand">
+        <img src="assets/lots-logo.png" alt="LOTS Group" class="brand-logo-img">
+        <span class="brand-sub-only"><small>GESTÃO DE FROTA</small></span>
+      </div>
+      <div class="nav-item active" data-view="dashboard"><span class="nav-ico">◈</span> Dashboard</div>
+      <div class="nav-item" data-view="vehicles"><span class="nav-ico">▭</span> Veículos</div>
+      <div class="nav-item" data-view="fuel"><span class="nav-ico">⛽</span> Abastecimento</div>
+      <div class="nav-item" data-view="costs"><span class="nav-ico">$</span> Custos</div>
+      <div class="nav-item" data-view="fines"><span class="nav-ico">!</span> Multas</div>
+      <div class="nav-item" data-view="ranking"><span class="nav-ico">★</span> LOTS GO</div>
+      <div class="nav-item" data-view="users" id="nav-users"><span class="nav-ico">◎</span> Usuários</div>
+      <div class="sidebar-footer">
+        <div class="who">
+          <div class="who-name" id="who-name">—</div>
+          <div class="who-role" id="who-role">—</div>
+        </div>
+        <button class="btn-ghost btn-sm" style="width:100%; margin-top:8px;" id="btn-logout">Sair</button>
+        <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-download-app-2">⬇ Baixar app</button>
+      </div>
+    </div>
+
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <div class="view active" id="view-dashboard">
+        <div class="topbar">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-sub">Visão geral da frota</div>
+          </div>
+        </div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Últimos lançamentos</div></div>
+          <table><thead><tr><th>Tipo</th><th>Veículo</th><th>Data</th><th>Valor</th></tr></thead>
+          <tbody id="dash-recent"></tbody></table>
+        </div>
+      </div>
+
+      <!-- VEHICLES -->
+      <div class="view" id="view-vehicles">
+        <div class="topbar">
+          <div><div class="page-title">Veículos</div><div class="page-sub">Cadastro da frota</div></div>
+          <button class="btn-primary" id="btn-new-vehicle">+ Novo veículo</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Placa</th><th>Modelo</th><th>Ano</th><th>KM atual</th><th>Motorista</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-vehicles"></tbody></table>
+        </div>
+      </div>
+
+      <!-- FUEL -->
+      <div class="view" id="view-fuel">
+        <div class="topbar">
+          <div><div class="page-title">Abastecimento</div><div class="page-sub">Controle de combustível</div></div>
+          <button class="btn-primary" id="btn-new-fuel">+ Registrar</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Data</th><th>Veículo</th><th>Litros</th><th>Valor</th><th>KM</th><th>Posto</th><th></th></tr></thead>
+          <tbody id="tbl-fuel"></tbody></table>
+        </div>
+      </div>
+
+      <!-- COSTS -->
+      <div class="view" id="view-costs">
+        <div class="topbar">
+          <div><div class="page-title">Custos</div><div class="page-sub">Manutenção, seguro e outras despesas</div></div>
+          <button class="btn-primary" id="btn-new-cost">+ Registrar</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Data</th><th>Veículo</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+          <tbody id="tbl-costs"></tbody></table>
+        </div>
+      </div>
+
+      <!-- FINES -->
+      <div class="view" id="view-fines">
+        <div class="topbar">
+          <div><div class="page-title">Multas</div><div class="page-sub">Infrações registradas</div></div>
+          <button class="btn-primary" id="btn-new-fine">+ Registrar</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Data</th><th>Veículo</th><th>Motorista</th><th>Infração</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-fines"></tbody></table>
+        </div>
+      </div>
+
+      <!-- RANKING -->
+      <div class="view" id="view-ranking">
+        <div class="topbar">
+          <div><div class="page-title">LOTS GO</div><div class="page-sub">Ranking e premiação de motoristas</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Pontuação</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Pontuação = 1000 − (100 × multas pendentes) − (30 × multas pagas) − (custos extras ÷ 50)</div>
+          <table><thead><tr><th>Pos.</th><th>Motorista</th><th>Veículo</th><th>Multas</th><th>Pontuação</th></tr></thead>
+          <tbody id="tbl-ranking"></tbody></table>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="view" id="view-users">
+        <div class="topbar">
+          <div><div class="page-title">Usuários</div><div class="page-sub">Acessos ao sistema</div></div>
+          <button class="btn-primary" id="btn-new-user">+ Novo usuário</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Veículo vinculado</th><th></th></tr></thead>
+          <tbody id="tbl-users"></tbody></table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- generic modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+
+  /* ---------------- FIREBASE CONFIG ----------------
+     1. Crie um projeto grátis em https://console.firebase.google.com
+     2. Ative o Firestore Database (modo de teste)
+     3. Em "Configurações do projeto > Seus apps > Web", copie os dados
+        e cole aqui embaixo, substituindo os valores de exemplo.
+  --------------------------------------------------- */
+  const firebaseConfig = {
+    apiKey: "COLE_AQUI_SUA_API_KEY",
+    authDomain: "SEU_PROJETO.firebaseapp.com",
+    projectId: "SEU_PROJETO",
+    storageBucket: "SEU_PROJETO.appspot.com",
+    messagingSenderId: "SEU_SENDER_ID",
+    appId: "SEU_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+  db.enablePersistence({synchronizeTabs:true}).catch(err=>{
+    console.warn('Persistência offline não ativada:', err.code);
+  });
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(err=>console.warn('SW falhou:', err));
+    });
+  }
+  const COLLECTION = 'lots-frota';
+  const PROFILES = 'lots-frota-profiles';
+  // app secundário: permite ao admin criar outros usuários sem perder a própria sessão
+  const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
+  const secondaryAuth = secondaryApp.auth();
+
+  function usernameToEmail(username){
+    return username.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'') + '@lotsfrota.internal';
+  }
+
+  /* ---------------- storage helpers (Firebase Firestore) ---------------- */
+  async function saveShared(key, data){
+    try{ await db.collection(COLLECTION).doc(key).set({value: JSON.stringify(data), updatedAt: Date.now()}); }
+    catch(e){ console.error('save fail',key,e); toast('Erro ao salvar. Verifique sua conexão / config do Firebase.'); }
+  }
+  async function loadShared(key, fallback){
+    try{
+      const doc = await db.collection(COLLECTION).doc(key).get();
+      return doc.exists ? JSON.parse(doc.data().value) : fallback;
+    }catch(e){ console.error('load fail',key,e); return fallback; }
+  }
+  function listenShared(key, applyFn){
+    db.collection(COLLECTION).doc(key).onSnapshot(doc=>{
+      if(doc.exists){
+        applyFn(JSON.parse(doc.data().value));
+        if(currentUser()) renderAll();
+      }
+    }, err=>console.error('listen fail', key, err));
+  }
+  async function saveProfile(u){
+    await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, role:u.role, vehicleId:u.vehicleId||null});
+  }
+  async function loadAllProfiles(){
+    const snap = await db.collection(PROFILES).get();
+    return snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }
+
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const fmtMoney = v => 'R$ ' + Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const fmtDate = d => { if(!d) return '—'; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
+  const todayISO = () => new Date().toISOString().slice(0,10);
+
+  function toast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  /* ---------------- force download of the app itself ---------------- */
+  function downloadApp(){
+    try{
+      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const blob = new Blob([fullHtml], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'gestao-frota-lots.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      toast('Download iniciado.');
+    }catch(e){
+      console.error(e);
+      toast('Não foi possível baixar automaticamente.');
+    }
+  }
+  const btnDl1 = document.getElementById('btn-download-app');
+  const btnDl2 = document.getElementById('btn-download-app-2');
+  if(btnDl1) btnDl1.addEventListener('click', downloadApp);
+  if(btnDl2) btnDl2.addEventListener('click', downloadApp);
+
+  /* ---------------- app state ---------------- */
+  let state = {
+    users:[], vehicles:[], fuel:[], costs:[], fines:[],
+    currentProfile:null
+  };
+
+  async function loadAll(){
+    state.vehicles = await loadShared('lots-vehicles', []);
+    state.fuel     = await loadShared('lots-fuel', []);
+    state.costs    = await loadShared('lots-costs', []);
+    state.fines    = await loadShared('lots-fines', []);
+  }
+
+  const save = {
+    users: async () => {},
+    vehicles: () => saveShared('lots-vehicles', state.vehicles),
+    fuel: () => saveShared('lots-fuel', state.fuel),
+    costs: () => saveShared('lots-costs', state.costs),
+    fines: () => saveShared('lots-fines', state.fines)
+  };
+
+  function currentUser(){
+    return state.currentProfile;
+  }
+  function vehicleById(id){ return state.vehicles.find(v=>v.id===id); }
+  function userById(id){ return state.users.find(u=>u.id===id); }
+
+  /* ---------------- LOGIN / AUTH ---------------- */
+  document.getElementById('btn-show-setup').addEventListener('click', ()=>{
+    document.getElementById('login-mode').style.display='none';
+    document.getElementById('setup-mode').style.display='block';
+  });
+  document.getElementById('btn-show-login').addEventListener('click', ()=>{
+    document.getElementById('setup-mode').style.display='none';
+    document.getElementById('login-mode').style.display='block';
+  });
+
+  function showLoginOrSetup(){
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app-screen').style.display='none';
+    document.getElementById('login-mode').style.display='block';
+    document.getElementById('setup-mode').style.display='none';
+  }
+
+  document.getElementById('btn-setup').addEventListener('click', async ()=>{
+    const name = document.getElementById('setup-name').value.trim();
+    const username = document.getElementById('setup-username').value.trim();
+    const pass = document.getElementById('setup-pass').value;
+    const errEl = document.getElementById('setup-err');
+    if(!name || !username || pass.length<6){
+      errEl.textContent='Preencha nome, usuário e uma senha com pelo menos 6 caracteres.';
+      return;
+    }
+    errEl.textContent='';
+    try{
+      const cred = await auth.createUserWithEmailAndPassword(usernameToEmail(username), pass);
+      await saveProfile({id:cred.user.uid, name, username, role:'admin', vehicleId:null});
+      // onAuthStateChanged cuida de carregar o perfil e entrar no app
+    }catch(e){
+      errEl.textContent = firebaseErrorMsg(e);
+    }
+  });
+
+  document.getElementById('form-login').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const username = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-err');
+    if(!username || !pass){ errEl.textContent='Preencha usuário e senha.'; return; }
+    errEl.textContent='';
+    try{
+      await auth.signInWithEmailAndPassword(usernameToEmail(username), pass);
+    }catch(e){
+      errEl.textContent = firebaseErrorMsg(e);
+    }
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async ()=>{
+    await auth.signOut();
+    document.getElementById('login-pass').value='';
+  });
+
+  function firebaseErrorMsg(e){
+    const code = e && e.code || '';
+    if(code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Usuário ou senha incorretos.';
+    if(code.includes('email-already-in-use')) return 'Esse usuário já existe.';
+    if(code.includes('weak-password')) return 'Senha muito curta (mínimo 6 caracteres).';
+    if(code.includes('network')) return 'Falha de conexão. Verifique sua internet.';
+    if(code.includes('api-key') || code.includes('invalid-api-key')) return 'Configuração do Firebase incompleta (veja firebaseConfig no código).';
+    console.error(e);
+    return 'Não foi possível concluir. Tente novamente.';
+  }
+
+  auth.onAuthStateChanged(async (user)=>{
+    if(user){
+      const doc = await db.collection(PROFILES).doc(user.uid).get();
+      if(!doc.exists){
+        // conta existe no Firebase Auth mas o perfil foi removido pelo admin
+        await auth.signOut();
+        showLoginOrSetup();
+        document.getElementById('login-err').textContent = 'Este acesso foi removido. Fale com o administrador.';
+        return;
+      }
+      state.currentProfile = {id:user.uid, ...doc.data()};
+      state.users = await loadAllProfiles();
+      await loadAll();
+      enterApp();
+    } else {
+      state.currentProfile = null;
+      showLoginOrSetup();
+    }
+  });
+
+  /* ---------------- NAV ---------------- */
+  document.querySelectorAll('.nav-item[data-view]').forEach(el=>{
+    el.addEventListener('click', ()=>switchView(el.dataset.view));
+  });
+  function switchView(name){
+    document.querySelectorAll('.nav-item[data-view]').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+name).classList.add('active');
+    renderView(name);
+  }
+
+  function enterApp(){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-screen').style.display='block';
+    const u = currentUser();
+    document.getElementById('who-name').textContent = u.name;
+    document.getElementById('who-role').textContent = u.role;
+    document.getElementById('nav-users').style.display = (u.role==='admin') ? 'flex' : 'none';
+    renderAll();
+  }
+
+  /* ---------------- MODAL helper ---------------- */
+  function openModal(html){
+    document.getElementById('modal-body').innerHTML = html;
+    document.getElementById('modal-bg').style.display='flex';
+  }
+  function closeModal(){ document.getElementById('modal-bg').style.display='none'; }
+  document.getElementById('modal-bg').addEventListener('click', (e)=>{
+    if(e.target.id==='modal-bg') closeModal();
+  });
+
+  function vehicleOptions(selected){
+    return state.vehicles.map(v=>`<option value="${v.id}" ${v.id===selected?'selected':''}>${v.plate} — ${v.model}</option>`).join('') || '<option value="">Nenhum veículo cadastrado</option>';
+  }
+  function driverOptions(selected){
+    const drivers = state.users.filter(u=>u.role==='motorista');
+    return drivers.map(d=>`<option value="${d.id}" ${d.id===selected?'selected':''}>${d.name}</option>`).join('') || '<option value="">Nenhum motorista cadastrado</option>';
+  }
+
+  /* ---------------- VEHICLES ---------------- */
+  function renderVehicles(){
+    const tbl = document.getElementById('tbl-vehicles');
+    const list = visibleVehicles();
+    if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhum veículo cadastrado ainda.</td></tr>'; return; }
+    tbl.innerHTML = list.map(v=>{
+      const driver = userById(v.driverId);
+      const statusBadge = v.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' :
+                           v.status==='manutencao' ? '<span class="badge badge-pending">Manutenção</span>' :
+                           '<span class="badge badge-danger">Inativo</span>';
+      return `<tr>
+        <td><span class="plate">${v.plate}</span></td>
+        <td>${v.model}</td>
+        <td class="mono">${v.year}</td>
+        <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
+        <td>${driver?driver.name:'—'}</td>
+        <td>${statusBadge}</td>
+        <td><div class="action-links">
+          <button class="icon-btn" onclick="LOTS.editVehicle('${v.id}')">editar</button>
+          <button class="icon-btn danger" onclick="LOTS.deleteVehicle('${v.id}')">excluir</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  function visibleVehicles(){
+    const u = currentUser();
+    if(u.role==='motorista') return state.vehicles.filter(v=>v.id===u.vehicleId);
+    return state.vehicles;
+  }
+
+  function vehicleForm(v){
+    v = v || {plate:'',model:'',year:'',km:0,driverId:'',status:'ativo'};
+    return `
+      <div class="modal-title">${v.id?'Editar veículo':'Novo veículo'}</div>
+      <div class="field-row">
+        <div class="field"><label>Placa</label><input id="f-plate" value="${v.plate}" placeholder="ABC1D23"></div>
+        <div class="field"><label>Ano</label><input id="f-year" value="${v.year}" placeholder="2022"></div>
+      </div>
+      <div class="field"><label>Modelo</label><input id="f-model" value="${v.model}" placeholder="Ex: Fiat Strada"></div>
+      <div class="field-row">
+        <div class="field"><label>KM atual</label><input id="f-km" value="${v.km}" placeholder="0"></div>
+        <div class="field"><label>Status</label>
+          <select id="f-status">
+            <option value="ativo" ${v.status==='ativo'?'selected':''}>Ativo</option>
+            <option value="manutencao" ${v.status==='manutencao'?'selected':''}>Manutenção</option>
+            <option value="inativo" ${v.status==='inativo'?'selected':''}>Inativo</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Motorista responsável</label><select id="f-driver"><option value="">— Nenhum —</option>${driverOptions(v.driverId)}</select></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.saveVehicle('${v.id||''}')">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-vehicle').addEventListener('click', ()=>openModal(vehicleForm()));
+
+  window.LOTS = window.LOTS || {};
+  LOTS.editVehicle = (id)=>openModal(vehicleForm(vehicleById(id)));
+  LOTS.saveVehicle = async (id)=>{
+    const data = {
+      plate: document.getElementById('f-plate').value.trim().toUpperCase(),
+      model: document.getElementById('f-model').value.trim(),
+      year: document.getElementById('f-year').value.trim(),
+      km: Number(document.getElementById('f-km').value)||0,
+      status: document.getElementById('f-status').value,
+      driverId: document.getElementById('f-driver').value || null
+    };
+    if(!data.plate || !data.model){ toast('Preencha placa e modelo.'); return; }
+    if(id){
+      Object.assign(vehicleById(id), data);
+    } else {
+      state.vehicles.push({id:uid(), ...data});
+    }
+    await save.vehicles();
+    closeModal(); renderView('vehicles'); renderView('dashboard');
+    toast('Veículo salvo.');
+  };
+  LOTS.deleteVehicle = async (id)=>{
+    state.vehicles = state.vehicles.filter(v=>v.id!==id);
+    await save.vehicles();
+    renderView('vehicles'); renderView('dashboard');
+    toast('Veículo removido.');
+  };
+
+  /* ---------------- FUEL ---------------- */
+  function renderFuel(){
+    const tbl = document.getElementById('tbl-fuel');
+    const list = visibleFuel().slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum abastecimento registrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(f=>{
+      const v = vehicleById(f.vehicleId);
+      return `<tr>
+        <td class="mono">${fmtDate(f.date)}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td class="mono">${f.liters} L</td>
+        <td class="mono">${fmtMoney(f.value)}</td>
+        <td class="mono">${Number(f.km).toLocaleString('pt-BR')} km</td>
+        <td>${f.station||'—'}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteFuel('${f.id}')">excluir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+  function visibleFuel(){
+    const u = currentUser();
+    if(u.role==='motorista') return state.fuel.filter(f=>f.vehicleId===u.vehicleId);
+    return state.fuel;
+  }
+  function fuelForm(){
+    const u = currentUser();
+    return `
+      <div class="modal-title">Registrar abastecimento</div>
+      <div class="field"><label>Veículo</label><select id="f-vehicle">${vehicleOptions(u.role==='motorista'?u.vehicleId:null)}</select></div>
+      <div class="field-row">
+        <div class="field"><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div>
+        <div class="field"><label>Litros</label><input id="f-liters" placeholder="Ex: 40.5"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Valor total</label><input id="f-value" placeholder="Ex: 260.00"></div>
+        <div class="field"><label>KM no momento</label><input id="f-km" placeholder="Ex: 45000"></div>
+      </div>
+      <div class="field"><label>Posto</label><input id="f-station" placeholder="Ex: Posto Ipiranga"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.saveFuel()">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-fuel').addEventListener('click', ()=>openModal(fuelForm()));
+  LOTS.saveFuel = async ()=>{
+    const rec = {
+      id:uid(),
+      vehicleId: document.getElementById('f-vehicle').value,
+      date: document.getElementById('f-date').value || todayISO(),
+      liters: Number(document.getElementById('f-liters').value)||0,
+      value: Number(document.getElementById('f-value').value)||0,
+      km: Number(document.getElementById('f-km').value)||0,
+      station: document.getElementById('f-station').value.trim()
+    };
+    if(!rec.vehicleId){ toast('Selecione um veículo.'); return; }
+    state.fuel.push(rec);
+    const v = vehicleById(rec.vehicleId);
+    if(v && rec.km > v.km){ v.km = rec.km; await save.vehicles(); }
+    await save.fuel();
+    closeModal(); renderView('fuel'); renderView('dashboard');
+    toast('Abastecimento registrado.');
+  };
+  LOTS.deleteFuel = async (id)=>{
+    state.fuel = state.fuel.filter(f=>f.id!==id);
+    await save.fuel();
+    renderView('fuel'); renderView('dashboard');
+  };
+
+  /* ---------------- COSTS ---------------- */
+  function renderCosts(){
+    const tbl = document.getElementById('tbl-costs');
+    const list = visibleCosts().slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum custo registrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(c=>{
+      const v = vehicleById(c.vehicleId);
+      return `<tr>
+        <td class="mono">${fmtDate(c.date)}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${c.category}</td>
+        <td>${c.description||'—'}</td>
+        <td class="mono">${fmtMoney(c.value)}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteCost('${c.id}')">excluir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+  function visibleCosts(){
+    const u = currentUser();
+    if(u.role==='motorista') return state.costs.filter(c=>c.vehicleId===u.vehicleId);
+    return state.costs;
+  }
+  function costForm(){
+    const u = currentUser();
+    return `
+      <div class="modal-title">Registrar custo</div>
+      <div class="field"><label>Veículo</label><select id="f-vehicle">${vehicleOptions(u.role==='motorista'?u.vehicleId:null)}</select></div>
+      <div class="field-row">
+        <div class="field"><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div>
+        <div class="field"><label>Categoria</label>
+          <select id="f-category">
+            <option>Manutenção</option><option>Pneu</option><option>Seguro</option><option>Lavagem</option><option>Documentação</option><option>Outros</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Valor</label><input id="f-value" placeholder="Ex: 350.00"></div>
+      <div class="field"><label>Descrição</label><input id="f-desc" placeholder="Ex: Troca de óleo"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.saveCost()">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-cost').addEventListener('click', ()=>openModal(costForm()));
+  LOTS.saveCost = async ()=>{
+    const rec = {
+      id:uid(),
+      vehicleId: document.getElementById('f-vehicle').value,
+      date: document.getElementById('f-date').value || todayISO(),
+      category: document.getElementById('f-category').value,
+      value: Number(document.getElementById('f-value').value)||0,
+      description: document.getElementById('f-desc').value.trim()
+    };
+    if(!rec.vehicleId){ toast('Selecione um veículo.'); return; }
+    state.costs.push(rec);
+    await save.costs();
+    closeModal(); renderView('costs'); renderView('dashboard');
+    toast('Custo registrado.');
+  };
+  LOTS.deleteCost = async (id)=>{
+    state.costs = state.costs.filter(c=>c.id!==id);
+    await save.costs();
+    renderView('costs'); renderView('dashboard');
+  };
+
+  /* ---------------- FINES ---------------- */
+  function renderFines(){
+    const tbl = document.getElementById('tbl-fines');
+    const list = visibleFines().slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhuma multa registrada.</td></tr>'; return; }
+    tbl.innerHTML = list.map(f=>{
+      const v = vehicleById(f.vehicleId);
+      const d = userById(f.driverId);
+      const badge = f.status==='paga' ? '<span class="badge badge-ok">Paga</span>' : '<span class="badge badge-danger">Pendente</span>';
+      return `<tr>
+        <td class="mono">${fmtDate(f.date)}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${d?d.name:'—'}</td>
+        <td>${f.infraction}</td>
+        <td class="mono">${fmtMoney(f.value)}</td>
+        <td>${badge}</td>
+        <td><div class="action-links">
+          ${f.status!=='paga'?`<button class="icon-btn" onclick="LOTS.markPaid('${f.id}')">marcar paga</button>`:''}
+          <button class="icon-btn danger" onclick="LOTS.deleteFine('${f.id}')">excluir</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  function visibleFines(){
+    const u = currentUser();
+    if(u.role==='motorista') return state.fines.filter(f=>f.vehicleId===u.vehicleId);
+    return state.fines;
+  }
+  function fineForm(){
+    const u = currentUser();
+    return `
+      <div class="modal-title">Registrar multa</div>
+      <div class="field"><label>Veículo</label><select id="f-vehicle">${vehicleOptions(u.role==='motorista'?u.vehicleId:null)}</select></div>
+      <div class="field"><label>Motorista</label><select id="f-driver">${driverOptions(u.role==='motorista'?u.id:null)}</select></div>
+      <div class="field-row">
+        <div class="field"><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div>
+        <div class="field"><label>Valor</label><input id="f-value" placeholder="Ex: 195.23"></div>
+      </div>
+      <div class="field"><label>Infração</label><input id="f-infraction" placeholder="Ex: Excesso de velocidade"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.saveFine()">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-fine').addEventListener('click', ()=>openModal(fineForm()));
+  LOTS.saveFine = async ()=>{
+    const rec = {
+      id:uid(),
+      vehicleId: document.getElementById('f-vehicle').value,
+      driverId: document.getElementById('f-driver').value || null,
+      date: document.getElementById('f-date').value || todayISO(),
+      value: Number(document.getElementById('f-value').value)||0,
+      infraction: document.getElementById('f-infraction').value.trim() || 'Infração não especificada',
+      status:'pendente'
+    };
+    if(!rec.vehicleId){ toast('Selecione um veículo.'); return; }
+    state.fines.push(rec);
+    await save.fines();
+    closeModal(); renderView('fines'); renderView('dashboard'); renderView('ranking');
+    toast('Multa registrada.');
+  };
+  LOTS.markPaid = async (id)=>{
+    const f = state.fines.find(x=>x.id===id);
+    if(f){ f.status='paga'; await save.fines(); renderView('fines'); renderView('ranking'); }
+  };
+  LOTS.deleteFine = async (id)=>{
+    state.fines = state.fines.filter(f=>f.id!==id);
+    await save.fines();
+    renderView('fines'); renderView('dashboard'); renderView('ranking');
+  };
+
+  /* ---------------- RANKING (LOTS GO) ---------------- */
+  function renderRanking(){
+    const tbl = document.getElementById('tbl-ranking');
+    const drivers = state.users.filter(u=>u.role==='motorista');
+    if(drivers.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">Cadastre motoristas para ver o ranking.</td></tr>'; return; }
+    const rows = drivers.map(d=>{
+      const dFines = state.fines.filter(f=>f.driverId===d.id);
+      const pending = dFines.filter(f=>f.status!=='paga').length;
+      const paid = dFines.filter(f=>f.status==='paga').length;
+      const vehicleCosts = state.costs.filter(c=>c.vehicleId===d.vehicleId).reduce((s,c)=>s+c.value,0);
+      const score = Math.max(0, 1000 - pending*100 - paid*30 - Math.round(vehicleCosts/50));
+      const v = vehicleById(d.vehicleId);
+      return {driver:d, vehicle:v, pending, paid, score};
+    }).sort((a,b)=>b.score-a.score);
+
+    tbl.innerHTML = rows.map((r,i)=>`
+      <tr>
+        <td><span class="rank-pos">${i+1}º</span></td>
+        <td>${r.driver.name}</td>
+        <td>${r.vehicle?`<span class="plate">${r.vehicle.plate}</span>`:'—'}</td>
+        <td>${r.pending} pend. / ${r.paid} pagas</td>
+        <td class="mono" style="color:var(--accent); font-weight:700;">${r.score} pts</td>
+      </tr>`).join('');
+  }
+
+  /* ---------------- USERS ---------------- */
+  function renderUsers(){
+    const tbl = document.getElementById('tbl-users');
+    if(state.users.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">—</td></tr>'; return; }
+    tbl.innerHTML = state.users.map(u=>{
+      const v = vehicleById(u.vehicleId);
+      return `<tr>
+        <td>${u.name}</td>
+        <td class="mono">${u.username}</td>
+        <td style="text-transform:capitalize;">${u.role}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td><div class="action-links">
+          ${u.id!==currentUser().id?`<button class="icon-btn danger" onclick="LOTS.deleteUser('${u.id}')">excluir</button>`:'<span style="color:var(--text-faint); font-size:12px;">você</span>'}
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  function userForm(){
+    return `
+      <div class="modal-title">Novo usuário</div>
+      <div class="field"><label>Nome</label><input id="f-name" placeholder="Nome completo"></div>
+      <div class="field-row">
+        <div class="field"><label>Login</label><input id="f-username" placeholder="usuario" autocomplete="off"></div>
+        <div class="field"><label>Senha</label><input type="password" id="f-password" placeholder="mín. 6 caracteres" autocomplete="new-password"></div>
+      </div>
+      <div class="field"><label>Perfil</label>
+        <select id="f-role">
+          <option value="motorista">Motorista</option>
+          <option value="gestor">Gestor</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="field"><label>Veículo vinculado (se motorista)</label><select id="f-vehicle"><option value="">— Nenhum —</option>${vehicleOptions(null)}</select></div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="btn-save-user">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-user').addEventListener('click', ()=>{
+    openModal(userForm());
+    document.getElementById('btn-save-user').addEventListener('click', LOTS.saveUser);
+  });
+  LOTS.saveUser = async ()=>{
+    const name = document.getElementById('f-name').value.trim();
+    const username = document.getElementById('f-username').value.trim();
+    const password = document.getElementById('f-password').value;
+    const role = document.getElementById('f-role').value;
+    const vehicleId = document.getElementById('f-vehicle').value || null;
+    if(!name || !username || password.length<6){ toast('Preencha nome, login e senha (mín. 6 caracteres).'); return; }
+    if(state.users.some(u=>u.username===username)){ toast('Este login já existe.'); return; }
+    try{
+      // cria no app "secundário" pra não trocar a sessão do admin logado
+      const cred = await secondaryAuth.createUserWithEmailAndPassword(usernameToEmail(username), password);
+      await saveProfile({id:cred.user.uid, name, username, role, vehicleId: role==='motorista'?vehicleId:null});
+      await secondaryAuth.signOut();
+      state.users = await loadAllProfiles();
+      closeModal(); renderView('users'); renderView('ranking');
+      toast('Usuário criado.');
+    }catch(e){
+      toast(firebaseErrorMsg(e));
+    }
+  };
+  LOTS.deleteUser = async (id)=>{
+    // remove o acesso ao sistema (perfil). A conta de login em si só pode
+    // ser apagada por quem é dono dela ou via painel do Firebase.
+    await db.collection(PROFILES).doc(id).delete();
+    state.users = await loadAllProfiles();
+    renderView('users'); renderView('ranking');
+    toast('Acesso removido.');
+  };
+
+  /* ---------------- DASHBOARD ---------------- */
+  function renderDashboard(){
+    const vlist = visibleVehicles();
+    const flist = visibleFuel();
+    const clist = visibleCosts();
+    const finesList = visibleFines();
+    const pendingFines = finesList.filter(f=>f.status!=='paga');
+    const totalFuel = flist.reduce((s,f)=>s+f.value,0);
+    const totalCosts = clist.reduce((s,c)=>s+c.value,0);
+    const totalLiters = flist.reduce((s,f)=>s+f.liters,0);
+
+    const kpis = [
+      {label:'Veículos', val: vlist.length, pct:'70%'},
+      {label:'Gasto combustível', val: fmtMoney(totalFuel), pct:'55%'},
+      {label:'Gasto custos', val: fmtMoney(totalCosts), pct:'40%'},
+      {label:'Litros abastecidos', val: totalLiters.toLocaleString('pt-BR')+' L', pct:'65%'},
+      {label:'Multas pendentes', val: pendingFines.length, pct: pendingFines.length>0?'80%':'10%'}
+    ];
+    document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
+      <div class="kpi">
+        <div class="gauge" style="--pct:${k.pct}"><div class="gauge-inner">●</div></div>
+        <div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div>
+      </div>`).join('');
+
+    const recent = [
+      ...flist.map(f=>({type:'Abastecimento', vehicleId:f.vehicleId, date:f.date, value:f.value})),
+      ...clist.map(c=>({type:'Custo', vehicleId:c.vehicleId, date:c.date, value:c.value})),
+      ...finesList.map(f=>({type:'Multa', vehicleId:f.vehicleId, date:f.date, value:f.value}))
+    ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+
+    const recentBody = document.getElementById('dash-recent');
+    if(recent.length===0){ recentBody.innerHTML='<tr class="empty-row"><td colspan="4">Sem lançamentos ainda.</td></tr>'; }
+    else {
+      recentBody.innerHTML = recent.map(r=>{
+        const v = vehicleById(r.vehicleId);
+        return `<tr><td>${r.type}</td><td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td><td class="mono">${fmtDate(r.date)}</td><td class="mono">${fmtMoney(r.value)}</td></tr>`;
+      }).join('');
+    }
+  }
+
+  /* ---------------- render dispatch ---------------- */
+  function renderView(name){
+    if(name==='dashboard') renderDashboard();
+    else if(name==='vehicles') renderVehicles();
+    else if(name==='fuel') renderFuel();
+    else if(name==='costs') renderCosts();
+    else if(name==='fines') renderFines();
+    else if(name==='ranking') renderRanking();
+    else if(name==='users') renderUsers();
+  }
+  function renderAll(){
+    ['dashboard','vehicles','fuel','costs','fines','ranking','users'].forEach(renderView);
+  }
+
+  window.closeModalGlobal = closeModal;
+
+  /* ---------------- init ---------------- */
+  // login/entrada é controlado pelo listener auth.onAuthStateChanged acima.
+  // aqui só ligamos a sincronização em tempo real dos dados da frota.
+  listenShared('lots-vehicles', d => state.vehicles = d);
+  listenShared('lots-fuel',     d => state.fuel = d);
+  listenShared('lots-costs',    d => state.costs = d);
+  listenShared('lots-fines',    d => state.fines = d);
+
+})();
+</script>
+</body>
+</html>
