@@ -241,6 +241,15 @@
   .reg-card{padding:24px 26px;}
   .field-grid-4{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:16px;}
   .reg-submit{margin-top:4px;}
+  .expand-toggle{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+    padding:11px 16px; font-size:13.5px; font-weight:600; color:var(--text);
+    cursor:pointer; margin-bottom:12px; user-select:none;
+  }
+  .expand-toggle:hover{border-color:var(--accent);}
+  .expand-arrow{transition:transform .15s ease; color:var(--text-muted);}
+  .expand-toggle.open .expand-arrow{transform:rotate(180deg);}
   .import-card{border-color:var(--accent-dim);}
   .bi-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;}
   @media (max-width:900px){ .bi-grid{grid-template-columns:1fr;} }
@@ -508,7 +517,7 @@
               </select>
             </div>
             <div class="field"><label>KM atual</label><input id="rf-km" placeholder="0"></div>
-            <div class="field"><label>Tipo de locadora</label><input id="rf-locadora" placeholder="Ex: Localiza, Movida..."></div>
+            <div class="field"><label>Locadora</label><input id="rf-locadora" placeholder="Ex: Localiza, Movida..."></div>
             <div class="field"><label>Regime</label>
               <select id="rf-regime">
                 <option value="Contrato">Contrato</option>
@@ -737,11 +746,32 @@
           </div>
           <div class="field-grid-4">
             <div class="field"><label>B.O. (Boletim de Ocorrência)</label><input id="sf-bo" placeholder="Ex: 123456/2026"></div>
-            <div class="field"><label>Tipo de veículo</label><input id="sf-tipo-veiculo" placeholder="Ex: Utilitário leve"></div>
+            <div class="field"><label>Departamento</label><input id="sf-departamento" placeholder="—" readonly></div>
             <div class="field"><label>Valor</label><input id="sf-value" placeholder="Ex: 1200.00"></div>
-            <div class="field"><label>Motorista</label><input id="sf-motorista" placeholder="Ex: João da Silva"></div>
           </div>
-          <div class="field">
+
+          <div class="expand-toggle" id="toggle-motorista">👤 Dados do motorista <span class="expand-arrow">▾</span></div>
+          <div class="field-grid-4" id="motorista-fields" style="display:none;">
+            <div class="field"><label>Nome</label><input id="sf-mot-nome" placeholder="Ex: João da Silva"></div>
+            <div class="field"><label>Matrícula</label><input id="sf-mot-matricula" placeholder="Ex: 00123"></div>
+            <div class="field"><label>CPF</label><input id="sf-mot-cpf" placeholder="000.000.000-00"></div>
+            <div class="field"><label>RG</label><input id="sf-mot-rg" placeholder="00.000.000-0"></div>
+            <div class="field"><label>Número da CNH</label><input id="sf-mot-cnh" placeholder="Ex: 00000000000"></div>
+            <div class="field"><label>Data de nascimento</label><input type="date" id="sf-mot-nasc"></div>
+          </div>
+
+          <div class="expand-toggle" id="toggle-terceiros">🚗 Terceiros envolvidos <span class="expand-arrow">▾</span></div>
+          <div class="field-grid-4" id="terceiros-fields" style="display:none;">
+            <div class="field"><label>Nome</label><input id="sf-ter-nome" placeholder="Nome do terceiro"></div>
+            <div class="field"><label>Data de nascimento</label><input type="date" id="sf-ter-nasc"></div>
+            <div class="field"><label>RG</label><input id="sf-ter-rg" placeholder="00.000.000-0"></div>
+            <div class="field"><label>CPF</label><input id="sf-ter-cpf" placeholder="000.000.000-00"></div>
+            <div class="field"><label>Número da CNH</label><input id="sf-ter-cnh" placeholder="Ex: 00000000000"></div>
+            <div class="field"><label>Placa do veículo</label><input id="sf-ter-placa" placeholder="ABC1D23"></div>
+            <div class="field"><label>Modelo do veículo</label><input id="sf-ter-modelo" placeholder="Ex: Gol 1.0"></div>
+          </div>
+
+          <div class="field" style="margin-top:14px;">
             <label>Observações</label>
             <textarea id="sf-obs" rows="3" placeholder="Detalhes do ocorrido..." style="width:100%; resize:vertical; font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px;"></textarea>
           </div>
@@ -2112,8 +2142,21 @@
     const v = vehicleById(document.getElementById('sf-vehicle').value);
     document.getElementById('sf-plate').value = v ? v.plate : '';
     document.getElementById('sf-uo').value = v ? (v.unidade||'') : '';
+    document.getElementById('sf-departamento').value = v ? (v.departamento||'') : '';
   }
   document.getElementById('sf-vehicle')?.addEventListener('change', fillSinistroVehicleReadonly);
+
+  function setupExpandToggle(toggleId, fieldsId){
+    const toggle = document.getElementById(toggleId);
+    const fields = document.getElementById(fieldsId);
+    toggle?.addEventListener('click', ()=>{
+      const isOpen = fields.style.display==='grid';
+      fields.style.display = isOpen ? 'none' : 'grid';
+      toggle.classList.toggle('open', !isOpen);
+    });
+  }
+  setupExpandToggle('toggle-motorista','motorista-fields');
+  setupExpandToggle('toggle-terceiros','terceiros-fields');
 
   function visibleSinistros(){
     const u = currentUser();
@@ -2131,9 +2174,25 @@
       id: uid(), vehicleId,
       date: document.getElementById('sf-date').value || todayISO(),
       bo: document.getElementById('sf-bo').value.trim(),
-      tipoVeiculo: document.getElementById('sf-tipo-veiculo').value.trim(),
+      departamento: document.getElementById('sf-departamento').value,
       value,
-      motoristaNome: document.getElementById('sf-motorista').value.trim(),
+      motorista: {
+        nome: document.getElementById('sf-mot-nome').value.trim(),
+        matricula: document.getElementById('sf-mot-matricula').value.trim(),
+        cpf: document.getElementById('sf-mot-cpf').value.trim(),
+        rg: document.getElementById('sf-mot-rg').value.trim(),
+        cnh: document.getElementById('sf-mot-cnh').value.trim(),
+        nascimento: document.getElementById('sf-mot-nasc').value
+      },
+      terceiro: {
+        nome: document.getElementById('sf-ter-nome').value.trim(),
+        nascimento: document.getElementById('sf-ter-nasc').value,
+        rg: document.getElementById('sf-ter-rg').value.trim(),
+        cpf: document.getElementById('sf-ter-cpf').value.trim(),
+        cnh: document.getElementById('sf-ter-cnh').value.trim(),
+        placa: document.getElementById('sf-ter-placa').value.trim().toUpperCase(),
+        modelo: document.getElementById('sf-ter-modelo').value.trim()
+      },
       description: document.getElementById('sf-obs').value.trim(),
       anexos: []
     };
@@ -2167,11 +2226,17 @@
     document.getElementById('sf-vehicle').value='';
     document.getElementById('sf-plate').value='';
     document.getElementById('sf-uo').value='';
+    document.getElementById('sf-departamento').value='';
     document.getElementById('sf-date').value='';
     document.getElementById('sf-bo').value='';
-    document.getElementById('sf-tipo-veiculo').value='';
     document.getElementById('sf-value').value='';
-    document.getElementById('sf-motorista').value='';
+    ['sf-mot-nome','sf-mot-matricula','sf-mot-cpf','sf-mot-rg','sf-mot-cnh','sf-mot-nasc',
+     'sf-ter-nome','sf-ter-nasc','sf-ter-rg','sf-ter-cpf','sf-ter-cnh','sf-ter-placa','sf-ter-modelo'
+    ].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('motorista-fields').style.display='none';
+    document.getElementById('terceiros-fields').style.display='none';
+    document.getElementById('toggle-motorista').classList.remove('open');
+    document.getElementById('toggle-terceiros').classList.remove('open');
     document.getElementById('sf-obs').value='';
     filesInput.value='';
     renderView('sinistros');
@@ -2230,7 +2295,14 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(s=>{
       const v = vehicleById(s.vehicleId);
-      return {Data:s.date, Placa:v?.plate||'', UO:v?.unidade||'', 'B.O.':s.bo||'', 'Tipo de veículo':s.tipoVeiculo||'', Valor:s.value, Motorista:s.motoristaNome||'', Observações:s.description||''};
+      return {
+        Data:s.date, Placa:v?.plate||'', UO:v?.unidade||'', 'B.O.':s.bo||'', Departamento:s.departamento||'', Valor:s.value,
+        'Motorista - Nome':s.motorista?.nome||'', 'Motorista - Matrícula':s.motorista?.matricula||'', 'Motorista - CPF':s.motorista?.cpf||'',
+        'Motorista - RG':s.motorista?.rg||'', 'Motorista - CNH':s.motorista?.cnh||'', 'Motorista - Nascimento':s.motorista?.nascimento||'',
+        'Terceiro - Nome':s.terceiro?.nome||'', 'Terceiro - Nascimento':s.terceiro?.nascimento||'', 'Terceiro - RG':s.terceiro?.rg||'',
+        'Terceiro - CPF':s.terceiro?.cpf||'', 'Terceiro - CNH':s.terceiro?.cnh||'', 'Terceiro - Placa':s.terceiro?.placa||'', 'Terceiro - Modelo':s.terceiro?.modelo||'',
+        Observações:s.description||''
+      };
     })), 'Sinistros');
     XLSX.writeFile(wb, 'sinistros-gestao-frota-lots.xlsx');
     toast('Exportação gerada.');
@@ -2253,7 +2325,7 @@
         <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
         <td>${v?.unidade||'—'}</td>
         <td>${s.bo||'—'}</td>
-        <td>${s.motoristaNome||'—'}</td>
+        <td>${s.motorista?.nome||'—'}</td>
         <td class="mono">${fmtMoney(s.value)}</td>
         <td style="max-width:160px; font-size:11.5px;">${anexos}</td>
         <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteSinistro('${s.id}')">excluir</button></div></td>
