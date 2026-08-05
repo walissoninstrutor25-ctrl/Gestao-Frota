@@ -192,6 +192,12 @@
   .nav-item:hover{color:var(--text); background:var(--surface-2);}
   .nav-item.active{color:var(--accent); background:var(--surface-2); border-left:2px solid var(--accent);}
   .nav-ico{width:16px; text-align:center; font-family:'Roboto Mono',monospace; font-size:12px;}
+  .nav-section-label{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); font-weight:700; padding:14px 12px 6px 12px;}
+  .nav-section-label:first-of-type{padding-top:2px;}
+  .subtab-bar{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:22px; border-bottom:1px solid var(--line); padding-bottom:2px;}
+  .subtab{padding:9px 14px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; border-radius:6px 6px 0 0;}
+  .subtab:hover{color:var(--text); background:var(--surface-2);}
+  .subtab.active{color:var(--accent); border-bottom-color:var(--accent);}
   .sidebar-footer{margin-top:auto; padding-top:14px; border-top:1px dashed var(--line);}
   .status-pill{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-muted); padding:0 8px 10px 8px; font-weight:600;}
   .status-dot{width:8px; height:8px; border-radius:50%; background:var(--go); box-shadow:0 0 0 3px rgba(22,121,74,0.15);}
@@ -388,13 +394,8 @@
         <img src="assets/lots-logo.png" alt="LOTS Group" class="brand-logo-img">
         <span class="brand-sub-only"><small>GESTÃO DE FROTA LOTS</small></span>
       </div>
-      <div class="nav-item active" data-view="dashboard"><span class="nav-ico">◈</span> Dashboard</div>
-      <div class="nav-item" data-view="vehicles"><span class="nav-ico">▭</span> Cadastro de veículos</div>
-      <div class="nav-item" data-view="fuel"><span class="nav-ico">⛽</span> Combustível</div>
-      <div class="nav-item" data-view="costs"><span class="nav-ico">$</span> Custos Extras</div>
-      <div class="nav-item" data-view="fines"><span class="nav-ico">!</span> Multas</div>
-      <div class="nav-item" data-view="ranking"><span class="nav-ico">★</span> LOTS GO</div>
-      <div class="nav-item" data-view="users" id="nav-users"><span class="nav-ico">◎</span> Usuários</div>
+      <div class="nav-item active" data-fleet="light"><span class="nav-ico">◈</span> Controle de Frota Leve</div>
+      <div class="nav-item" data-fleet="heavy"><span class="nav-ico">▣</span> Controle de Frota Pesada</div>
       <div class="sidebar-footer">
         <div class="status-pill" id="online-status"><span class="status-dot"></span><span id="online-status-text">Online</span></div>
         <div class="who">
@@ -408,6 +409,25 @@
     </div>
 
     <div class="main">
+
+      <div class="subtab-bar" id="subtabs-light">
+        <div class="subtab active" data-view="dashboard">Painel</div>
+        <div class="subtab" data-view="vehicles">Cadastro de veículos</div>
+        <div class="subtab" data-view="fuel">Combustível</div>
+        <div class="subtab" data-view="costs">Custos Extras</div>
+        <div class="subtab" data-view="sinistros">Sinistros</div>
+        <div class="subtab" data-view="fines">Multas</div>
+        <div class="subtab" data-view="ranking">LOTS GO</div>
+        <div class="subtab" data-view="users" id="nav-users">Usuários</div>
+      </div>
+      <div class="subtab-bar" id="subtabs-heavy" style="display:none;">
+        <div class="subtab active" data-view="heavydash">Painel</div>
+        <div class="subtab" data-view="heavyfleet">Cadastro de veículos</div>
+        <div class="subtab" data-view="heavycosts">Custos Extras</div>
+        <div class="subtab" data-view="heavysinistros">Sinistros</div>
+        <div class="subtab" data-view="heavyfines">Multas</div>
+        <div class="subtab" data-view="heavyranking">LOTS GO</div>
+      </div>
 
       <!-- DASHBOARD -->
       <div class="view active" id="view-dashboard">
@@ -631,13 +651,12 @@
                 <option value="Funilaria">Funilaria</option>
                 <option value="Extras Contratos">Extras Contratos</option>
                 <option value="Borracharia">Borracharia</option>
-                <option value="Sinistros">Sinistros</option>
                 <option value="Custo com Lavagens">Custo com Lavagens</option>
                 <option value="Despachante">Despachante</option>
                 <option value="Custo Embarcados">Custo Embarcados</option>
               </select>
             </div>
-            <div class="field"><label>Valor do orçamento</label><input id="cf-budget" placeholder="Ex: 400.00"></div>
+            <div class="field"><label>Número do orçamento</label><input id="cf-budget" placeholder="Ex: ORC-2026-0451"></div>
             <div class="field"><label>Valor do serviço</label><input id="cf-value" placeholder="Ex: 350.00"></div>
           </div>
           <div class="field-grid-4">
@@ -656,10 +675,6 @@
               </select>
             </div>
             <div class="field" id="cf-funilaria-servico-wrap" style="display:none;"><label>Tipo de serviço</label><input id="cf-funilaria-servico" placeholder="Ex: Troca completa, reparo, polimento..."></div>
-          </div>
-          <div class="field-grid-4" id="cf-sinistro-row" style="display:none;">
-            <div class="field"><label>B.O. (Boletim de Ocorrência)</label><input id="cf-bo" placeholder="Ex: 123456/2026"></div>
-            <div class="field"><label>Tipo de veículo</label><input id="cf-tipo-veiculo" placeholder="Ex: Utilitário leve"></div>
           </div>
           <div class="field-grid-4">
             <div class="field"><label>Nome do motorista</label><input id="cf-motorista-nome" placeholder="Ex: João da Silva"></div>
@@ -706,6 +721,61 @@
         </div>
       </div>
 
+      <!-- SINISTROS -->
+      <div class="view" id="view-sinistros">
+        <div class="topbar">
+          <div><div class="page-title">Sinistros</div><div class="page-sub">Ocorrências, B.O. e custos relacionados</div></div>
+        </div>
+
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Novo sinistro</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo</label><select id="sf-vehicle"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Placa</label><input id="sf-plate" placeholder="—" readonly></div>
+            <div class="field"><label>UO</label><input id="sf-uo" placeholder="—" readonly></div>
+            <div class="field"><label>Data</label><input type="date" id="sf-date"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>B.O. (Boletim de Ocorrência)</label><input id="sf-bo" placeholder="Ex: 123456/2026"></div>
+            <div class="field"><label>Tipo de veículo</label><input id="sf-tipo-veiculo" placeholder="Ex: Utilitário leve"></div>
+            <div class="field"><label>Valor</label><input id="sf-value" placeholder="Ex: 1200.00"></div>
+            <div class="field"><label>Motorista</label><input id="sf-motorista" placeholder="Ex: João da Silva"></div>
+          </div>
+          <div class="field">
+            <label>Observações</label>
+            <textarea id="sf-obs" rows="3" placeholder="Detalhes do ocorrido..." style="width:100%; resize:vertical; font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px;"></textarea>
+          </div>
+          <div class="field">
+            <label>Fotos e arquivos</label>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+              <button type="button" class="btn-ghost btn-sm" id="btn-pick-onedrive-sin">📁 Escolher pasta do OneDrive</button>
+              <span class="page-sub" id="onedrive-folder-name-sin" style="margin:0;">Nenhuma pasta selecionada ainda.</span>
+            </div>
+            <input type="file" id="sf-files" multiple accept="image/*,.pdf">
+          </div>
+          <button class="btn-primary reg-submit" id="btn-save-sinistro">Salvar sinistro</button>
+          <div class="err-msg" id="sf-err"></div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Sinistros</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Período inicial</label><input type="date" id="bisin-start"></div>
+          <div class="filter-field"><label>Período final</label><input type="date" id="bisin-end"></div>
+          <div class="filter-field"><label>UO</label><select id="bisin-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
+          <div class="filter-field"><label>Placa</label><select id="bisin-vehicle"><option value="">Todas</option></select></div>
+          <button class="btn-ghost" id="btn-clear-bisin">Limpar</button>
+          <button class="btn-primary" id="btn-export-sinistros">⬇ Exportar</button>
+        </div>
+        <div class="kpi-grid" id="bisin-kpi-grid"></div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Histórico de sinistros</div></div>
+          <table><thead><tr><th>Data</th><th>Placa</th><th>UO</th><th>B.O.</th><th>Motorista</th><th>Valor</th><th>Anexos</th><th></th></tr></thead>
+          <tbody id="tbl-sinistros"></tbody></table>
+        </div>
+      </div>
+
       <!-- FINES -->
       <div class="view" id="view-fines">
         <div class="topbar">
@@ -740,6 +810,216 @@
         <div class="card">
           <table><thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Veículo vinculado</th><th></th></tr></thead>
           <tbody id="tbl-users"></tbody></table>
+        </div>
+      </div>
+
+      <!-- HEAVY DASHBOARD -->
+      <div class="view" id="view-heavydash">
+        <div class="topbar">
+          <div><div class="page-title">Painel — Frota Pesada</div><div class="page-sub">Visão geral da operação (frota pesada)</div></div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Período inicial</label><input type="date" id="hdfilter-start"></div>
+          <div class="filter-field"><label>Período final</label><input type="date" id="hdfilter-end"></div>
+          <div class="filter-field"><label>UO</label><select id="hdfilter-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
+          <div class="filter-field"><label>Placa</label><select id="hdfilter-vehicle"><option value="">Todas</option></select></div>
+          <button class="btn-ghost" id="btn-clear-hdfilter">Limpar</button>
+        </div>
+        <div class="ops-banner">
+          <div>
+            <div class="ops-eyebrow">Visão geral da operação</div>
+            <div class="ops-title">Custos e desempenho da frota pesada</div>
+            <div class="ops-sub">Indicadores consolidados por período, UO e veículo.</div>
+          </div>
+        </div>
+        <div class="kpi-grid" id="heavydash-kpi-grid"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Lançamentos (Custos Extras, Multas e Sinistros)</div></div>
+          <table><thead><tr><th>Data</th><th>UO</th><th>Veículo</th><th>Tipo</th><th>Valor</th><th>Descrição</th></tr></thead>
+          <tbody id="heavydash-recent"></tbody></table>
+        </div>
+      </div>
+
+      <!-- HEAVY FLEET -->
+      <div class="view" id="view-heavyfleet">
+        <div class="topbar">
+          <div><div class="page-title">Cadastro de veículos — Frota Pesada</div><div class="page-sub">Cadastro da frota pesada</div></div>
+        </div>
+
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Cadastro de veículo (frota pesada)</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Frota</label><input id="hf-frota" placeholder="Ex: P-045"></div>
+            <div class="field"><label>Placa</label><input id="hf-plate" placeholder="ABC1D23"></div>
+            <div class="field"><label>Modelo do veículo</label><input id="hf-model" placeholder="Ex: Volvo FH 540"></div>
+            <div class="field"><label>UO</label>
+              <select id="hf-uo">
+                <option value="MNS">MNS</option>
+                <option value="PRA">PRA</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>KM atual</label><input id="hf-km" placeholder="0"></div>
+            <div class="field"><label>Responsável do ativo</label><input id="hf-responsavel" placeholder="Ex: Carlos Mendes"></div>
+            <div class="field"><label>Status</label>
+              <select id="hf-status">
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+                <option value="manutencao">Manutenção</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-register-heavy">Cadastrar veículo</button>
+          <div class="err-msg" id="hf-err"></div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">Situação da frota</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>UO</label><select id="hfilter-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
+          <div class="filter-field"><label>Status</label><select id="hfilter-status"><option value="">Todos</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option><option value="manutencao">Manutenção</option></select></div>
+          <button class="btn-ghost" id="btn-clear-hfilter">Limpar</button>
+        </div>
+        <div class="kpi-grid" id="heavy-kpi-grid"></div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Veículos da frota pesada</div></div>
+          <table><thead><tr><th>Frota</th><th>Placa</th><th>Modelo</th><th>UO</th><th>KM atual</th><th>Responsável</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-heavy"></tbody></table>
+        </div>
+      </div>
+
+      <!-- HEAVY COSTS -->
+      <div class="view" id="view-heavycosts">
+        <div class="topbar">
+          <div><div class="page-title">Custos Extras — Frota Pesada</div><div class="page-sub">Manutenção, sinistros, avarias e demais despesas extras</div></div>
+        </div>
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Novo lançamento</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo</label><select id="hcf-vehicle"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Placa</label><input id="hcf-plate" placeholder="—" readonly></div>
+            <div class="field"><label>UO</label><input id="hcf-uo" placeholder="—" readonly></div>
+            <div class="field"><label>Data</label><input type="date" id="hcf-date"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>KM atual</label><input id="hcf-km" placeholder="Ex: 44120"></div>
+            <div class="field"><label>Categoria do custo</label>
+              <select id="hcf-category">
+                <option value="Mecânica">Mecânica</option>
+                <option value="Funilaria">Funilaria</option>
+                <option value="Extras Contratos">Extras Contratos</option>
+                <option value="Borracharia">Borracharia</option>
+                <option value="Custo com Lavagens">Custo com Lavagens</option>
+                <option value="Despachante">Despachante</option>
+                <option value="Custo Embarcados">Custo Embarcados</option>
+              </select>
+            </div>
+            <div class="field"><label>Número do orçamento</label><input id="hcf-budget" placeholder="Ex: ORC-2026-0451"></div>
+            <div class="field"><label>Valor do serviço</label><input id="hcf-value" placeholder="Ex: 350.00"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Fornecedor do serviço</label><input id="hcf-fornecedor" placeholder="Ex: Oficina Central"></div>
+            <div class="field"><label>Motorista/Responsável</label><input id="hcf-motorista-nome" placeholder="Ex: João da Silva"></div>
+            <div class="field"><label>Matrícula (se houver)</label><input id="hcf-matricula" placeholder="Ex: 00123"></div>
+          </div>
+          <div class="field">
+            <label>Observações</label>
+            <textarea id="hcf-obs" rows="3" placeholder="Detalhes do serviço realizado, etc." style="width:100%; resize:vertical; font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px;"></textarea>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-save-heavycost">Salvar lançamento</button>
+          <div class="err-msg" id="hcf-err"></div>
+        </div>
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Custos Extras — Frota Pesada</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Período inicial</label><input type="date" id="hbicost-start"></div>
+          <div class="filter-field"><label>Período final</label><input type="date" id="hbicost-end"></div>
+          <div class="filter-field"><label>UO</label><select id="hbicost-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
+          <div class="filter-field"><label>Placa</label><select id="hbicost-vehicle"><option value="">Todas</option></select></div>
+          <button class="btn-ghost" id="btn-clear-hbicost">Limpar</button>
+          <button class="btn-primary" id="btn-export-heavycosts">⬇ Exportar</button>
+        </div>
+        <div class="kpi-grid" id="hbicost-kpi-grid"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Custos por categoria</div></div>
+          <table><thead><tr><th>Categoria</th><th>Lançamentos</th><th>Valor total</th></tr></thead>
+          <tbody id="hbicost-by-category"></tbody></table>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Histórico de lançamentos</div></div>
+          <table><thead><tr><th>Data</th><th>Placa</th><th>UO</th><th>Categoria</th><th>KM</th><th>Fornecedor</th><th>Orçamento</th><th>Valor</th><th></th></tr></thead>
+          <tbody id="tbl-heavycosts"></tbody></table>
+        </div>
+      </div>
+
+      <!-- HEAVY SINISTROS -->
+      <div class="view" id="view-heavysinistros">
+        <div class="topbar">
+          <div><div class="page-title">Sinistros — Frota Pesada</div><div class="page-sub">Ocorrências, B.O. e custos relacionados</div></div>
+        </div>
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Novo sinistro</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo</label><select id="hsf-vehicle"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Placa</label><input id="hsf-plate" placeholder="—" readonly></div>
+            <div class="field"><label>UO</label><input id="hsf-uo" placeholder="—" readonly></div>
+            <div class="field"><label>Data</label><input type="date" id="hsf-date"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>B.O. (Boletim de Ocorrência)</label><input id="hsf-bo" placeholder="Ex: 123456/2026"></div>
+            <div class="field"><label>Tipo de veículo</label><input id="hsf-tipo-veiculo" placeholder="Ex: Cavalo mecânico"></div>
+            <div class="field"><label>Valor</label><input id="hsf-value" placeholder="Ex: 1200.00"></div>
+            <div class="field"><label>Motorista</label><input id="hsf-motorista" placeholder="Ex: João da Silva"></div>
+          </div>
+          <div class="field">
+            <label>Observações</label>
+            <textarea id="hsf-obs" rows="3" placeholder="Detalhes do ocorrido..." style="width:100%; resize:vertical; font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px;"></textarea>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-save-heavysinistro">Salvar sinistro</button>
+          <div class="err-msg" id="hsf-err"></div>
+        </div>
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Sinistros — Frota Pesada</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Período inicial</label><input type="date" id="hbisin-start"></div>
+          <div class="filter-field"><label>Período final</label><input type="date" id="hbisin-end"></div>
+          <div class="filter-field"><label>UO</label><select id="hbisin-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
+          <div class="filter-field"><label>Placa</label><select id="hbisin-vehicle"><option value="">Todas</option></select></div>
+          <button class="btn-ghost" id="btn-clear-hbisin">Limpar</button>
+          <button class="btn-primary" id="btn-export-heavysinistros">⬇ Exportar</button>
+        </div>
+        <div class="kpi-grid" id="hbisin-kpi-grid"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Histórico de sinistros</div></div>
+          <table><thead><tr><th>Data</th><th>Placa</th><th>UO</th><th>B.O.</th><th>Motorista</th><th>Valor</th><th></th></tr></thead>
+          <tbody id="tbl-heavysinistros"></tbody></table>
+        </div>
+      </div>
+
+      <!-- HEAVY FINES -->
+      <div class="view" id="view-heavyfines">
+        <div class="topbar">
+          <div><div class="page-title">Multas — Frota Pesada</div><div class="page-sub">Infrações registradas</div></div>
+          <button class="btn-primary" id="btn-new-heavyfine">+ Registrar</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Data</th><th>Veículo</th><th>Motorista</th><th>Infração</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-heavyfines"></tbody></table>
+        </div>
+      </div>
+
+      <!-- HEAVY RANKING -->
+      <div class="view" id="view-heavyranking">
+        <div class="topbar">
+          <div><div class="page-title">LOTS GO — Frota Pesada</div><div class="page-sub">Ranking e premiação por responsável</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Pontuação</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Pontuação = 1000 − (100 × multas pendentes) − (30 × multas pagas) − (custos extras ÷ 50)</div>
+          <table><thead><tr><th>Pos.</th><th>Responsável</th><th>Veículo</th><th>Multas</th><th>Pontuação</th></tr></thead>
+          <tbody id="tbl-heavyranking"></tbody></table>
         </div>
       </div>
 
@@ -862,19 +1142,30 @@
 
   /* ---------------- app state ---------------- */
   let state = {
-    users:[], vehicles:[], fuel:[], costs:[], fines:[],
+    users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
+    heavyCosts:[], heavyFines:[], heavySinistros:[],
     currentProfile:null
   };
 
   async function loadAll(){
-    setLoadingProgress(15, 'Carregando veículos…');
+    setLoadingProgress(10, 'Carregando veículos…');
     state.vehicles = await loadShared('lots-vehicles', []);
-    setLoadingProgress(40, 'Carregando abastecimentos…');
+    setLoadingProgress(25, 'Carregando abastecimentos…');
     state.fuel     = await loadShared('lots-fuel', []);
-    setLoadingProgress(65, 'Carregando custos…');
+    setLoadingProgress(35, 'Carregando custos…');
     state.costs    = await loadShared('lots-costs', []);
-    setLoadingProgress(85, 'Carregando multas…');
+    setLoadingProgress(45, 'Carregando multas…');
     state.fines    = await loadShared('lots-fines', []);
+    setLoadingProgress(55, 'Carregando sinistros…');
+    state.sinistros = await loadShared('lots-sinistros', []);
+    setLoadingProgress(65, 'Carregando frota pesada…');
+    state.heavyVehicles = await loadShared('lots-heavy-vehicles', []);
+    setLoadingProgress(75, 'Carregando custos (pesada)…');
+    state.heavyCosts = await loadShared('lots-heavy-costs', []);
+    setLoadingProgress(85, 'Carregando multas (pesada)…');
+    state.heavyFines = await loadShared('lots-heavy-fines', []);
+    setLoadingProgress(95, 'Carregando sinistros (pesada)…');
+    state.heavySinistros = await loadShared('lots-heavy-sinistros', []);
     setLoadingProgress(100, 'Pronto');
   }
 
@@ -922,7 +1213,12 @@
     vehicles: () => saveShared('lots-vehicles', state.vehicles),
     fuel: () => saveShared('lots-fuel', state.fuel),
     costs: () => saveShared('lots-costs', state.costs),
-    fines: () => saveShared('lots-fines', state.fines)
+    fines: () => saveShared('lots-fines', state.fines),
+    sinistros: () => saveShared('lots-sinistros', state.sinistros),
+    heavyVehicles: () => saveShared('lots-heavy-vehicles', state.heavyVehicles),
+    heavyCosts: () => saveShared('lots-heavy-costs', state.heavyCosts),
+    heavyFines: () => saveShared('lots-heavy-fines', state.heavyFines),
+    heavySinistros: () => saveShared('lots-heavy-sinistros', state.heavySinistros)
   };
 
   function currentUser(){
@@ -1020,12 +1316,23 @@
     }
   });
 
-  /* ---------------- NAV ---------------- */
-  document.querySelectorAll('.nav-item[data-view]').forEach(el=>{
+  /* ---------------- NAV (dois níveis: frota leve / frota pesada) ---------------- */
+  document.querySelectorAll('.nav-item[data-fleet]').forEach(el=>{
+    el.addEventListener('click', ()=>switchFleet(el.dataset.fleet));
+  });
+  function switchFleet(fleet){
+    document.querySelectorAll('.nav-item[data-fleet]').forEach(n=>n.classList.toggle('active', n.dataset.fleet===fleet));
+    document.getElementById('subtabs-light').style.display = fleet==='light' ? 'flex' : 'none';
+    document.getElementById('subtabs-heavy').style.display = fleet==='heavy' ? 'flex' : 'none';
+    const bar = document.getElementById(fleet==='light' ? 'subtabs-light' : 'subtabs-heavy');
+    const firstView = bar.querySelector('.subtab').dataset.view;
+    switchView(firstView);
+  }
+  document.querySelectorAll('.subtab[data-view]').forEach(el=>{
     el.addEventListener('click', ()=>switchView(el.dataset.view));
   });
   function switchView(name){
-    document.querySelectorAll('.nav-item[data-view]').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+    document.querySelectorAll('.subtab[data-view]').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('view-'+name).classList.add('active');
     renderView(name);
@@ -1037,7 +1344,7 @@
     const u = currentUser();
     document.getElementById('who-name').textContent = u.name;
     document.getElementById('who-role').textContent = u.role;
-    document.getElementById('nav-users').style.display = (u.role==='admin') ? 'flex' : 'none';
+    document.getElementById('nav-users').style.display = (u.role==='admin') ? 'block' : 'none';
     updateOnlineStatus();
     hideLoadingSplash();
     renderAll();
@@ -1528,6 +1835,8 @@
   function setFolderLabel(text){
     const el = document.getElementById('onedrive-folder-name');
     if(el) el.textContent = text;
+    const el2 = document.getElementById('onedrive-folder-name-sin');
+    if(el2) el2.textContent = text;
   }
   async function pickOneDriveFolder(){
     if(!('showDirectoryPicker' in window)){
@@ -1545,6 +1854,7 @@
     }
   }
   document.getElementById('btn-pick-onedrive')?.addEventListener('click', pickOneDriveFolder);
+  document.getElementById('btn-pick-onedrive-sin')?.addEventListener('click', pickOneDriveFolder);
   async function restoreOneDriveFolder(){
     if(!('indexedDB' in window)) return;
     try{
@@ -1584,7 +1894,7 @@
         <td class="mono">${c.km?Number(c.km).toLocaleString('pt-BR'):'—'}</td>
         <td>${c.fornecedor||'—'}</td>
         <td>${c.motoristaNome||'—'}</td>
-        <td class="mono">${c.budgetValue?fmtMoney(c.budgetValue):'—'}</td>
+        <td class="mono">${c.budgetNumber||'—'}</td>
         <td class="mono">${fmtMoney(c.value)}</td>
         <td style="max-width:160px; font-size:11.5px;">${anexos}</td>
         <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteCost('${c.id}')">excluir</button></div></td>
@@ -1612,7 +1922,6 @@
   }
   document.getElementById('cf-vehicle')?.addEventListener('change', fillCostVehicleReadonly);
   document.getElementById('cf-category')?.addEventListener('change', (e)=>{
-    document.getElementById('cf-sinistro-row').style.display = e.target.value==='Sinistros' ? 'grid' : 'none';
     document.getElementById('cf-funilaria-row').style.display = e.target.value==='Funilaria' ? 'grid' : 'none';
     if(e.target.value!=='Funilaria'){
       document.getElementById('cf-funilaria-tipo').value='';
@@ -1638,13 +1947,11 @@
       date: document.getElementById('cf-date').value || todayISO(),
       km: Number(document.getElementById('cf-km').value)||0,
       category: document.getElementById('cf-category').value,
-      budgetValue: Number(document.getElementById('cf-budget').value)||0,
+      budgetNumber: document.getElementById('cf-budget').value.trim(),
       value,
       fornecedor: document.getElementById('cf-fornecedor').value.trim(),
       funilariaTipo: document.getElementById('cf-funilaria-tipo').value,
       funilariaServico: document.getElementById('cf-funilaria-servico').value.trim(),
-      bo: document.getElementById('cf-bo').value.trim(),
-      tipoVeiculo: document.getElementById('cf-tipo-veiculo').value.trim(),
       motoristaNome: document.getElementById('cf-motorista-nome').value.trim(),
       matricula: document.getElementById('cf-matricula').value.trim(),
       description: document.getElementById('cf-obs').value.trim(),
@@ -1697,13 +2004,10 @@
     document.getElementById('cf-fornecedor').value='';
     document.getElementById('cf-funilaria-tipo').value='';
     document.getElementById('cf-funilaria-servico').value='';
-    document.getElementById('cf-bo').value='';
-    document.getElementById('cf-tipo-veiculo').value='';
     document.getElementById('cf-motorista-nome').value='';
     document.getElementById('cf-matricula').value='';
     document.getElementById('cf-obs').value='';
     filesInput.value='';
-    document.getElementById('cf-sinistro-row').style.display='none';
     document.getElementById('cf-funilaria-row').style.display='none';
     document.getElementById('cf-funilaria-servico-wrap').style.display='none';
 
@@ -1786,14 +2090,266 @@
       return {
         Data:c.date, Placa:v?.plate||'', UO:v?.unidade||'', Categoria:c.category,
         'Tipo (Funilaria)':c.funilariaTipo||'', 'Tipo de serviço':c.funilariaServico||'',
-        KM:c.km||'', Fornecedor:c.fornecedor||'', 'Valor orçamento':c.budgetValue||'', Valor:c.value,
-        Motorista:c.motoristaNome||'', Matrícula:c.matricula||'', 'B.O.':c.bo||'',
+        KM:c.km||'', Fornecedor:c.fornecedor||'', 'Número orçamento':c.budgetNumber||'', Valor:c.value,
+        Motorista:c.motoristaNome||'', Matrícula:c.matricula||'',
         Observações:c.description||'', Anexos:(c.anexos||[]).map(a=>a.name).join(' | ')
       };
     })), 'Custos Extras');
     XLSX.writeFile(wb, 'custos-extras-gestao-frota-lots.xlsx');
     toast('Exportação gerada.');
   });
+
+  /* ---------------- SINISTROS ---------------- */
+  function populateSinistroVehicleSelect(){
+    const sel = document.getElementById('sf-vehicle');
+    if(!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate} — ${v.model}</option>`).join('');
+    sel.value = visibleVehicles().some(v=>v.id===keep) ? keep : '';
+    fillSinistroVehicleReadonly();
+  }
+  function fillSinistroVehicleReadonly(){
+    const v = vehicleById(document.getElementById('sf-vehicle').value);
+    document.getElementById('sf-plate').value = v ? v.plate : '';
+    document.getElementById('sf-uo').value = v ? (v.unidade||'') : '';
+  }
+  document.getElementById('sf-vehicle')?.addEventListener('change', fillSinistroVehicleReadonly);
+
+  function visibleSinistros(){
+    const u = currentUser();
+    if(u.role==='motorista') return state.sinistros.filter(s=>s.vehicleId===u.vehicleId);
+    return state.sinistros;
+  }
+
+  document.getElementById('btn-save-sinistro')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('sf-err');
+    const vehicleId = document.getElementById('sf-vehicle').value;
+    if(!vehicleId){ errEl.textContent='Selecione um veículo.'; return; }
+    const value = Number(document.getElementById('sf-value').value)||0;
+    errEl.textContent='';
+    const rec = {
+      id: uid(), vehicleId,
+      date: document.getElementById('sf-date').value || todayISO(),
+      bo: document.getElementById('sf-bo').value.trim(),
+      tipoVeiculo: document.getElementById('sf-tipo-veiculo').value.trim(),
+      value,
+      motoristaNome: document.getElementById('sf-motorista').value.trim(),
+      description: document.getElementById('sf-obs').value.trim(),
+      anexos: []
+    };
+    const filesInput = document.getElementById('sf-files');
+    const files = filesInput.files;
+    if(files && files.length>0){
+      document.getElementById('btn-save-sinistro').textContent = 'Processando anexos…';
+      const hasFolder = !!onedriveDirHandle;
+      let permOk = false;
+      if(hasFolder){
+        try{ permOk = (await onedriveDirHandle.requestPermission({mode:'readwrite'}))==='granted'; }
+        catch(e){ console.error(e); }
+      }
+      for(const file of files){
+        const safeName = `${rec.id}_${Date.now()}_${file.name}`.replace(/[\\/:*?"<>|]/g,'_');
+        const thumb = await fileToThumbnail(file);
+        let savedAs = null;
+        if(permOk){
+          try{
+            const fh = await onedriveDirHandle.getFileHandle(safeName, {create:true});
+            const w = await fh.createWritable(); await w.write(file); await w.close();
+            savedAs = safeName;
+          }catch(e){ console.error(e); }
+        }
+        rec.anexos.push({name:file.name, savedAs, thumb});
+      }
+      document.getElementById('btn-save-sinistro').textContent = 'Salvar sinistro';
+    }
+    state.sinistros.push(rec);
+    await save.sinistros();
+    document.getElementById('sf-vehicle').value='';
+    document.getElementById('sf-plate').value='';
+    document.getElementById('sf-uo').value='';
+    document.getElementById('sf-date').value='';
+    document.getElementById('sf-bo').value='';
+    document.getElementById('sf-tipo-veiculo').value='';
+    document.getElementById('sf-value').value='';
+    document.getElementById('sf-motorista').value='';
+    document.getElementById('sf-obs').value='';
+    filesInput.value='';
+    renderView('sinistros');
+    toast('Sinistro salvo.');
+  });
+  LOTS.deleteSinistro = async (id)=>{
+    state.sinistros = state.sinistros.filter(s=>s.id!==id);
+    await save.sinistros();
+    renderView('sinistros');
+  };
+
+  function populateSinBIFilters(){
+    const vSel = document.getElementById('bisin-vehicle');
+    if(!vSel) return;
+    const keep = vSel.value;
+    vSel.innerHTML = '<option value="">Todas</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    vSel.value = visibleVehicles().some(v=>v.id===keep) ? keep : '';
+  }
+  ['bisin-start','bisin-end','bisin-uo','bisin-vehicle'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderSinistrosBI(); });
+  });
+  document.getElementById('btn-clear-bisin')?.addEventListener('click', ()=>{
+    ['bisin-start','bisin-end','bisin-uo','bisin-vehicle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderSinistrosBI();
+  });
+  function getSinFiltered(){
+    const start = document.getElementById('bisin-start').value;
+    const end = document.getElementById('bisin-end').value;
+    const uo = document.getElementById('bisin-uo').value;
+    const vf = document.getElementById('bisin-vehicle').value;
+    const okVids = visibleVehicles().filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
+    return visibleSinistros().filter(s=>{
+      if(!okVids.includes(s.vehicleId)) return false;
+      if(start && s.date<start) return false;
+      if(end && s.date>end) return false;
+      return true;
+    });
+  }
+  function renderSinistrosBI(){
+    const kpiGrid = document.getElementById('bisin-kpi-grid');
+    if(!kpiGrid) return;
+    populateSinBIFilters();
+    const list = getSinFiltered();
+    const total = list.reduce((s,x)=>s+x.value,0);
+    kpiGrid.innerHTML = [
+      {label:'Sinistros no período', val: list.length},
+      {label:'Valor total', val: fmtMoney(total)},
+      {label:'Ticket médio', val: fmtMoney(list.length?total/list.length:0)}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    LOTS._sinBISnapshot = list;
+  }
+  document.getElementById('btn-export-sinistros')?.addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
+    const list = LOTS._sinBISnapshot || [];
+    if(list.length===0){ toast('Nada para exportar.'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(s=>{
+      const v = vehicleById(s.vehicleId);
+      return {Data:s.date, Placa:v?.plate||'', UO:v?.unidade||'', 'B.O.':s.bo||'', 'Tipo de veículo':s.tipoVeiculo||'', Valor:s.value, Motorista:s.motoristaNome||'', Observações:s.description||''};
+    })), 'Sinistros');
+    XLSX.writeFile(wb, 'sinistros-gestao-frota-lots.xlsx');
+    toast('Exportação gerada.');
+  });
+
+  function renderSinistros(){
+    populateSinistroVehicleSelect();
+    renderSinistrosBI();
+    const tbl = document.getElementById('tbl-sinistros');
+    const list = visibleSinistros().slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum sinistro registrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(s=>{
+      const v = vehicleById(s.vehicleId);
+      const anexos = (s.anexos||[]).map(a=>
+        a.thumb ? `<img src="${a.thumb}" alt="${a.name}" class="anexo-thumb" onclick="LOTS.viewAnexo('${a.thumb.replace(/'/g,"\\'")}','${(a.name||'').replace(/'/g,"\\'")}')">`
+                : `<span class="anexo-file">📎 ${a.name}</span>`
+      ).join(' ') || '—';
+      return `<tr>
+        <td class="mono">${fmtDate(s.date)}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${v?.unidade||'—'}</td>
+        <td>${s.bo||'—'}</td>
+        <td>${s.motoristaNome||'—'}</td>
+        <td class="mono">${fmtMoney(s.value)}</td>
+        <td style="max-width:160px; font-size:11.5px;">${anexos}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteSinistro('${s.id}')">excluir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---------------- FROTA PESADA ---------------- */
+  function visibleHeavyVehicles(){ return state.heavyVehicles; }
+  LOTS._editingHeavyId = null;
+  function fillHeavyForm(v){
+    LOTS._editingHeavyId = v ? v.id : null;
+    document.getElementById('hf-frota').value = v?.frota || '';
+    document.getElementById('hf-plate').value = v?.plate || '';
+    document.getElementById('hf-model').value = v?.model || '';
+    document.getElementById('hf-uo').value = v?.unidade || 'MNS';
+    document.getElementById('hf-km').value = v?.km || '';
+    document.getElementById('hf-responsavel').value = v?.responsavel || '';
+    document.getElementById('hf-status').value = v?.status || 'ativo';
+    document.getElementById('btn-register-heavy').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
+  }
+  LOTS.editHeavy = (id)=>{
+    fillHeavyForm(state.heavyVehicles.find(v=>v.id===id));
+    document.querySelector('#view-heavyfleet .reg-card').scrollIntoView({behavior:'smooth'});
+  };
+  document.getElementById('btn-register-heavy')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('hf-err');
+    const data = {
+      frota: document.getElementById('hf-frota').value.trim(),
+      plate: document.getElementById('hf-plate').value.trim().toUpperCase(),
+      model: document.getElementById('hf-model').value.trim(),
+      unidade: document.getElementById('hf-uo').value,
+      km: Number(document.getElementById('hf-km').value)||0,
+      responsavel: document.getElementById('hf-responsavel').value.trim(),
+      status: document.getElementById('hf-status').value
+    };
+    if(!data.plate || !data.model){ errEl.textContent='Preencha ao menos placa e modelo.'; return; }
+    errEl.textContent='';
+    const id = LOTS._editingHeavyId;
+    if(id){ Object.assign(state.heavyVehicles.find(v=>v.id===id), data); }
+    else { state.heavyVehicles.push({id:uid(), dataCadastro:todayISO(), ...data}); }
+    await save.heavyVehicles();
+    fillHeavyForm(null);
+    renderView('heavyfleet');
+    toast(id ? 'Veículo atualizado.' : 'Veículo cadastrado.');
+  });
+  LOTS.deleteHeavy = async (id)=>{
+    state.heavyVehicles = state.heavyVehicles.filter(v=>v.id!==id);
+    await save.heavyVehicles();
+    renderView('heavyfleet');
+  };
+  ['hfilter-uo','hfilter-status'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavyFleet(); });
+  });
+  document.getElementById('btn-clear-hfilter')?.addEventListener('click', ()=>{
+    document.getElementById('hfilter-uo').value=''; document.getElementById('hfilter-status').value='';
+    renderHeavyFleet();
+  });
+  function renderHeavyFleet(){
+    const uo = document.getElementById('hfilter-uo')?.value || '';
+    const status = document.getElementById('hfilter-status')?.value || '';
+    const list = visibleHeavyVehicles().filter(v=>!uo||v.unidade===uo).filter(v=>!status||v.status===status);
+
+    const kpiGrid = document.getElementById('heavy-kpi-grid');
+    if(kpiGrid){
+      const all = visibleHeavyVehicles();
+      kpiGrid.innerHTML = [
+        {label:'Total de veículos', val: all.length},
+        {label:'Ativos', val: all.filter(v=>v.status==='ativo').length},
+        {label:'Em manutenção', val: all.filter(v=>v.status==='manutencao').length},
+        {label:'Inativos', val: all.filter(v=>v.status==='inativo').length}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    const tbl = document.getElementById('tbl-heavy');
+    if(!tbl) return;
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum veículo de frota pesada cadastrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(v=>{
+      const badge = v.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' :
+                    v.status==='manutencao' ? '<span class="badge badge-pending">Manutenção</span>' :
+                    '<span class="badge badge-danger">Inativo</span>';
+      return `<tr>
+        <td class="mono">${v.frota||'—'}</td>
+        <td><span class="plate">${v.plate}</span></td>
+        <td>${v.model}</td>
+        <td>${v.unidade||'—'}</td>
+        <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
+        <td>${v.responsavel||'—'}</td>
+        <td>${badge}</td>
+        <td><div class="action-links">
+          <button class="icon-btn" onclick="LOTS.editHeavy('${v.id}')">editar</button>
+          <button class="icon-btn danger" onclick="LOTS.deleteHeavy('${v.id}')">excluir</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
 
   /* ---------------- FINES ---------------- */
   function renderFines(){
@@ -1889,6 +2445,400 @@
         <td>${r.pending} pend. / ${r.paid} pagas</td>
         <td class="mono" style="color:var(--accent); font-weight:700;">${r.score} pts</td>
       </tr>`).join('');
+  }
+
+  /* =============== FROTA PESADA — CUSTOS, SINISTROS, MULTAS, RANKING =============== */
+  function heavyVehicleOptions(selectedId){
+    return state.heavyVehicles.map(v=>`<option value="${v.id}" ${v.id===selectedId?'selected':''}>${v.frota?v.frota+' — ':''}${v.plate} — ${v.model}</option>`).join('') || '<option value="">Nenhum veículo cadastrado</option>';
+  }
+
+  /* ---- Custos Extras (pesada) ---- */
+  function populateHeavyCostVehicleSelect(){
+    const sel = document.getElementById('hcf-vehicle');
+    if(!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + heavyVehicleOptions(null);
+    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    fillHeavyCostVehicleReadonly();
+  }
+  function fillHeavyCostVehicleReadonly(){
+    const v = state.heavyVehicles.find(x=>x.id===document.getElementById('hcf-vehicle').value);
+    document.getElementById('hcf-plate').value = v ? v.plate : '';
+    document.getElementById('hcf-uo').value = v ? (v.unidade||'') : '';
+  }
+  document.getElementById('hcf-vehicle')?.addEventListener('change', fillHeavyCostVehicleReadonly);
+
+  document.getElementById('btn-save-heavycost')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('hcf-err');
+    const vehicleId = document.getElementById('hcf-vehicle').value;
+    if(!vehicleId){ errEl.textContent='Selecione um veículo.'; return; }
+    const value = Number(document.getElementById('hcf-value').value)||0;
+    if(value<=0){ errEl.textContent='Informe o valor do serviço.'; return; }
+    errEl.textContent='';
+    const rec = {
+      id: uid(), vehicleId,
+      date: document.getElementById('hcf-date').value || todayISO(),
+      km: Number(document.getElementById('hcf-km').value)||0,
+      category: document.getElementById('hcf-category').value,
+      budgetNumber: document.getElementById('hcf-budget').value.trim(),
+      value,
+      fornecedor: document.getElementById('hcf-fornecedor').value.trim(),
+      motoristaNome: document.getElementById('hcf-motorista-nome').value.trim(),
+      matricula: document.getElementById('hcf-matricula').value.trim(),
+      description: document.getElementById('hcf-obs').value.trim()
+    };
+    state.heavyCosts.push(rec);
+    await save.heavyCosts();
+    ['hcf-km','hcf-budget','hcf-value','hcf-fornecedor','hcf-motorista-nome','hcf-matricula','hcf-obs'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('hcf-date').value='';
+    renderView('heavycosts'); renderView('heavydash');
+    toast('Lançamento salvo.');
+  });
+  LOTS.deleteHeavyCost = async (id)=>{
+    state.heavyCosts = state.heavyCosts.filter(c=>c.id!==id);
+    await save.heavyCosts();
+    renderView('heavycosts'); renderView('heavydash');
+  };
+  function populateHeavyCostBIFilters(){
+    const vSel = document.getElementById('hbicost-vehicle');
+    if(!vSel) return;
+    const keep = vSel.value;
+    vSel.innerHTML = '<option value="">Todas</option>' + heavyVehicleOptions(null);
+    vSel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+  }
+  ['hbicost-start','hbicost-end','hbicost-uo','hbicost-vehicle'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavyCostBI(); });
+  });
+  document.getElementById('btn-clear-hbicost')?.addEventListener('click', ()=>{
+    ['hbicost-start','hbicost-end','hbicost-uo','hbicost-vehicle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderHeavyCostBI();
+  });
+  function getHeavyCostFiltered(){
+    const start = document.getElementById('hbicost-start').value;
+    const end = document.getElementById('hbicost-end').value;
+    const uo = document.getElementById('hbicost-uo').value;
+    const vf = document.getElementById('hbicost-vehicle').value;
+    const okVids = state.heavyVehicles.filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
+    return state.heavyCosts.filter(c=>{
+      if(!okVids.includes(c.vehicleId)) return false;
+      if(start && c.date<start) return false;
+      if(end && c.date>end) return false;
+      return true;
+    });
+  }
+  function renderHeavyCostBI(){
+    const kpiGrid = document.getElementById('hbicost-kpi-grid');
+    if(!kpiGrid) return;
+    populateHeavyCostBIFilters();
+    const list = getHeavyCostFiltered();
+    const total = list.reduce((s,c)=>s+c.value,0);
+    const porCategoria = {};
+    list.forEach(c=>{ porCategoria[c.category]=porCategoria[c.category]||{qtd:0,val:0}; porCategoria[c.category].qtd++; porCategoria[c.category].val+=c.value; });
+    const categorias = Object.entries(porCategoria).sort((a,b)=>b[1].val-a[1].val);
+    kpiGrid.innerHTML = [
+      {label:'Lançamentos', val: list.length},
+      {label:'Valor total', val: fmtMoney(total)},
+      {label:'Ticket médio', val: fmtMoney(list.length?total/list.length:0)},
+      {label:'Categoria com maior gasto', val: categorias[0]?categorias[0][0]:'—'}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    const byCatBody = document.getElementById('hbicost-by-category');
+    byCatBody.innerHTML = categorias.length===0 ? '<tr class="empty-row"><td colspan="3">Sem lançamentos no período.</td></tr>' :
+      categorias.map(([cat,d])=>`<tr><td>${cat}</td><td class="mono">${d.qtd}</td><td class="mono">${fmtMoney(d.val)}</td></tr>`).join('');
+    LOTS._heavyCostBISnapshot = list;
+  }
+  document.getElementById('btn-export-heavycosts')?.addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
+    const list = LOTS._heavyCostBISnapshot || [];
+    if(list.length===0){ toast('Nada para exportar.'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(c=>{
+      const v = state.heavyVehicles.find(x=>x.id===c.vehicleId);
+      return {Data:c.date, Placa:v?.plate||'', UO:v?.unidade||'', Categoria:c.category, KM:c.km||'', Fornecedor:c.fornecedor||'', 'Número orçamento':c.budgetNumber||'', Valor:c.value, Motorista:c.motoristaNome||'', Matrícula:c.matricula||'', Observações:c.description||''};
+    })), 'Custos Extras Pesada');
+    XLSX.writeFile(wb, 'custos-extras-frota-pesada.xlsx');
+    toast('Exportação gerada.');
+  });
+  function renderHeavyCosts(){
+    populateHeavyCostVehicleSelect();
+    renderHeavyCostBI();
+    const tbl = document.getElementById('tbl-heavycosts');
+    const list = state.heavyCosts.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="9">Nenhum custo registrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(c=>{
+      const v = state.heavyVehicles.find(x=>x.id===c.vehicleId);
+      return `<tr>
+        <td class="mono">${fmtDate(c.date)}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${v?.unidade||'—'}</td>
+        <td>${c.category}</td>
+        <td class="mono">${c.km?Number(c.km).toLocaleString('pt-BR'):'—'}</td>
+        <td>${c.fornecedor||'—'}</td>
+        <td>${c.budgetNumber||'—'}</td>
+        <td class="mono">${fmtMoney(c.value)}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteHeavyCost('${c.id}')">excluir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---- Sinistros (pesada) ---- */
+  function populateHeavySinVehicleSelect(){
+    const sel = document.getElementById('hsf-vehicle');
+    if(!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + heavyVehicleOptions(null);
+    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    fillHeavySinVehicleReadonly();
+  }
+  function fillHeavySinVehicleReadonly(){
+    const v = state.heavyVehicles.find(x=>x.id===document.getElementById('hsf-vehicle').value);
+    document.getElementById('hsf-plate').value = v ? v.plate : '';
+    document.getElementById('hsf-uo').value = v ? (v.unidade||'') : '';
+  }
+  document.getElementById('hsf-vehicle')?.addEventListener('change', fillHeavySinVehicleReadonly);
+  document.getElementById('btn-save-heavysinistro')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('hsf-err');
+    const vehicleId = document.getElementById('hsf-vehicle').value;
+    if(!vehicleId){ errEl.textContent='Selecione um veículo.'; return; }
+    errEl.textContent='';
+    const rec = {
+      id: uid(), vehicleId,
+      date: document.getElementById('hsf-date').value || todayISO(),
+      bo: document.getElementById('hsf-bo').value.trim(),
+      tipoVeiculo: document.getElementById('hsf-tipo-veiculo').value.trim(),
+      value: Number(document.getElementById('hsf-value').value)||0,
+      motoristaNome: document.getElementById('hsf-motorista').value.trim(),
+      description: document.getElementById('hsf-obs').value.trim()
+    };
+    state.heavySinistros.push(rec);
+    await save.heavySinistros();
+    ['hsf-bo','hsf-tipo-veiculo','hsf-value','hsf-motorista','hsf-obs'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('hsf-date').value='';
+    renderView('heavysinistros'); renderView('heavydash');
+    toast('Sinistro salvo.');
+  });
+  LOTS.deleteHeavySinistro = async (id)=>{
+    state.heavySinistros = state.heavySinistros.filter(s=>s.id!==id);
+    await save.heavySinistros();
+    renderView('heavysinistros'); renderView('heavydash');
+  };
+  function populateHeavySinBIFilters(){
+    const vSel = document.getElementById('hbisin-vehicle');
+    if(!vSel) return;
+    const keep = vSel.value;
+    vSel.innerHTML = '<option value="">Todas</option>' + heavyVehicleOptions(null);
+    vSel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+  }
+  ['hbisin-start','hbisin-end','hbisin-uo','hbisin-vehicle'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavySinBI(); });
+  });
+  document.getElementById('btn-clear-hbisin')?.addEventListener('click', ()=>{
+    ['hbisin-start','hbisin-end','hbisin-uo','hbisin-vehicle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderHeavySinBI();
+  });
+  function getHeavySinFiltered(){
+    const start = document.getElementById('hbisin-start').value;
+    const end = document.getElementById('hbisin-end').value;
+    const uo = document.getElementById('hbisin-uo').value;
+    const vf = document.getElementById('hbisin-vehicle').value;
+    const okVids = state.heavyVehicles.filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
+    return state.heavySinistros.filter(s=>{
+      if(!okVids.includes(s.vehicleId)) return false;
+      if(start && s.date<start) return false;
+      if(end && s.date>end) return false;
+      return true;
+    });
+  }
+  function renderHeavySinBI(){
+    const kpiGrid = document.getElementById('hbisin-kpi-grid');
+    if(!kpiGrid) return;
+    populateHeavySinBIFilters();
+    const list = getHeavySinFiltered();
+    const total = list.reduce((s,x)=>s+x.value,0);
+    kpiGrid.innerHTML = [
+      {label:'Sinistros no período', val: list.length},
+      {label:'Valor total', val: fmtMoney(total)},
+      {label:'Ticket médio', val: fmtMoney(list.length?total/list.length:0)}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    LOTS._heavySinBISnapshot = list;
+  }
+  document.getElementById('btn-export-heavysinistros')?.addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
+    const list = LOTS._heavySinBISnapshot || [];
+    if(list.length===0){ toast('Nada para exportar.'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(s=>{
+      const v = state.heavyVehicles.find(x=>x.id===s.vehicleId);
+      return {Data:s.date, Placa:v?.plate||'', UO:v?.unidade||'', 'B.O.':s.bo||'', 'Tipo de veículo':s.tipoVeiculo||'', Valor:s.value, Motorista:s.motoristaNome||'', Observações:s.description||''};
+    })), 'Sinistros Pesada');
+    XLSX.writeFile(wb, 'sinistros-frota-pesada.xlsx');
+    toast('Exportação gerada.');
+  });
+  function renderHeavySinistros(){
+    populateHeavySinVehicleSelect();
+    renderHeavySinBI();
+    const tbl = document.getElementById('tbl-heavysinistros');
+    const list = state.heavySinistros.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum sinistro registrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(s=>{
+      const v = state.heavyVehicles.find(x=>x.id===s.vehicleId);
+      return `<tr>
+        <td class="mono">${fmtDate(s.date)}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${v?.unidade||'—'}</td>
+        <td>${s.bo||'—'}</td>
+        <td>${s.motoristaNome||'—'}</td>
+        <td class="mono">${fmtMoney(s.value)}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteHeavySinistro('${s.id}')">excluir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---- Multas (pesada) ---- */
+  function heavyFineForm(){
+    return `
+      <div class="modal-title">Registrar multa</div>
+      <div class="field"><label>Veículo</label><select id="hf-fine-vehicle">${heavyVehicleOptions(null)}</select></div>
+      <div class="field"><label>Motorista</label><input id="hf-fine-driver" placeholder="Nome do motorista"></div>
+      <div class="field-row">
+        <div class="field"><label>Data</label><input type="date" id="hf-fine-date" value="${todayISO()}"></div>
+        <div class="field"><label>Valor</label><input id="hf-fine-value" placeholder="Ex: 195.23"></div>
+      </div>
+      <div class="field"><label>Infração</label><input id="hf-fine-infraction" placeholder="Ex: Excesso de velocidade"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.saveHeavyFine()">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-heavyfine')?.addEventListener('click', ()=>openModal(heavyFineForm()));
+  LOTS.saveHeavyFine = async ()=>{
+    const rec = {
+      id: uid(),
+      vehicleId: document.getElementById('hf-fine-vehicle').value,
+      driverName: document.getElementById('hf-fine-driver').value.trim(),
+      date: document.getElementById('hf-fine-date').value || todayISO(),
+      value: Number(document.getElementById('hf-fine-value').value)||0,
+      infraction: document.getElementById('hf-fine-infraction').value.trim() || 'Infração não especificada',
+      status: 'pendente'
+    };
+    if(!rec.vehicleId){ toast('Selecione um veículo.'); return; }
+    state.heavyFines.push(rec);
+    await save.heavyFines();
+    closeModal(); renderView('heavyfines'); renderView('heavydash'); renderView('heavyranking');
+    toast('Multa registrada.');
+  };
+  LOTS.markHeavyPaid = async (id)=>{
+    const f = state.heavyFines.find(x=>x.id===id);
+    if(f){ f.status='paga'; await save.heavyFines(); renderView('heavyfines'); renderView('heavyranking'); }
+  };
+  LOTS.deleteHeavyFine = async (id)=>{
+    state.heavyFines = state.heavyFines.filter(f=>f.id!==id);
+    await save.heavyFines();
+    renderView('heavyfines'); renderView('heavydash'); renderView('heavyranking');
+  };
+  function renderHeavyFines(){
+    const tbl = document.getElementById('tbl-heavyfines');
+    const list = state.heavyFines.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhuma multa registrada.</td></tr>'; return; }
+    tbl.innerHTML = list.map(f=>{
+      const v = state.heavyVehicles.find(x=>x.id===f.vehicleId);
+      const badge = f.status==='paga' ? '<span class="badge badge-ok">Paga</span>' : '<span class="badge badge-danger">Pendente</span>';
+      return `<tr>
+        <td class="mono">${fmtDate(f.date)}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${f.driverName||'—'}</td>
+        <td>${f.infraction}</td>
+        <td class="mono">${fmtMoney(f.value)}</td>
+        <td>${badge}</td>
+        <td><div class="action-links">
+          ${f.status!=='paga'?`<button class="icon-btn" onclick="LOTS.markHeavyPaid('${f.id}')">marcar paga</button>`:''}
+          <button class="icon-btn danger" onclick="LOTS.deleteHeavyFine('${f.id}')">excluir</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---- LOTS GO (pesada) — ranking por responsável do ativo ---- */
+  function renderHeavyRanking(){
+    const tbl = document.getElementById('tbl-heavyranking');
+    const responsaveis = [...new Set(state.heavyVehicles.map(v=>v.responsavel).filter(Boolean))];
+    if(responsaveis.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">Cadastre o responsável dos veículos para ver o ranking.</td></tr>'; return; }
+    const rows = responsaveis.map(resp=>{
+      const vs = state.heavyVehicles.filter(v=>v.responsavel===resp);
+      const vids = vs.map(v=>v.id);
+      const fines = state.heavyFines.filter(f=>vids.includes(f.vehicleId));
+      const pending = fines.filter(f=>f.status!=='paga').length;
+      const paid = fines.filter(f=>f.status==='paga').length;
+      const costsTotal = state.heavyCosts.filter(c=>vids.includes(c.vehicleId)).reduce((s,c)=>s+c.value,0);
+      const score = Math.max(0, 1000 - pending*100 - paid*30 - Math.round(costsTotal/50));
+      return {resp, vehicle: vs[0], pending, paid, score};
+    }).sort((a,b)=>b.score-a.score);
+    tbl.innerHTML = rows.map((r,i)=>`
+      <tr>
+        <td><span class="rank-pos">${i+1}º</span></td>
+        <td>${r.resp}</td>
+        <td>${r.vehicle?`<span class="plate">${r.vehicle.plate}</span>`:'—'}</td>
+        <td>${r.pending} pend. / ${r.paid} pagas</td>
+        <td class="mono" style="color:var(--accent); font-weight:700;">${r.score} pts</td>
+      </tr>`).join('');
+  }
+
+  /* ---- Painel (BI geral) — Frota Pesada ---- */
+  function populateHeavyDashFilters(){
+    const vSel = document.getElementById('hdfilter-vehicle');
+    if(!vSel) return;
+    const keep = vSel.value;
+    vSel.innerHTML = '<option value="">Todas</option>' + heavyVehicleOptions(null);
+    vSel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+  }
+  ['hdfilter-start','hdfilter-end','hdfilter-uo','hdfilter-vehicle'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavyDash(); });
+  });
+  document.getElementById('btn-clear-hdfilter')?.addEventListener('click', ()=>{
+    ['hdfilter-start','hdfilter-end','hdfilter-uo','hdfilter-vehicle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderHeavyDash();
+  });
+  function renderHeavyDash(){
+    const kpiGrid = document.getElementById('heavydash-kpi-grid');
+    if(!kpiGrid) return;
+    populateHeavyDashFilters();
+    const start = document.getElementById('hdfilter-start').value;
+    const end = document.getElementById('hdfilter-end').value;
+    const uo = document.getElementById('hdfilter-uo').value;
+    const vf = document.getElementById('hdfilter-vehicle').value;
+    const okVids = state.heavyVehicles.filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
+    const inRange = d => (!start||d>=start) && (!end||d<=end);
+
+    const costs = state.heavyCosts.filter(c=>okVids.includes(c.vehicleId) && inRange(c.date));
+    const fines = state.heavyFines.filter(f=>okVids.includes(f.vehicleId) && inRange(f.date));
+    const sins  = state.heavySinistros.filter(s=>okVids.includes(s.vehicleId) && inRange(s.date));
+    const totalGeral = costs.reduce((s,c)=>s+c.value,0) + fines.reduce((s,f)=>s+f.value,0) + sins.reduce((s,x)=>s+x.value,0);
+
+    kpiGrid.innerHTML = [
+      {label:'Veículos ativos', val: state.heavyVehicles.filter(v=>(!uo||v.unidade===uo)&&v.status==='ativo').length},
+      {label:'Custos extras', val: fmtMoney(costs.reduce((s,c)=>s+c.value,0))},
+      {label:'Multas', val: fmtMoney(fines.reduce((s,f)=>s+f.value,0))},
+      {label:'Sinistros', val: fmtMoney(sins.reduce((s,x)=>s+x.value,0))},
+      {label:'Custo total', val: fmtMoney(totalGeral)}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+
+    const recent = [
+      ...costs.map(c=>({date:c.date, vehicleId:c.vehicleId, type:'Custo Extra', value:c.value, desc:c.category})),
+      ...fines.map(f=>({date:f.date, vehicleId:f.vehicleId, type:'Multa', value:f.value, desc:f.infraction})),
+      ...sins.map(s=>({date:s.date, vehicleId:s.vehicleId, type:'Sinistro', value:s.value, desc:s.bo||s.description}))
+    ].sort((a,b)=>b.date.localeCompare(a.date));
+    const body = document.getElementById('heavydash-recent');
+    if(recent.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum lançamento no período selecionado.</td></tr>'; return; }
+    body.innerHTML = recent.map(r=>{
+      const v = state.heavyVehicles.find(x=>x.id===r.vehicleId);
+      return `<tr>
+        <td class="mono">${fmtDate(r.date)}</td>
+        <td>${v?.unidade||'—'}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${r.type}</td>
+        <td class="mono">${fmtMoney(r.value)}</td>
+        <td>${r.desc||'—'}</td>
+      </tr>`;
+    }).join('');
   }
 
   /* ---------------- USERS ---------------- */
@@ -2122,12 +3072,20 @@
     else if(name==='vehicles') renderVehicles();
     else if(name==='fuel') renderFuel();
     else if(name==='costs') renderCosts();
+    else if(name==='sinistros') renderSinistros();
     else if(name==='fines') renderFines();
     else if(name==='ranking') renderRanking();
     else if(name==='users') renderUsers();
+    else if(name==='heavyfleet') renderHeavyFleet();
+    else if(name==='heavydash') renderHeavyDash();
+    else if(name==='heavycosts') renderHeavyCosts();
+    else if(name==='heavysinistros') renderHeavySinistros();
+    else if(name==='heavyfines') renderHeavyFines();
+    else if(name==='heavyranking') renderHeavyRanking();
   }
   function renderAll(){
-    ['dashboard','vehicles','fuel','costs','fines','ranking','users'].forEach(renderView);
+    ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','users',
+     'heavyfleet','heavydash','heavycosts','heavysinistros','heavyfines','heavyranking'].forEach(renderView);
   }
 
   window.closeModalGlobal = closeModal;
@@ -2149,6 +3107,11 @@
   listenShared('lots-fuel',     d => state.fuel = d);
   listenShared('lots-costs',    d => state.costs = d);
   listenShared('lots-fines',    d => state.fines = d);
+  listenShared('lots-sinistros', d => state.sinistros = d);
+  listenShared('lots-heavy-vehicles', d => state.heavyVehicles = d);
+  listenShared('lots-heavy-costs', d => state.heavyCosts = d);
+  listenShared('lots-heavy-fines', d => state.heavyFines = d);
+  listenShared('lots-heavy-sinistros', d => state.heavySinistros = d);
   updateOnlineStatus();
   setTimeout(hideLoadingSplash, 8000); // segurança: nunca trava na tela de carregamento
 
