@@ -192,6 +192,21 @@
   .nav-item.active{color:var(--accent); background:var(--surface-2); border-left:2px solid var(--accent);}
   .nav-ico{width:16px; text-align:center; font-family:'Roboto Mono',monospace; font-size:12px;}
   .sidebar-footer{margin-top:auto; padding-top:14px; border-top:1px dashed var(--line);}
+  .status-pill{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-muted); padding:0 8px 10px 8px; font-weight:600;}
+  .status-dot{width:8px; height:8px; border-radius:50%; background:var(--go); box-shadow:0 0 0 3px rgba(22,121,74,0.15);}
+  .status-pill.offline .status-dot{background:var(--danger); box-shadow:0 0 0 3px rgba(216,56,63,0.15);}
+  .status-pill.offline{color:var(--danger);}
+
+  /* ---------- loading splash ---------- */
+  #loading-splash{
+    position:fixed; inset:0; z-index:999;
+    background:var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  }
+  #loading-splash img{height:56px;}
+  .loading-bar-track{width:220px; height:6px; background:var(--surface-2); border-radius:4px; overflow:hidden; border:1px solid var(--line);}
+  .loading-bar-fill{height:100%; width:0%; background:var(--accent); transition:width .2s ease;}
+  .loading-pct{font-family:'Roboto Mono',monospace; font-size:13px; color:var(--text-muted);}
   .who{padding:8px; font-size:12px;}
   .who-name{color:var(--text); font-weight:600;}
   .who-role{color:var(--text-faint); text-transform:uppercase; font-size:10px; letter-spacing:0.06em;}
@@ -214,6 +229,11 @@
   .filter-field label{font-size:10.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;}
   .filter-field input, .filter-field select{padding:9px 10px; font-size:13px;}
   .filter-bar .btn-primary, .filter-bar .btn-ghost{white-space:nowrap;}
+
+  /* ---------- inline registration card ---------- */
+  .reg-card{padding:24px 26px;}
+  .field-grid-4{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:16px;}
+  .reg-submit{margin-top:4px;}
 
   /* ---------- ops banner ---------- */
   .ops-banner{
@@ -293,6 +313,13 @@
 </head>
 <body>
 
+<div id="loading-splash">
+  <img src="assets/lots-logo.png" alt="LOTS Group">
+  <div class="loading-bar-track"><div class="loading-bar-fill" id="loading-bar-fill"></div></div>
+  <div class="loading-pct" id="loading-pct">Carregando… 0%</div>
+</div>
+
+
 <!-- ================= LOGIN SCREEN ================= -->
 <div id="login-screen">
   <div class="login-card">
@@ -357,11 +384,13 @@
       <div class="nav-item" data-view="ranking"><span class="nav-ico">★</span> LOTS GO</div>
       <div class="nav-item" data-view="users" id="nav-users"><span class="nav-ico">◎</span> Usuários</div>
       <div class="sidebar-footer">
+        <div class="status-pill" id="online-status"><span class="status-dot"></span><span id="online-status-text">Online</span></div>
         <div class="who">
           <div class="who-name" id="who-name">—</div>
           <div class="who-role" id="who-role">—</div>
         </div>
         <button class="btn-ghost btn-sm" style="width:100%; margin-top:8px;" id="btn-logout">Sair</button>
+        <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-update-app">↻ Atualizar aplicativo</button>
         <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-download-app-2">⬇ Baixar app</button>
       </div>
     </div>
@@ -422,11 +451,79 @@
       <!-- VEHICLES -->
       <div class="view" id="view-vehicles">
         <div class="topbar">
-          <div><div class="page-title">Veículos</div><div class="page-sub">Cadastro da frota</div></div>
-          <button class="btn-primary" id="btn-new-vehicle">+ Novo veículo</button>
+          <div><div class="page-title">Cadastro de veículos</div><div class="page-sub">Controle placa a placa, frota, modelo, unidade e custos fixos.</div></div>
         </div>
+
+        <div class="card reg-card">
+          <div class="field-grid-4">
+            <div class="field"><label>Frota</label><input id="rf-frota" placeholder="Ex: 0123"></div>
+            <div class="field"><label>Placa</label><input id="rf-plate" placeholder="ABC1D23"></div>
+            <div class="field"><label>Modelo do veículo</label><input id="rf-model" placeholder="Ex: Fiat Strada"></div>
+            <div class="field"><label>UO</label>
+              <select id="rf-uo">
+                <option value="MNS">MNS</option>
+                <option value="PRA">PRA</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Departamento</label><input id="rf-depto" placeholder="Ex: Veículos" value="Veículos"></div>
+            <div class="field"><label>KM atual</label><input id="rf-km" placeholder="0"></div>
+            <div class="field"><label>Tipo de locadora</label><input id="rf-locadora" placeholder="Ex: Localiza, Movida..."></div>
+            <div class="field"><label>Regime</label>
+              <select id="rf-regime">
+                <option value="Contrato">Contrato</option>
+                <option value="Spot">Spot</option>
+                <option value="Limite de KM mensal">Limite de KM mensal</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Valor da locação</label><input id="rf-valor-locacao" placeholder="Ex: 2500.00"></div>
+            <div class="field"><label>Periodicidade</label>
+              <select id="rf-periodicidade">
+                <option value="Mensal">Mensal</option>
+                <option value="Diária">Diária</option>
+              </select>
+            </div>
+            <div class="field"><label>Custo de telemetria</label><input id="rf-telemetria" placeholder="Ex: 45.00"></div>
+            <div class="field"><label>Status</label>
+              <select id="rf-status">
+                <option value="ativo">Ativo</option>
+                <option value="manutencao">Manutenção</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Motorista responsável</label><select id="rf-driver"><option value="">— Nenhum —</option></select></div>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-register-vehicle">Cadastrar veículo</button>
+          <div class="err-msg" id="reg-vehicle-err"></div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="filter-field">
+            <label>Período (cadastro)</label>
+            <input type="date" id="vfilter-date-start">
+          </div>
+          <div class="filter-field">
+            <input type="date" id="vfilter-date-end" style="margin-top:19px;">
+          </div>
+          <div class="filter-field">
+            <label>UO</label>
+            <select id="vfilter-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select>
+          </div>
+          <div class="filter-field">
+            <label>Placa</label>
+            <select id="vfilter-placa"><option value="">Todas</option></select>
+          </div>
+          <button class="btn-ghost" id="btn-clear-vfilters">Limpar</button>
+          <button class="btn-primary" id="btn-export-vehicles">⬇ Exportar dados</button>
+        </div>
+
         <div class="card">
-          <table><thead><tr><th>Placa</th><th>Modelo</th><th>Unidade</th><th>Ano</th><th>KM atual</th><th>Motorista</th><th>Status</th><th></th></tr></thead>
+          <table><thead><tr><th>Frota</th><th>Placa</th><th>Modelo</th><th>UO</th><th>KM atual</th><th>Locadora</th><th>Valor locação</th><th>Motorista</th><th>Status</th><th></th></tr></thead>
           <tbody id="tbl-vehicles"></tbody></table>
         </div>
       </div>
@@ -610,11 +707,55 @@
   };
 
   async function loadAll(){
+    setLoadingProgress(15, 'Carregando veículos…');
     state.vehicles = await loadShared('lots-vehicles', []);
+    setLoadingProgress(40, 'Carregando abastecimentos…');
     state.fuel     = await loadShared('lots-fuel', []);
+    setLoadingProgress(65, 'Carregando custos…');
     state.costs    = await loadShared('lots-costs', []);
+    setLoadingProgress(85, 'Carregando multas…');
     state.fines    = await loadShared('lots-fines', []);
+    setLoadingProgress(100, 'Pronto');
   }
+
+  /* ---------------- loading splash ---------------- */
+  function setLoadingProgress(pct, label){
+    const fill = document.getElementById('loading-bar-fill');
+    const pctEl = document.getElementById('loading-pct');
+    if(fill) fill.style.width = pct+'%';
+    if(pctEl) pctEl.textContent = (label||'Carregando…')+' '+pct+'%';
+  }
+  function hideLoadingSplash(){
+    const el = document.getElementById('loading-splash');
+    if(el){ el.style.opacity='0'; el.style.transition='opacity .25s ease'; setTimeout(()=>el.remove(), 260); }
+  }
+
+  /* ---------------- online / offline status ---------------- */
+  function updateOnlineStatus(){
+    const pill = document.getElementById('online-status');
+    const text = document.getElementById('online-status-text');
+    if(!pill) return;
+    if(navigator.onLine){ pill.classList.remove('offline'); text.textContent='Online'; }
+    else { pill.classList.add('offline'); text.textContent='Offline'; }
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+
+  /* ---------------- atualizar aplicativo ---------------- */
+  document.getElementById('btn-update-app')?.addEventListener('click', async ()=>{
+    toast('Buscando atualização…');
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for(const r of regs){ await r.update(); }
+      }
+      if('caches' in window){
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k=>caches.delete(k)));
+      }
+    }catch(e){ console.warn('update app', e); }
+    location.reload();
+  });
 
   const save = {
     users: async () => {},
@@ -645,6 +786,7 @@
     document.getElementById('app-screen').style.display='none';
     document.getElementById('login-mode').style.display='block';
     document.getElementById('setup-mode').style.display='none';
+    hideLoadingSplash();
   }
 
   document.getElementById('btn-setup').addEventListener('click', async ()=>{
@@ -697,6 +839,7 @@
   }
 
   auth.onAuthStateChanged(async (user)=>{
+    setLoadingProgress(5, 'Verificando acesso…');
     if(user){
       const doc = await db.collection(PROFILES).doc(user.uid).get();
       if(!doc.exists){
@@ -707,6 +850,7 @@
         return;
       }
       state.currentProfile = {id:user.uid, ...doc.data()};
+      setLoadingProgress(10, 'Carregando usuários…');
       state.users = await loadAllProfiles();
       await loadAll();
       enterApp();
@@ -734,6 +878,8 @@
     document.getElementById('who-name').textContent = u.name;
     document.getElementById('who-role').textContent = u.role;
     document.getElementById('nav-users').style.display = (u.role==='admin') ? 'flex' : 'none';
+    updateOnlineStatus();
+    hideLoadingSplash();
     renderAll();
   }
 
@@ -757,20 +903,29 @@
 
   /* ---------------- VEHICLES ---------------- */
   function renderVehicles(){
+    populateVehicleFilterOptions();
+    const keepDriver = document.getElementById('rf-driver')?.value || '';
+    populateVehicleDriverSelect(keepDriver);
+    const f = getVehicleFilters();
     const tbl = document.getElementById('tbl-vehicles');
-    const list = visibleVehicles();
-    if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum veículo cadastrado ainda.</td></tr>'; return; }
+    let list = visibleVehicles()
+      .filter(v => !f.uo || v.unidade===f.uo)
+      .filter(v => !f.vehicleId || v.id===f.vehicleId)
+      .filter(v => inFilterRange(v.dataCadastro||'1900-01-01', f));
+    if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="10">Nenhum veículo encontrado.</td></tr>'; LOTS._vehiclesSnapshot=list; return; }
     tbl.innerHTML = list.map(v=>{
       const driver = userById(v.driverId);
       const statusBadge = v.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' :
                            v.status==='manutencao' ? '<span class="badge badge-pending">Manutenção</span>' :
                            '<span class="badge badge-danger">Inativo</span>';
       return `<tr>
+        <td class="mono">${v.frota||'—'}</td>
         <td><span class="plate">${v.plate}</span></td>
         <td>${v.model}</td>
         <td>${v.unidade||'—'}</td>
-        <td class="mono">${v.year}</td>
         <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
+        <td>${v.locadora||'—'}</td>
+        <td class="mono">${v.valorLocacao?fmtMoney(v.valorLocacao)+' / '+(v.periodicidade||''):'—'}</td>
         <td>${driver?driver.name:'—'}</td>
         <td>${statusBadge}</td>
         <td><div class="action-links">
@@ -779,6 +934,7 @@
         </div></td>
       </tr>`;
     }).join('');
+    LOTS._vehiclesSnapshot = list;
   }
   function visibleVehicles(){
     const u = currentUser();
@@ -786,57 +942,108 @@
     return state.vehicles;
   }
 
-  function vehicleForm(v){
-    v = v || {plate:'',model:'',year:'',km:0,driverId:'',status:'ativo',unidade:''};
-    return `
-      <div class="modal-title">${v.id?'Editar veículo':'Novo veículo'}</div>
-      <div class="field-row">
-        <div class="field"><label>Placa</label><input id="f-plate" value="${v.plate}" placeholder="ABC1D23"></div>
-        <div class="field"><label>Ano</label><input id="f-year" value="${v.year}" placeholder="2022"></div>
-      </div>
-      <div class="field"><label>Modelo</label><input id="f-model" value="${v.model}" placeholder="Ex: Fiat Strada"></div>
-      <div class="field"><label>Unidade</label><input id="f-unidade" value="${v.unidade||''}" placeholder="Ex: Matriz, Filial Sul..."></div>
-      <div class="field-row">
-        <div class="field"><label>KM atual</label><input id="f-km" value="${v.km}" placeholder="0"></div>
-        <div class="field"><label>Status</label>
-          <select id="f-status">
-            <option value="ativo" ${v.status==='ativo'?'selected':''}>Ativo</option>
-            <option value="manutencao" ${v.status==='manutencao'?'selected':''}>Manutenção</option>
-            <option value="inativo" ${v.status==='inativo'?'selected':''}>Inativo</option>
-          </select>
-        </div>
-      </div>
-      <div class="field"><label>Motorista responsável</label><select id="f-driver"><option value="">— Nenhum —</option>${driverOptions(v.driverId)}</select></div>
-      <div class="modal-actions">
-        <button class="btn-primary" onclick="LOTS.saveVehicle('${v.id||''}')">Salvar</button>
-        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
-      </div>`;
+  function populateVehicleFilterOptions(){
+    const placaSel = document.getElementById('vfilter-placa');
+    if(!placaSel) return;
+    const keepP = placaSel.value;
+    placaSel.innerHTML = '<option value="">Todas</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.plate}</option>`).join('');
+    placaSel.value = visibleVehicles().some(v=>v.id===keepP) ? keepP : '';
   }
-  document.getElementById('btn-new-vehicle').addEventListener('click', ()=>openModal(vehicleForm()));
+  function getVehicleFilters(){
+    return {
+      start: document.getElementById('vfilter-date-start')?.value || null,
+      end: document.getElementById('vfilter-date-end')?.value || null,
+      uo: document.getElementById('vfilter-uo')?.value || '',
+      vehicleId: document.getElementById('vfilter-placa')?.value || ''
+    };
+  }
+  ['vfilter-date-start','vfilter-date-end','vfilter-uo','vfilter-placa'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderVehicles(); });
+  });
+  document.getElementById('btn-clear-vfilters')?.addEventListener('click', ()=>{
+    document.getElementById('vfilter-date-start').value='';
+    document.getElementById('vfilter-date-end').value='';
+    document.getElementById('vfilter-uo').value='';
+    document.getElementById('vfilter-placa').value='';
+    renderVehicles();
+  });
+  document.getElementById('btn-export-vehicles')?.addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
+    const list = LOTS._vehiclesSnapshot || [];
+    if(list.length===0){ toast('Nada para exportar.'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(v=>({
+      Frota:v.frota||'', Placa:v.plate, Modelo:v.model, UO:v.unidade||'', Departamento:v.departamento||'',
+      KM:v.km, Locadora:v.locadora||'', Regime:v.regime||'', 'Valor locação':v.valorLocacao||'', Periodicidade:v.periodicidade||'',
+      'Custo telemetria':v.telemetria||'', Status:v.status, Motorista: userById(v.driverId)?.name||''
+    }))), 'Veículos');
+    XLSX.writeFile(wb, 'veiculos-gestao-frota-lots.xlsx');
+    toast('Exportação gerada.');
+  });
+
+  function populateVehicleDriverSelect(selectedId){
+    const sel = document.getElementById('rf-driver');
+    if(!sel) return;
+    sel.innerHTML = '<option value="">— Nenhum —</option>' + driverOptions(selectedId);
+  }
 
   window.LOTS = window.LOTS || {};
-  LOTS.editVehicle = (id)=>openModal(vehicleForm(vehicleById(id)));
-  LOTS.saveVehicle = async (id)=>{
+  LOTS._editingVehicleId = null;
+
+  function fillVehicleRegForm(v){
+    LOTS._editingVehicleId = v ? v.id : null;
+    document.getElementById('rf-frota').value = v?.frota || '';
+    document.getElementById('rf-plate').value = v?.plate || '';
+    document.getElementById('rf-model').value = v?.model || '';
+    document.getElementById('rf-uo').value = v?.unidade || 'MNS';
+    document.getElementById('rf-depto').value = v?.departamento || 'Veículos';
+    document.getElementById('rf-km').value = v?.km || '';
+    document.getElementById('rf-locadora').value = v?.locadora || '';
+    document.getElementById('rf-regime').value = v?.regime || 'Contrato';
+    document.getElementById('rf-valor-locacao').value = v?.valorLocacao || '';
+    document.getElementById('rf-periodicidade').value = v?.periodicidade || 'Mensal';
+    document.getElementById('rf-telemetria').value = v?.telemetria || '';
+    document.getElementById('rf-status').value = v?.status || 'ativo';
+    populateVehicleDriverSelect(v?.driverId);
+    document.getElementById('btn-register-vehicle').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
+  }
+  LOTS.editVehicle = (id)=>{
+    fillVehicleRegForm(vehicleById(id));
+    document.querySelector('.reg-card').scrollIntoView({behavior:'smooth'});
+  };
+
+  document.getElementById('btn-register-vehicle').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('reg-vehicle-err');
     const data = {
-      plate: document.getElementById('f-plate').value.trim().toUpperCase(),
-      model: document.getElementById('f-model').value.trim(),
-      year: document.getElementById('f-year').value.trim(),
-      unidade: document.getElementById('f-unidade').value.trim(),
-      km: Number(document.getElementById('f-km').value)||0,
-      status: document.getElementById('f-status').value,
-      driverId: document.getElementById('f-driver').value || null
+      frota: document.getElementById('rf-frota').value.trim(),
+      plate: document.getElementById('rf-plate').value.trim().toUpperCase(),
+      model: document.getElementById('rf-model').value.trim(),
+      unidade: document.getElementById('rf-uo').value,
+      departamento: document.getElementById('rf-depto').value.trim(),
+      km: Number(document.getElementById('rf-km').value)||0,
+      locadora: document.getElementById('rf-locadora').value.trim(),
+      regime: document.getElementById('rf-regime').value,
+      valorLocacao: Number(document.getElementById('rf-valor-locacao').value)||0,
+      periodicidade: document.getElementById('rf-periodicidade').value,
+      telemetria: Number(document.getElementById('rf-telemetria').value)||0,
+      status: document.getElementById('rf-status').value,
+      driverId: document.getElementById('rf-driver').value || null
     };
-    if(!data.plate || !data.model){ toast('Preencha placa e modelo.'); return; }
+    if(!data.plate || !data.model){ errEl.textContent='Preencha ao menos placa e modelo.'; return; }
+    errEl.textContent='';
+    const id = LOTS._editingVehicleId;
     if(id){
       Object.assign(vehicleById(id), data);
     } else {
-      state.vehicles.push({id:uid(), ...data});
+      state.vehicles.push({id:uid(), dataCadastro: todayISO(), ...data});
     }
     await save.vehicles();
-    closeModal(); renderView('vehicles'); renderView('dashboard'); populateFilterOptions();
-    toast('Veículo salvo.');
-  };
+    fillVehicleRegForm(null);
+    renderView('vehicles'); renderView('dashboard'); populateFilterOptions();
+    toast(id ? 'Veículo atualizado.' : 'Veículo cadastrado.');
+  });
   LOTS.deleteVehicle = async (id)=>{
+
     state.vehicles = state.vehicles.filter(v=>v.id!==id);
     await save.vehicles();
     renderView('vehicles'); renderView('dashboard');
@@ -1323,6 +1530,8 @@
   listenShared('lots-fuel',     d => state.fuel = d);
   listenShared('lots-costs',    d => state.costs = d);
   listenShared('lots-fines',    d => state.fines = d);
+  updateOnlineStatus();
+  setTimeout(hideLoadingSplash, 8000); // segurança: nunca trava na tela de carregamento
 
 })();
 </script>
