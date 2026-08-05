@@ -1328,3 +1328,103 @@
 </script>
 </body>
 </html>
+
+LOTS — GESTÃO DE FROTA
+========================
+
+O QUE TEM NESTA PASTA
+----------------------
+index.html              -> o sistema completo (abrir este arquivo no navegador)
+manifest.webmanifest    -> permite "instalar" o app na tela inicial (celular/PC)
+sw.js                   -> deixa o app abrir mesmo sem internet (guarda a "casca" do app)
+assets/                 -> logo LOTS Group (usada no login e menu)
+
+ANTES DE USAR
+-------------
+1. Abra o index.html num editor de texto.
+2. Procure por "firebaseConfig" perto do início do <script>.
+3. Cole ali os dados do SEU projeto Firebase (veja console.firebase.google.com).
+4. No Firebase, ative Authentication > Sign-in method > E-mail/senha.
+5. No Firestore > Regras, cole as regras de segurança que o Claude te passou no chat.
+
+ONDE OS DADOS FICAM SALVOS
+---------------------------
+Os dados (veículos, abastecimentos, custos, multas, usuários) NÃO ficam
+dentro desta pasta — ficam guardados na nuvem, no seu projeto Firebase.
+Por isso, esta pasta pode ser copiada, movida ou hospedada em qualquer
+lugar (GitHub Pages, servidor da empresa, outro computador) sem perder
+nada, DESDE QUE o firebaseConfig dentro do index.html continue sendo o
+mesmo projeto Firebase.
+
+TRANSFERINDO PARA OUTRO COMPUTADOR
+------------------------------------
+Basta copiar esta pasta inteira (ou o .zip) para o outro computador e
+abrir o index.html. Como os dados estão no Firebase, tudo aparece
+exatamente igual, sem precisar reconfigurar nada além do navegador ter
+internet na primeira abertura (depois disso, o app abre offline também,
+graças ao sw.js e à persistência offline do Firestore).
+
+HOSPEDANDO (GitHub Pages, servidor, etc.)
+-------------------------------------------
+Suba TODOS os arquivos desta pasta (não só o index.html) mantendo a
+mesma estrutura de pastas — o manifest.webmanifest, o sw.js e a pasta
+assets/ precisam estar no mesmo nível do index.html.
+
+const CACHE_NAME = "lots-frota-v1";
+const FILES = [
+  "./index.html",
+  "./manifest.webmanifest",
+  "./assets/lots-logo.png",
+  "./assets/lots-logo-192.png",
+  "./assets/lots-logo-512.png"
+];
+
+self.addEventListener("install", event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", event => {
+  // só cuidamos da "casca" do app (html/manifest/ícones) offline.
+  // chamadas ao Firebase continuam indo direto pra rede (ou pela
+  // persistência offline do próprio Firestore).
+  if(event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request).catch(() =>
+      caches.match(event.request).then(response => response || caches.match("./index.html"))
+    )
+  );
+});
+
+{
+  "name": "LOTS Gestão de Frota",
+  "short_name": "LOTS Frota",
+  "description": "Sistema LOTS de controle de frota leve: veículos, abastecimento, custos, multas e ranking LOTS GO.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef4f0",
+  "theme_color": "#16794a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/lots-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/lots-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
