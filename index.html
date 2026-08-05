@@ -234,6 +234,11 @@
   .reg-card{padding:24px 26px;}
   .field-grid-4{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:16px;}
   .reg-submit{margin-top:4px;}
+  .import-card{border-color:var(--accent-dim);}
+  .bi-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;}
+  @media (max-width:900px){ .bi-grid{grid-template-columns:1fr;} }
+  .rank-good{color:var(--go); font-weight:700;}
+  .rank-bad{color:var(--danger); font-weight:700;}
 
   /* ---------- ops banner ---------- */
   .ops-banner{
@@ -378,7 +383,7 @@
       </div>
       <div class="nav-item active" data-view="dashboard"><span class="nav-ico">◈</span> Dashboard</div>
       <div class="nav-item" data-view="vehicles"><span class="nav-ico">▭</span> Veículos</div>
-      <div class="nav-item" data-view="fuel"><span class="nav-ico">⛽</span> Abastecimento</div>
+      <div class="nav-item" data-view="fuel"><span class="nav-ico">⛽</span> Combustível</div>
       <div class="nav-item" data-view="costs"><span class="nav-ico">$</span> Custos</div>
       <div class="nav-item" data-view="fines"><span class="nav-ico">!</span> Multas</div>
       <div class="nav-item" data-view="ranking"><span class="nav-ico">★</span> LOTS GO</div>
@@ -497,6 +502,8 @@
           </div>
           <div class="field-grid-4">
             <div class="field"><label>Motorista responsável</label><select id="rf-driver"><option value="">— Nenhum —</option></select></div>
+            <div class="field"><label>Consumo esperado (km/L)</label><input id="rf-consumo-esperado" placeholder="Ex: 9.5"></div>
+            <div class="field"><label>Preço pago por litro (R$)</label><input id="rf-preco-litro" placeholder="Ex: 6.09"></div>
           </div>
           <button class="btn-primary reg-submit" id="btn-register-vehicle">Cadastrar veículo</button>
           <div class="err-msg" id="reg-vehicle-err"></div>
@@ -531,11 +538,59 @@
       <!-- FUEL -->
       <div class="view" id="view-fuel">
         <div class="topbar">
-          <div><div class="page-title">Abastecimento</div><div class="page-sub">Controle de combustível</div></div>
-          <button class="btn-primary" id="btn-new-fuel">+ Registrar</button>
+          <div><div class="page-title">Combustível</div><div class="page-sub">Abastecimentos, importação e BI de consumo</div></div>
+          <button class="btn-primary" id="btn-new-fuel">+ Registrar manualmente</button>
         </div>
+
+        <div class="card import-card">
+          <div class="card-head"><div class="card-title">Importar planilha de abastecimento</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">
+            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>Veículo</b>, <b>Litros</b>, <b>KM atual</b>, <b>Posto</b> (e opcionalmente <b>Data</b>). Pode ser usado diariamente, semanalmente ou mensalmente — os dados vão se somando ao histórico.
+          </div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field"><label>Data do lote (se a planilha não tiver coluna Data)</label><input type="date" id="import-date"></div>
+            <div class="field"><button class="btn-primary" id="btn-import-fuel" style="width:100%;">⬆ Importar planilha</button></div>
+          </div>
+          <div class="err-msg" id="import-fuel-msg"></div>
+        </div>
+
+        <div class="lane accent"></div>
+
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Combustível</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Período inicial</label><input type="date" id="bifuel-start"></div>
+          <div class="filter-field"><label>Período final</label><input type="date" id="bifuel-end"></div>
+          <div class="filter-field"><label>Mês</label><select id="bifuel-month"><option value="">Todos</option></select></div>
+          <div class="filter-field"><label>UO</label><select id="bifuel-uo"><option value="">Todas</option></select></div>
+          <div class="filter-field"><label>Frota / Placa</label><select id="bifuel-vehicle"><option value="">Todas</option></select></div>
+          <button class="btn-ghost" id="btn-clear-bifuel">Limpar</button>
+        </div>
+
+        <div class="kpi-grid" id="bifuel-kpi-grid"></div>
+
+        <div class="bi-grid">
+          <div class="card">
+            <div class="card-head"><div class="card-title">🏆 Top 10 — Melhor média (km/L)</div></div>
+            <table><thead><tr><th>Pos.</th><th>Veículo</th><th>UO</th><th>Média real</th><th>Meta</th></tr></thead>
+            <tbody id="bifuel-top-best"></tbody></table>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">⚠ Top 10 — Pior média (km/L)</div></div>
+            <table><thead><tr><th>Pos.</th><th>Veículo</th><th>UO</th><th>Média real</th><th>Meta</th></tr></thead>
+            <tbody id="bifuel-top-worst"></tbody></table>
+          </div>
+        </div>
+
         <div class="card">
-          <table><thead><tr><th>Data</th><th>Veículo</th><th>Litros</th><th>Valor</th><th>KM</th><th>Posto</th><th></th></tr></thead>
+          <div class="card-head"><div class="card-title">Frotas abaixo da média esperada</div></div>
+          <table><thead><tr><th>Frota</th><th>Veículo</th><th>UO</th><th>Média real</th><th>Meta cadastrada</th><th>Diferença</th></tr></thead>
+          <tbody id="bifuel-below"></tbody></table>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Histórico de abastecimentos</div></div>
+          <table><thead><tr><th>Data</th><th>Frota</th><th>Veículo</th><th>Litros</th><th>Valor</th><th>KM</th><th>Posto</th><th></th></tr></thead>
           <tbody id="tbl-fuel"></tbody></table>
         </div>
       </div>
@@ -1004,6 +1059,8 @@
     document.getElementById('rf-periodicidade').value = v?.periodicidade || 'Mensal';
     document.getElementById('rf-telemetria').value = v?.telemetria || '';
     document.getElementById('rf-status').value = v?.status || 'ativo';
+    document.getElementById('rf-consumo-esperado').value = v?.consumoEsperado || '';
+    document.getElementById('rf-preco-litro').value = v?.precoLitro || '';
     populateVehicleDriverSelect(v?.driverId);
     document.getElementById('btn-register-vehicle').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
   }
@@ -1027,6 +1084,8 @@
       periodicidade: document.getElementById('rf-periodicidade').value,
       telemetria: Number(document.getElementById('rf-telemetria').value)||0,
       status: document.getElementById('rf-status').value,
+      consumoEsperado: Number(document.getElementById('rf-consumo-esperado').value)||0,
+      precoLitro: Number(document.getElementById('rf-preco-litro').value)||0,
       driverId: document.getElementById('rf-driver').value || null
     };
     if(!data.plate || !data.model){ errEl.textContent='Preencha ao menos placa e modelo.'; return; }
@@ -1052,13 +1111,16 @@
 
   /* ---------------- FUEL ---------------- */
   function renderFuel(){
+    populateFuelBIFilters();
+    renderFuelBI();
     const tbl = document.getElementById('tbl-fuel');
     const list = visibleFuel().slice().sort((a,b)=>b.date.localeCompare(a.date));
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum abastecimento registrado.</td></tr>'; return; }
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum abastecimento registrado.</td></tr>'; return; }
     tbl.innerHTML = list.map(f=>{
       const v = vehicleById(f.vehicleId);
       return `<tr>
         <td class="mono">${fmtDate(f.date)}</td>
+        <td class="mono">${v?.frota||'—'}</td>
         <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
         <td class="mono">${f.liters} L</td>
         <td class="mono">${fmtMoney(f.value)}</td>
@@ -1116,6 +1178,198 @@
     await save.fuel();
     renderView('fuel'); renderView('dashboard');
   };
+
+  /* ---------------- IMPORTAÇÃO DE PLANILHA DE COMBUSTÍVEL ---------------- */
+  function normKey(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+  function pickCol(row, ...names){
+    const keys = Object.keys(row);
+    for(const name of names){
+      const target = normKey(name);
+      const found = keys.find(k=>normKey(k)===target || normKey(k).includes(target));
+      if(found!==undefined) return row[found];
+    }
+    return undefined;
+  }
+  function excelDateToISO(v){
+    if(!v) return null;
+    if(typeof v === 'number'){
+      const d = new Date(Math.round((v-25569)*86400*1000));
+      return d.toISOString().slice(0,10);
+    }
+    const s = String(v).trim();
+    // dd/mm/aaaa
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if(m){ const yr = m[3].length===2?('20'+m[3]):m[3]; return `${yr}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+    // já ISO
+    m = s.match(/^\d{4}-\d{2}-\d{2}$/);
+    if(m) return s;
+    return null;
+  }
+
+  document.getElementById('btn-import-fuel')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('import-fuel-msg');
+    const fileInput = document.getElementById('import-file');
+    const batchDate = document.getElementById('import-date').value || todayISO();
+    if(!fileInput.files.length){ msgEl.textContent='Selecione um arquivo primeiro.'; msgEl.style.color='var(--danger)'; return; }
+    if(typeof XLSX === 'undefined'){ msgEl.textContent='Biblioteca de importação não carregada.'; return; }
+    msgEl.style.color='var(--text-muted)';
+    msgEl.textContent='Lendo planilha…';
+    try{
+      const file = fileInput.files[0];
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array', cellDates:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      let imported=0, skipped=0, kmUpdates={};
+      for(const row of rows){
+        const frota = String(pickCol(row,'frota')||'').trim();
+        const placaRaw = String(pickCol(row,'placa')||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+        const litros = Number(pickCol(row,'litros','quantidade de litros','qtd litros'))||0;
+        const km = Number(pickCol(row,'km atual','km','quilometragem'))||0;
+        const posto = String(pickCol(row,'posto','nome do posto')||'').trim();
+        const dataRaw = pickCol(row,'data');
+        const dataISO = excelDateToISO(dataRaw) || batchDate;
+
+        let v = state.vehicles.find(x=>x.plate.replace(/[^A-Z0-9]/g,'')===placaRaw);
+        if(!v && frota) v = state.vehicles.find(x=>String(x.frota||'').trim()===frota);
+        if(!v || litros<=0){ skipped++; continue; }
+
+        state.fuel.push({
+          id:uid(), vehicleId:v.id, date:dataISO, liters:litros,
+          value: Number((litros*(v.precoLitro||0)).toFixed(2)),
+          km: km, station: posto, imported:true
+        });
+        if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
+        imported++;
+      }
+      Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
+      if(imported>0){ await save.fuel(); if(Object.keys(kmUpdates).length) await save.vehicles(); }
+      msgEl.style.color = imported>0 ? 'var(--go)' : 'var(--danger)';
+      msgEl.textContent = `${imported} registro(s) importado(s).` + (skipped>0?` ${skipped} linha(s) ignorada(s) (veículo não encontrado ou sem litros).`:'');
+      fileInput.value='';
+      renderView('fuel'); renderView('dashboard');
+    }catch(e){
+      console.error(e);
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent='Não foi possível ler esse arquivo. Confira se é um .xlsx, .xls ou .csv válido.';
+    }
+  });
+
+  /* ---------------- BI DE COMBUSTÍVEL ---------------- */
+  function populateFuelBIFilters(){
+    const uoSel = document.getElementById('bifuel-uo');
+    const vSel = document.getElementById('bifuel-vehicle');
+    const mSel = document.getElementById('bifuel-month');
+    if(!uoSel) return;
+    const uos = [...new Set(visibleVehicles().map(v=>v.unidade).filter(Boolean))].sort();
+    const keepU = uoSel.value;
+    uoSel.innerHTML = '<option value="">Todas</option>' + uos.map(u=>`<option value="${u}">${u}</option>`).join('');
+    uoSel.value = uos.includes(keepU) ? keepU : '';
+
+    const keepV = vSel.value;
+    vSel.innerHTML = '<option value="">Todas</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    vSel.value = visibleVehicles().some(v=>v.id===keepV) ? keepV : '';
+
+    const months = [...new Set(visibleFuel().map(f=>f.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+    const monthNames = {'01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho','07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'};
+    const keepM = mSel.value;
+    mSel.innerHTML = '<option value="">Todos</option>' + months.map(m=>{
+      const [y,mo]=m.split('-'); return `<option value="${m}">${monthNames[mo]||mo}/${y}</option>`;
+    }).join('');
+    mSel.value = months.includes(keepM) ? keepM : '';
+  }
+  ['bifuel-start','bifuel-end','bifuel-month','bifuel-uo','bifuel-vehicle'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderFuelBI(); });
+  });
+  document.getElementById('btn-clear-bifuel')?.addEventListener('click', ()=>{
+    ['bifuel-start','bifuel-end','bifuel-month','bifuel-uo','bifuel-vehicle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderFuelBI();
+  });
+
+  function renderFuelBI(){
+    const kpiGrid = document.getElementById('bifuel-kpi-grid');
+    if(!kpiGrid) return;
+    const start = document.getElementById('bifuel-start').value;
+    const end = document.getElementById('bifuel-end').value;
+    const month = document.getElementById('bifuel-month').value;
+    const uo = document.getElementById('bifuel-uo').value;
+    const vehicleFilter = document.getElementById('bifuel-vehicle').value;
+
+    const okVids = visibleVehicles()
+      .filter(v => !uo || v.unidade===uo)
+      .filter(v => !vehicleFilter || v.id===vehicleFilter)
+      .map(v=>v.id);
+
+    const flist = visibleFuel().filter(f=>{
+      if(!okVids.includes(f.vehicleId)) return false;
+      if(start && f.date<start) return false;
+      if(end && f.date>end) return false;
+      if(month && f.date?.slice(0,7)!==month) return false;
+      return true;
+    });
+
+    const totalLiters = flist.reduce((s,f)=>s+f.liters,0);
+    const totalValue = flist.reduce((s,f)=>s+f.value,0);
+
+    // por veículo: km percorrido (max-min km no período) / litros no período
+    const perVehicle = [];
+    okVids.forEach(vid=>{
+      const recs = flist.filter(f=>f.vehicleId===vid);
+      if(recs.length===0) return;
+      const kms = recs.map(r=>r.km).filter(k=>k>0);
+      const liters = recs.reduce((s,r)=>s+r.liters,0);
+      const kmRodado = kms.length>=2 ? (Math.max(...kms)-Math.min(...kms)) : 0;
+      const mediaReal = (kmRodado>0 && liters>0) ? kmRodado/liters : null;
+      const v = vehicleById(vid);
+      perVehicle.push({vehicle:v, liters, kmRodado, mediaReal, valor: recs.reduce((s,r)=>s+r.value,0)});
+    });
+
+    const comMedia = perVehicle.filter(p=>p.mediaReal!==null);
+    const mediaGeral = comMedia.length>0 ? (comMedia.reduce((s,p)=>s+p.kmRodado,0) / comMedia.reduce((s,p)=>s+p.liters,0) || 0) : 0;
+
+    kpiGrid.innerHTML = [
+      {label:'Litros abastecidos', val: totalLiters.toLocaleString('pt-BR')+' L'},
+      {label:'Custo total', val: fmtMoney(totalValue)},
+      {label:'Média geral (km/L)', val: mediaGeral.toFixed(2)},
+      {label:'Veículos analisados', val: comMedia.length}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+
+    const ranked = comMedia.slice().sort((a,b)=>b.mediaReal-a.mediaReal);
+    const rowHtml = (p,i)=>`<tr>
+      <td><span class="rank-pos">${i+1}º</span></td>
+      <td>${p.vehicle.frota?p.vehicle.frota+' — ':''}<span class="plate">${p.vehicle.plate}</span></td>
+      <td>${p.vehicle.unidade||'—'}</td>
+      <td class="mono">${p.mediaReal.toFixed(2)} km/L</td>
+      <td class="mono">${p.vehicle.consumoEsperado?p.vehicle.consumoEsperado.toFixed(2)+' km/L':'—'}</td>
+    </tr>`;
+
+    const bestBody = document.getElementById('bifuel-top-best');
+    const worstBody = document.getElementById('bifuel-top-worst');
+    if(ranked.length===0){
+      bestBody.innerHTML = worstBody.innerHTML = '<tr class="empty-row"><td colspan="5">Sem dados suficientes para calcular médias no período.</td></tr>';
+    } else {
+      bestBody.innerHTML = ranked.slice(0,10).map(rowHtml).join('');
+      worstBody.innerHTML = ranked.slice().reverse().slice(0,10).map(rowHtml).join('');
+    }
+
+    const below = comMedia.filter(p=>p.vehicle.consumoEsperado && p.mediaReal < p.vehicle.consumoEsperado);
+    const belowBody = document.getElementById('bifuel-below');
+    if(below.length===0){
+      belowBody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum veículo abaixo da média esperada no período selecionado.</td></tr>';
+    } else {
+      belowBody.innerHTML = below.sort((a,b)=>(a.mediaReal-a.vehicle.consumoEsperado)-(b.mediaReal-b.vehicle.consumoEsperado)).map(p=>{
+        const diff = p.mediaReal - p.vehicle.consumoEsperado;
+        return `<tr>
+          <td class="mono">${p.vehicle.frota||'—'}</td>
+          <td><span class="plate">${p.vehicle.plate}</span></td>
+          <td>${p.vehicle.unidade||'—'}</td>
+          <td class="mono rank-bad">${p.mediaReal.toFixed(2)} km/L</td>
+          <td class="mono">${p.vehicle.consumoEsperado.toFixed(2)} km/L</td>
+          <td class="mono rank-bad">${diff.toFixed(2)} km/L</td>
+        </tr>`;
+      }).join('');
+    }
+  }
 
   /* ---------------- COSTS ---------------- */
   function renderCosts(){
