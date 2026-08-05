@@ -88,6 +88,7 @@
     outline:none;
   }
   input:focus,select:focus{border-color:var(--accent);}
+  input[readonly]{background:var(--surface); color:var(--text-muted); cursor:not-allowed;}
   label{font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:6px;}
   .field{margin-bottom:14px;}
   .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
@@ -384,7 +385,7 @@
       <div class="nav-item active" data-view="dashboard"><span class="nav-ico">◈</span> Dashboard</div>
       <div class="nav-item" data-view="vehicles"><span class="nav-ico">▭</span> Veículos</div>
       <div class="nav-item" data-view="fuel"><span class="nav-ico">⛽</span> Combustível</div>
-      <div class="nav-item" data-view="costs"><span class="nav-ico">$</span> Custos</div>
+      <div class="nav-item" data-view="costs"><span class="nav-ico">$</span> Custos Extras</div>
       <div class="nav-item" data-view="fines"><span class="nav-ico">!</span> Multas</div>
       <div class="nav-item" data-view="ranking"><span class="nav-ico">★</span> LOTS GO</div>
       <div class="nav-item" data-view="users" id="nav-users"><span class="nav-ico">◎</span> Usuários</div>
@@ -421,8 +422,8 @@
             <input type="date" id="filter-date-end">
           </div>
           <div class="filter-field">
-            <label>Unidade</label>
-            <select id="filter-unidade"><option value="">Todas</option></select>
+            <label>UO</label>
+            <select id="filter-unidade"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select>
           </div>
           <div class="filter-field">
             <label>Placa</label>
@@ -472,7 +473,14 @@
             </div>
           </div>
           <div class="field-grid-4">
-            <div class="field"><label>Departamento</label><input id="rf-depto" placeholder="Ex: Veículos" value="Veículos"></div>
+            <div class="field"><label>Departamento</label>
+              <select id="rf-depto">
+                <option value="Transporte de pessoas">Transporte de pessoas</option>
+                <option value="Liderança">Liderança</option>
+                <option value="Manutenção">Manutenção</option>
+                <option value="Coordenação">Coordenação</option>
+              </select>
+            </div>
             <div class="field"><label>KM atual</label><input id="rf-km" placeholder="0"></div>
             <div class="field"><label>Tipo de locadora</label><input id="rf-locadora" placeholder="Ex: Localiza, Movida..."></div>
             <div class="field"><label>Regime</label>
@@ -598,11 +606,82 @@
       <!-- COSTS -->
       <div class="view" id="view-costs">
         <div class="topbar">
-          <div><div class="page-title">Custos</div><div class="page-sub">Manutenção, seguro e outras despesas</div></div>
-          <button class="btn-primary" id="btn-new-cost">+ Registrar</button>
+          <div><div class="page-title">Custos Extras</div><div class="page-sub">Manutenção, sinistros, avarias e demais despesas extras</div></div>
         </div>
+
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Novo lançamento</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo</label><select id="cf-vehicle"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Placa</label><input id="cf-plate" placeholder="—" readonly></div>
+            <div class="field"><label>UO</label><input id="cf-uo" placeholder="—" readonly></div>
+            <div class="field"><label>Data</label><input type="date" id="cf-date"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>KM inicial</label><input id="cf-km-start" placeholder="Ex: 44000"></div>
+            <div class="field"><label>KM final</label><input id="cf-km-end" placeholder="Ex: 44120"></div>
+            <div class="field"><label>Categoria do custo</label>
+              <select id="cf-category">
+                <option value="Mecânica">Mecânica</option>
+                <option value="Funilaria">Funilaria</option>
+                <option value="Extras Contratos">Extras Contratos</option>
+                <option value="Borracharia">Borracharia</option>
+                <option value="Sinistros">Sinistros</option>
+                <option value="Custo com Lavagens">Custo com Lavagens</option>
+                <option value="Serviços Extras">Serviços Extras</option>
+                <option value="Parachoque">Parachoque</option>
+                <option value="Parabrisas">Parabrisas</option>
+                <option value="Placas">Placas</option>
+                <option value="Custo Embarcados">Custo Embarcados</option>
+              </select>
+            </div>
+            <div class="field"><label>Valor do serviço</label><input id="cf-value" placeholder="Ex: 350.00"></div>
+          </div>
+          <div class="field-grid-4" id="cf-sinistro-row" style="display:none;">
+            <div class="field"><label>B.O. (Boletim de Ocorrência)</label><input id="cf-bo" placeholder="Ex: 123456/2026"></div>
+            <div class="field"><label>Tipo de veículo</label><input id="cf-tipo-veiculo" placeholder="Ex: Utilitário leve"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Nome do motorista</label><input id="cf-motorista-nome" placeholder="Ex: João da Silva"></div>
+            <div class="field"><label>Matrícula (se houver)</label><input id="cf-matricula" placeholder="Ex: 00123"></div>
+          </div>
+          <div class="field">
+            <label>Observações</label>
+            <textarea id="cf-obs" rows="3" placeholder="Detalhes do ocorrido, do serviço realizado, etc." style="width:100%; resize:vertical; font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px;"></textarea>
+          </div>
+          <div class="field">
+            <label>Fotos e arquivos de avarias</label>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+              <button type="button" class="btn-ghost btn-sm" id="btn-pick-onedrive">📁 Escolher pasta do OneDrive</button>
+              <span class="page-sub" id="onedrive-folder-name" style="margin:0;">Nenhuma pasta selecionada ainda.</span>
+            </div>
+            <input type="file" id="cf-files" multiple accept="image/*,.pdf">
+            <div class="page-sub" style="margin-top:4px;">Funciona no Chrome ou Edge. Escolha uma vez a pasta local do OneDrive da equipe — os arquivos salvam ali e sobem sozinhos pra nuvem via sincronização do OneDrive.</div>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-save-cost">Salvar lançamento</button>
+          <div class="err-msg" id="cf-err"></div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Custos Extras</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Período inicial</label><input type="date" id="bicost-start"></div>
+          <div class="filter-field"><label>Período final</label><input type="date" id="bicost-end"></div>
+          <div class="filter-field"><label>UO</label><select id="bicost-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
+          <div class="filter-field"><label>Placa</label><select id="bicost-vehicle"><option value="">Todas</option></select></div>
+          <button class="btn-ghost" id="btn-clear-bicost">Limpar</button>
+          <button class="btn-primary" id="btn-export-costs">⬇ Exportar selecionados</button>
+        </div>
+        <div class="kpi-grid" id="bicost-kpi-grid"></div>
         <div class="card">
-          <table><thead><tr><th>Data</th><th>Veículo</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+          <div class="card-head"><div class="card-title">Custos por categoria</div></div>
+          <table><thead><tr><th>Categoria</th><th>Lançamentos</th><th>Valor total</th></tr></thead>
+          <tbody id="bicost-by-category"></tbody></table>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Histórico de lançamentos</div></div>
+          <table><thead><tr><th>Data</th><th>Placa</th><th>UO</th><th>Categoria</th><th>KM</th><th>Motorista</th><th>Valor</th><th>Anexos</th><th></th></tr></thead>
           <tbody id="tbl-costs"></tbody></table>
         </div>
       </div>
@@ -1051,7 +1130,7 @@
     document.getElementById('rf-plate').value = v?.plate || '';
     document.getElementById('rf-model').value = v?.model || '';
     document.getElementById('rf-uo').value = v?.unidade || 'MNS';
-    document.getElementById('rf-depto').value = v?.departamento || 'Veículos';
+    document.getElementById('rf-depto').value = v?.departamento || 'Transporte de pessoas';
     document.getElementById('rf-km').value = v?.km || '';
     document.getElementById('rf-locadora').value = v?.locadora || '';
     document.getElementById('rf-regime').value = v?.regime || 'Contrato';
@@ -1371,19 +1450,90 @@
     }
   }
 
+  /* ---------------- PASTA LOCAL (OneDrive) PARA ANEXOS ---------------- */
+  let onedriveDirHandle = null;
+  function idbOpen(){
+    return new Promise((resolve,reject)=>{
+      const req = indexedDB.open('lots-frota-fs', 1);
+      req.onupgradeneeded = ()=> req.result.createObjectStore('handles');
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function idbSet(key, val){
+    const db = await idbOpen();
+    return new Promise((resolve,reject)=>{
+      const tx = db.transaction('handles','readwrite');
+      tx.objectStore('handles').put(val, key);
+      tx.oncomplete = ()=>resolve();
+      tx.onerror = ()=>reject(tx.error);
+    });
+  }
+  async function idbGet(key){
+    const db = await idbOpen();
+    return new Promise((resolve,reject)=>{
+      const tx = db.transaction('handles','readonly');
+      const req = tx.objectStore('handles').get(key);
+      req.onsuccess = ()=>resolve(req.result);
+      req.onerror = ()=>reject(req.error);
+    });
+  }
+  function setFolderLabel(text){
+    const el = document.getElementById('onedrive-folder-name');
+    if(el) el.textContent = text;
+  }
+  async function pickOneDriveFolder(){
+    if(!('showDirectoryPicker' in window)){
+      toast('Esse navegador não tem esse recurso. Use Chrome ou Edge.');
+      return;
+    }
+    try{
+      const handle = await window.showDirectoryPicker({mode:'readwrite'});
+      onedriveDirHandle = handle;
+      await idbSet('onedrive-folder', handle);
+      setFolderLabel('Pasta selecionada: '+handle.name);
+      toast('Pasta selecionada com sucesso.');
+    }catch(e){
+      if(e.name!=='AbortError'){ console.error(e); toast('Não foi possível selecionar a pasta.'); }
+    }
+  }
+  document.getElementById('btn-pick-onedrive')?.addEventListener('click', pickOneDriveFolder);
+  async function restoreOneDriveFolder(){
+    if(!('indexedDB' in window)) return;
+    try{
+      const handle = await idbGet('onedrive-folder');
+      if(!handle) return;
+      const perm = await handle.queryPermission({mode:'readwrite'});
+      if(perm==='granted'){
+        onedriveDirHandle = handle;
+        setFolderLabel('Pasta selecionada: '+handle.name);
+      } else {
+        setFolderLabel('Pasta salva anteriormente ("'+handle.name+'") — clique no botão pra reconectar.');
+      }
+    }catch(e){ console.warn('restaurar pasta onedrive falhou', e); }
+  }
+  restoreOneDriveFolder();
+
   /* ---------------- COSTS ---------------- */
   function renderCosts(){
+    populateCostVehicleSelect();
+    populateCostBIFilters();
+    renderCostBI();
     const tbl = document.getElementById('tbl-costs');
     const list = visibleCosts().slice().sort((a,b)=>b.date.localeCompare(a.date));
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum custo registrado.</td></tr>'; return; }
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="9">Nenhum custo registrado.</td></tr>'; return; }
     tbl.innerHTML = list.map(c=>{
       const v = vehicleById(c.vehicleId);
+      const anexos = (c.anexos||[]).map(a=>a.name).join(', ') || '—';
       return `<tr>
         <td class="mono">${fmtDate(c.date)}</td>
         <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${v?.unidade||'—'}</td>
         <td>${c.category}</td>
-        <td>${c.description||'—'}</td>
+        <td class="mono">${c.kmStart&&c.kmEnd?`${c.kmStart}→${c.kmEnd}`:'—'}</td>
+        <td>${c.motoristaNome||'—'}</td>
         <td class="mono">${fmtMoney(c.value)}</td>
+        <td style="max-width:160px; font-size:11.5px;">${anexos}</td>
         <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteCost('${c.id}')">excluir</button></div></td>
       </tr>`;
     }).join('');
@@ -1393,47 +1543,180 @@
     if(u.role==='motorista') return state.costs.filter(c=>c.vehicleId===u.vehicleId);
     return state.costs;
   }
-  function costForm(){
-    const u = currentUser();
-    return `
-      <div class="modal-title">Registrar custo</div>
-      <div class="field"><label>Veículo</label><select id="f-vehicle">${vehicleOptions(u.role==='motorista'?u.vehicleId:null)}</select></div>
-      <div class="field-row">
-        <div class="field"><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div>
-        <div class="field"><label>Categoria</label>
-          <select id="f-category">
-            <option>Manutenção</option><option>Pneu</option><option>Seguro</option><option>Lavagem</option><option>Documentação</option><option>Outros</option>
-          </select>
-        </div>
-      </div>
-      <div class="field"><label>Valor</label><input id="f-value" placeholder="Ex: 350.00"></div>
-      <div class="field"><label>Descrição</label><input id="f-desc" placeholder="Ex: Troca de óleo"></div>
-      <div class="modal-actions">
-        <button class="btn-primary" onclick="LOTS.saveCost()">Salvar</button>
-        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
-      </div>`;
+
+  function populateCostVehicleSelect(){
+    const sel = document.getElementById('cf-vehicle');
+    if(!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate} — ${v.model}</option>`).join('');
+    sel.value = visibleVehicles().some(v=>v.id===keep) ? keep : '';
+    fillCostVehicleReadonly();
   }
-  document.getElementById('btn-new-cost').addEventListener('click', ()=>openModal(costForm()));
-  LOTS.saveCost = async ()=>{
+  function fillCostVehicleReadonly(){
+    const v = vehicleById(document.getElementById('cf-vehicle').value);
+    document.getElementById('cf-plate').value = v ? v.plate : '';
+    document.getElementById('cf-uo').value = v ? (v.unidade||'') : '';
+  }
+  document.getElementById('cf-vehicle')?.addEventListener('change', fillCostVehicleReadonly);
+  document.getElementById('cf-category')?.addEventListener('change', (e)=>{
+    document.getElementById('cf-sinistro-row').style.display = e.target.value==='Sinistros' ? 'grid' : 'none';
+  });
+
+  document.getElementById('btn-save-cost')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('cf-err');
+    const vehicleId = document.getElementById('cf-vehicle').value;
+    if(!vehicleId){ errEl.textContent='Selecione um veículo.'; return; }
+    const value = Number(document.getElementById('cf-value').value)||0;
+    if(value<=0){ errEl.textContent='Informe o valor do serviço.'; return; }
+    errEl.textContent='';
+
     const rec = {
-      id:uid(),
-      vehicleId: document.getElementById('f-vehicle').value,
-      date: document.getElementById('f-date').value || todayISO(),
-      category: document.getElementById('f-category').value,
-      value: Number(document.getElementById('f-value').value)||0,
-      description: document.getElementById('f-desc').value.trim()
+      id: uid(),
+      vehicleId,
+      date: document.getElementById('cf-date').value || todayISO(),
+      kmStart: Number(document.getElementById('cf-km-start').value)||0,
+      kmEnd: Number(document.getElementById('cf-km-end').value)||0,
+      category: document.getElementById('cf-category').value,
+      value,
+      bo: document.getElementById('cf-bo').value.trim(),
+      tipoVeiculo: document.getElementById('cf-tipo-veiculo').value.trim(),
+      motoristaNome: document.getElementById('cf-motorista-nome').value.trim(),
+      matricula: document.getElementById('cf-matricula').value.trim(),
+      description: document.getElementById('cf-obs').value.trim(),
+      anexos: []
     };
-    if(!rec.vehicleId){ toast('Selecione um veículo.'); return; }
+
+    const filesInput = document.getElementById('cf-files');
+    const files = filesInput.files;
+    if(files && files.length>0){
+      if(!onedriveDirHandle){
+        toast('Lançamento salvo, mas nenhuma pasta foi selecionada — os anexos não foram salvos. Clique em "Escolher pasta do OneDrive".');
+      } else {
+        document.getElementById('btn-save-cost').textContent = 'Salvando anexos…';
+        try{
+          const perm = await onedriveDirHandle.requestPermission({mode:'readwrite'});
+          if(perm!=='granted') throw new Error('permissão negada para a pasta');
+          for(const file of files){
+            const safeName = `${rec.id}_${Date.now()}_${file.name}`.replace(/[\\/:*?"<>|]/g,'_');
+            const fileHandle = await onedriveDirHandle.getFileHandle(safeName, {create:true});
+            const writable = await fileHandle.createWritable();
+            await writable.write(file);
+            await writable.close();
+            rec.anexos.push({name:file.name, savedAs:safeName});
+          }
+        }catch(e){
+          console.error('salvar anexo local falhou', e);
+          toast('Falha ao salvar um ou mais anexos na pasta selecionada.');
+        }
+        document.getElementById('btn-save-cost').textContent = 'Salvar lançamento';
+      }
+    }
+
     state.costs.push(rec);
     await save.costs();
-    closeModal(); renderView('costs'); renderView('dashboard');
-    toast('Custo registrado.');
-  };
+
+    // limpa o formulário
+    document.getElementById('cf-vehicle').value='';
+    document.getElementById('cf-plate').value='';
+    document.getElementById('cf-uo').value='';
+    document.getElementById('cf-date').value='';
+    document.getElementById('cf-km-start').value='';
+    document.getElementById('cf-km-end').value='';
+    document.getElementById('cf-value').value='';
+    document.getElementById('cf-bo').value='';
+    document.getElementById('cf-tipo-veiculo').value='';
+    document.getElementById('cf-motorista-nome').value='';
+    document.getElementById('cf-matricula').value='';
+    document.getElementById('cf-obs').value='';
+    filesInput.value='';
+    document.getElementById('cf-sinistro-row').style.display='none';
+
+    renderView('costs'); renderView('dashboard');
+    toast('Lançamento salvo.');
+  });
+
   LOTS.deleteCost = async (id)=>{
     state.costs = state.costs.filter(c=>c.id!==id);
     await save.costs();
     renderView('costs'); renderView('dashboard');
   };
+
+  /* ---------------- BI DE CUSTOS EXTRAS ---------------- */
+  function populateCostBIFilters(){
+    const vSel = document.getElementById('bicost-vehicle');
+    if(!vSel) return;
+    const keep = vSel.value;
+    vSel.innerHTML = '<option value="">Todas</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    vSel.value = visibleVehicles().some(v=>v.id===keep) ? keep : '';
+  }
+  ['bicost-start','bicost-end','bicost-uo','bicost-vehicle'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderCostBI(); });
+  });
+  document.getElementById('btn-clear-bicost')?.addEventListener('click', ()=>{
+    ['bicost-start','bicost-end','bicost-uo','bicost-vehicle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderCostBI();
+  });
+
+  function getCostBIFiltered(){
+    const start = document.getElementById('bicost-start').value;
+    const end = document.getElementById('bicost-end').value;
+    const uo = document.getElementById('bicost-uo').value;
+    const vehicleFilter = document.getElementById('bicost-vehicle').value;
+    const okVids = visibleVehicles()
+      .filter(v => !uo || v.unidade===uo)
+      .filter(v => !vehicleFilter || v.id===vehicleFilter)
+      .map(v=>v.id);
+    return visibleCosts().filter(c=>{
+      if(!okVids.includes(c.vehicleId)) return false;
+      if(start && c.date<start) return false;
+      if(end && c.date>end) return false;
+      return true;
+    });
+  }
+
+  function renderCostBI(){
+    const kpiGrid = document.getElementById('bicost-kpi-grid');
+    if(!kpiGrid) return;
+    const list = getCostBIFiltered();
+    const total = list.reduce((s,c)=>s+c.value,0);
+    const porCategoria = {};
+    list.forEach(c=>{ porCategoria[c.category] = porCategoria[c.category]||{qtd:0,val:0}; porCategoria[c.category].qtd++; porCategoria[c.category].val+=c.value; });
+    const categorias = Object.entries(porCategoria).sort((a,b)=>b[1].val-a[1].val);
+    const maiorCategoria = categorias[0] ? categorias[0][0] : '—';
+
+    kpiGrid.innerHTML = [
+      {label:'Lançamentos', val: list.length},
+      {label:'Valor total', val: fmtMoney(total)},
+      {label:'Ticket médio', val: fmtMoney(list.length?total/list.length:0)},
+      {label:'Categoria com maior gasto', val: maiorCategoria}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+
+    const byCatBody = document.getElementById('bicost-by-category');
+    if(categorias.length===0){
+      byCatBody.innerHTML = '<tr class="empty-row"><td colspan="3">Sem lançamentos no período selecionado.</td></tr>';
+    } else {
+      byCatBody.innerHTML = categorias.map(([cat,d])=>`<tr><td>${cat}</td><td class="mono">${d.qtd}</td><td class="mono">${fmtMoney(d.val)}</td></tr>`).join('');
+    }
+    LOTS._costBISnapshot = list;
+  }
+
+  document.getElementById('btn-export-costs')?.addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
+    const list = LOTS._costBISnapshot || [];
+    if(list.length===0){ toast('Nada para exportar.'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(c=>{
+      const v = vehicleById(c.vehicleId);
+      return {
+        Data:c.date, Placa:v?.plate||'', UO:v?.unidade||'', Categoria:c.category,
+        'KM inicial':c.kmStart||'', 'KM final':c.kmEnd||'', Valor:c.value,
+        Motorista:c.motoristaNome||'', Matrícula:c.matricula||'', 'B.O.':c.bo||'',
+        Observações:c.description||'', Anexos:(c.anexos||[]).map(a=>a.name).join(' | ')
+      };
+    })), 'Custos Extras');
+    XLSX.writeFile(wb, 'custos-extras-gestao-frota-lots.xlsx');
+    toast('Exportação gerada.');
+  });
 
   /* ---------------- FINES ---------------- */
   function renderFines(){
@@ -1604,13 +1887,8 @@
 
   /* ---------------- DASHBOARD ---------------- */
   function populateFilterOptions(){
-    const unidadeSel = document.getElementById('filter-unidade');
     const placaSel = document.getElementById('filter-placa');
-    if(!unidadeSel || !placaSel) return;
-    const unidades = [...new Set(visibleVehicles().map(v=>v.unidade).filter(Boolean))].sort();
-    const keepU = unidadeSel.value;
-    unidadeSel.innerHTML = '<option value="">Todas</option>' + unidades.map(u=>`<option value="${u}">${u}</option>`).join('');
-    unidadeSel.value = unidades.includes(keepU) ? keepU : '';
+    if(!placaSel) return;
     const keepP = placaSel.value;
     placaSel.innerHTML = '<option value="">Todas</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.plate}</option>`).join('');
     placaSel.value = visibleVehicles().some(v=>v.id===keepP) ? keepP : '';
