@@ -675,10 +675,13 @@
         <div class="card import-card">
           <div class="card-head"><div class="card-title">Importar planilha de abastecimento</div></div>
           <div class="page-sub" style="margin-bottom:12px;">
-            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>Veículo</b>, <b>Litros</b>, <b>KM atual</b>, <b>Posto</b> e <b>Data</b> (data do abastecimento, já vem da própria planilha). Pode ser usado diariamente, semanalmente ou mensalmente — os dados vão se somando ao histórico.
+            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>Veículo</b>, <b>Litros</b>, <b>KM atual</b>, <b>Posto</b> e <b>Data</b> (data do abastecimento, já vem da própria planilha). Pode ser usado diariamente, semanalmente ou mensalmente — os dados vão se somando ao histórico. Ao escolher o arquivo, informe o preço do litro daquela planilha (ele pode mudar a cada importação).
           </div>
           <div class="field-grid-4" style="align-items:end;">
             <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-file" accept=".xlsx,.xls,.csv"></div>
+          </div>
+          <div class="field-grid-4" id="import-preco-wrap" style="display:none; align-items:end;">
+            <div class="field"><label>Preço do combustível nesta planilha (R$/litro)</label><input id="import-preco-litro" placeholder="Ex: 6.09"></div>
             <div class="field"><button class="btn-primary" id="btn-import-fuel" style="width:100%;">⬆ Importar planilha</button></div>
           </div>
           <div class="err-msg" id="import-fuel-msg"></div>
@@ -687,7 +690,7 @@
         <div class="card">
           <div class="card-head"><div class="card-title">Histórico de importações semanais</div></div>
           <div class="page-sub" style="margin-bottom:6px;">Cada planilha importada fica registrada aqui, com a data da importação e a somatória de litros e valor daquele lote.</div>
-          <table><thead><tr><th>Data da importação</th><th>Arquivo</th><th>Registros</th><th>Ignorados</th><th>Litros (total)</th><th>Valor (total)</th><th>Importado por</th></tr></thead>
+          <table><thead><tr><th>Data da importação</th><th>Arquivo</th><th>Registros</th><th>Ignorados</th><th>Preço/litro</th><th>Litros (total)</th><th>Valor (total)</th><th>Importado por</th></tr></thead>
           <tbody id="tbl-fuel-import-batches"></tbody></table>
         </div>
 
@@ -2092,7 +2095,7 @@
     const tbl = document.getElementById('tbl-fuel-import-batches');
     if(!tbl) return;
     const list = (state.fuelImportBatches||[]).slice().sort((a,b)=>b.dataImportacao.localeCompare(a.dataImportacao));
-    if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhuma planilha importada ainda.</td></tr>'; return; }
+    if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhuma planilha importada ainda.</td></tr>'; return; }
     const totalLitros = list.reduce((s,b)=>s+(b.litros||0),0);
     const totalValor = list.reduce((s,b)=>s+(b.valor||0),0);
     tbl.innerHTML = list.map(b=>`<tr>
@@ -2100,11 +2103,12 @@
         <td>${b.arquivo||'—'}</td>
         <td class="mono">${b.registros}</td>
         <td class="mono">${b.ignorados||0}</td>
+        <td class="mono">${b.precoLitro?fmtMoney(b.precoLitro):'—'}</td>
         <td class="mono">${(b.litros||0).toLocaleString('pt-BR')} L</td>
         <td class="mono">${fmtMoney(b.valor||0)}</td>
         <td>${b.importadoPor||'—'}</td>
       </tr>`).join('') + `<tr>
-        <td colspan="4" style="text-align:right; font-weight:700;">Somatória geral</td>
+        <td colspan="5" style="text-align:right; font-weight:700;">Somatória geral</td>
         <td class="mono" style="font-weight:700;">${totalLitros.toLocaleString('pt-BR')} L</td>
         <td class="mono" style="font-weight:700;">${fmtMoney(totalValor)}</td>
         <td></td>
@@ -2191,10 +2195,16 @@
     return null;
   }
 
+  document.getElementById('import-file')?.addEventListener('change', (e)=>{
+    document.getElementById('import-preco-wrap').style.display = e.target.files.length ? 'grid' : 'none';
+  });
+
   document.getElementById('btn-import-fuel')?.addEventListener('click', async ()=>{
     const msgEl = document.getElementById('import-fuel-msg');
     const fileInput = document.getElementById('import-file');
+    const precoLote = Number(document.getElementById('import-preco-litro').value)||0;
     if(!fileInput.files.length){ msgEl.textContent='Selecione um arquivo primeiro.'; msgEl.style.color='var(--danger)'; return; }
+    if(!precoLote){ msgEl.textContent='Informe o preço do combustível (R$/litro) desta planilha.'; msgEl.style.color='var(--danger)'; return; }
     if(typeof XLSX === 'undefined'){ msgEl.textContent='Biblioteca de importação não carregada.'; return; }
     msgEl.style.color='var(--text-muted)';
     msgEl.textContent='Lendo planilha…';
@@ -2219,7 +2229,7 @@
         if(!v && frota) v = state.vehicles.find(x=>String(x.frota||'').trim()===frota);
         if(!v || litros<=0){ skipped++; continue; }
 
-        const valorLinha = Number((litros*(v.precoLitro||0)).toFixed(2));
+        const valorLinha = Number((litros*precoLote).toFixed(2));
         state.fuel.push({
           id:uid(), vehicleId:v.id, date: dataISO || todayISO(), liters:litros,
           value: valorLinha,
@@ -2242,15 +2252,18 @@
           ignorados: skipped,
           litros: Number(litrosLote.toFixed(2)),
           valor: Number(valorLote.toFixed(2)),
+          precoLitro: precoLote,
           importadoPor: currentUser()?.name || ''
         });
         await save.fuelImportBatches();
       }
       msgEl.style.color = imported>0 ? 'var(--go)' : 'var(--danger)';
-      msgEl.textContent = `${imported} registro(s) importado(s).`
+      msgEl.textContent = `${imported} registro(s) importado(s) a R$ ${precoLote.toFixed(2)}/litro.`
         + (skipped>0?` ${skipped} linha(s) ignorada(s) (veículo não encontrado ou sem litros).`:'')
         + (semData>0?` ${semData} linha(s) sem data reconhecida na planilha (usada a data de hoje).`:'');
       fileInput.value='';
+      document.getElementById('import-preco-litro').value='';
+      document.getElementById('import-preco-wrap').style.display='none';
       renderView('fuel'); renderView('dashboard');
     }catch(e){
       console.error(e);
