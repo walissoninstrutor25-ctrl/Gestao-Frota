@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- APP_BUILD:2026-08-06T20-45-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -434,7 +435,7 @@
     </div>
 
     <div class="login-footnote">Administrador principal: utilize seu acesso autorizado.</div>
-    <button id="btn-download-app" class="btn-ghost btn-sm" style="width:100%; margin-top:16px;">⬇ Baixar aplicativo (.html)</button>
+    <button id="btn-download-app" class="btn-ghost btn-sm" style="width:100%; margin-top:16px;">📲 Instalar aplicativo</button>
   </div>
 </div>
 
@@ -456,7 +457,7 @@
         </div>
         <button class="btn-ghost btn-sm" style="width:100%; margin-top:8px;" id="btn-logout">Sair</button>
         <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-update-app">↻ Atualizar aplicativo</button>
-        <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-download-app-2">⬇ Baixar app</button>
+        <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-download-app-2">📲 Instalar app</button>
       </div>
     </div>
 
@@ -1413,9 +1414,61 @@
   });
   if('serviceWorker' in navigator){
     window.addEventListener('load', ()=>{
-      navigator.serviceWorker.register('sw.js').catch(err=>console.warn('SW falhou:', err));
+      navigator.serviceWorker.register('sw.js').then(reg=>{
+        // se já existe uma versão nova instalada esperando, ativa na hora
+        if(reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+        reg.addEventListener('updatefound', ()=>{
+          const novo = reg.installing;
+          if(!novo) return;
+          novo.addEventListener('statechange', ()=>{
+            if(novo.state==='installed' && navigator.serviceWorker.controller){
+              novo.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      }).catch(err=>console.warn('SW falhou:', err));
+    });
+    // quando o novo service worker assume o controle, recarrega sozinho pra pegar a versão nova
+    let jaRecarregando = false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(jaRecarregando) return;
+      jaRecarregando = true;
+      toast('Atualizando para a nova versão…');
+      setTimeout(()=>location.reload(), 1200);
     });
   }
+
+  /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
+  const APP_VERSION = '2026-08-06T20-45-00Z';
+  let atualizandoApp = false;
+  async function checkForAppUpdate(){
+    if(atualizandoApp) return;
+    try{
+      const resp = await fetch(location.pathname + '?v=' + Date.now(), {cache:'no-store'});
+      const html = await resp.text();
+      const m = html.match(/APP_BUILD:([^\s>-]+(?:-[^\s>-]+)*)/);
+      const versaoServidor = m ? m[1] : null;
+      if(versaoServidor && versaoServidor !== APP_VERSION){
+        atualizandoApp = true;
+        toast('Nova versão disponível — atualizando…');
+        if('caches' in window){
+          try{ const keys = await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){}
+        }
+        if('serviceWorker' in navigator){
+          try{
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for(const r of regs){ await r.update(); }
+          }catch(e){}
+        }
+        setTimeout(()=>location.reload(true), 1200);
+      }
+    }catch(e){ /* offline ou falha de rede: ignora, tenta de novo depois */ }
+  }
+  setTimeout(checkForAppUpdate, 4000);
+  setInterval(checkForAppUpdate, 3*60*1000); // confere a cada 3 minutos
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForAppUpdate(); });
+  window.addEventListener('focus', checkForAppUpdate);
+
   const COLLECTION = 'lots-frota';
   const PROFILES = 'lots-frota-profiles';
   // app secundário: permite ao admin criar outros usuários sem perder a própria sessão
@@ -1464,11 +1517,32 @@
     setTimeout(()=>t.classList.remove('show'), 2200);
   }
 
-  /* ---------------- force download of the app itself ---------------- */
-  function downloadApp(){
+  /* ---------------- instalar aplicativo (PWA) — instantâneo via prompt nativo do navegador ---------------- */
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    updateInstallButtonsLabel();
+  });
+  window.addEventListener('appinstalled', ()=>{
+    deferredInstallPrompt = null;
+    toast('Aplicativo instalado!');
+    updateInstallButtonsLabel();
+  });
+  function updateInstallButtonsLabel(){
+    const label = deferredInstallPrompt ? '📲 Instalar aplicativo' : '⬇ Baixar aplicativo (.html)';
+    const label2 = deferredInstallPrompt ? '📲 Instalar app' : '⬇ Baixar app';
+    if(btnDl1) btnDl1.textContent = label;
+    if(btnDl2) btnDl2.textContent = label2;
+  }
+
+  /* ---------------- fallback: baixar cópia .html direto do servidor (rápido, não serializa o DOM) ---------------- */
+  async function downloadApp(){
     try{
-      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-      const blob = new Blob([fullHtml], {type:'text/html'});
+      toast('Baixando…');
+      const resp = await fetch(location.href, {cache:'no-store'});
+      const html = await resp.text();
+      const blob = new Blob([html], {type:'text/html'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1480,13 +1554,40 @@
       toast('Download iniciado.');
     }catch(e){
       console.error(e);
-      toast('Não foi possível baixar automaticamente.');
+      // fallback final: usa o DOM atual se não conseguir buscar o arquivo original
+      try{
+        const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([fullHtml], {type:'text/html'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'gestao-frota-lots.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+        toast('Download iniciado.');
+      }catch(e2){
+        console.error(e2);
+        toast('Não foi possível baixar automaticamente.');
+      }
+    }
+  }
+  async function handleInstallClick(){
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if(outcome==='accepted') toast('Instalando…');
+      deferredInstallPrompt = null;
+      updateInstallButtonsLabel();
+    } else {
+      await downloadApp();
     }
   }
   const btnDl1 = document.getElementById('btn-download-app');
   const btnDl2 = document.getElementById('btn-download-app-2');
-  if(btnDl1) btnDl1.addEventListener('click', downloadApp);
-  if(btnDl2) btnDl2.addEventListener('click', downloadApp);
+  if(btnDl1) btnDl1.addEventListener('click', handleInstallClick);
+  if(btnDl2) btnDl2.addEventListener('click', handleInstallClick);
 
   /* ---------------- app state ---------------- */
   let state = {
