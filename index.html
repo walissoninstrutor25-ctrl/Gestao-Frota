@@ -94,18 +94,28 @@
   .field{margin-bottom:14px;}
   .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
 
-  /* ---------- plate badge signature ---------- */
+  /* ---------- plate badge signature (cores reais da placa Mercosul) ---------- */
   .plate{
     display:inline-block;
     font-family:'Roboto Mono',monospace;
-    font-weight:700;
-    letter-spacing:0.12em;
-    background:#101214;
-    border:1.5px solid var(--line);
+    font-weight:800;
+    letter-spacing:0.1em;
+    background:#ffffff;
+    border:1.5px solid #17181a;
+    border-top:4px solid #0033a0;
     border-radius:6px;
-    padding:4px 9px;
+    padding:3px 9px 4px 9px;
     font-size:13px;
-    color:var(--accent);
+    color:#17181a;
+    box-shadow:inset 0 0 0 1px #ffffff;
+  }
+
+  /* ---------- fornecedor chip (não usa mais o estilo de placa) ---------- */
+  .fornecedor-chip{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:12.5px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:20px;
+    padding:6px 12px; color:var(--text);
   }
 
   /* ================= LOGIN SCREEN ================= */
@@ -340,6 +350,35 @@
     .main{padding:18px;}
     .field-row{grid-template-columns:1fr;}
   }
+
+  /* ---------- ajuste geral de tamanho de fonte: mais compacto, mantendo boa legibilidade ---------- */
+  body{font-size:13px;}
+  button{font-size:12px;}
+  .btn-sm{font-size:11px;}
+  input,select{font-size:12.5px;}
+  label{font-size:11px;}
+  .page-title{font-size:20px;}
+  .page-sub{font-size:12px;}
+  .card-title{font-size:13.5px;}
+  .modal-title{font-size:15px;}
+  .subtab{font-size:12px; padding:8px 12px;}
+  .nav-item{font-size:12.5px;}
+  table{font-size:12px;}
+  th{font-size:10px;}
+  .badge{font-size:10px;}
+  .kpi-val{font-size:18px;}
+  .kpi-label{font-size:10.5px;}
+  .ops-title{font-size:22px;}
+  .ops-sub{font-size:12px;}
+  .ops-metric-val{font-size:26px;}
+  .ops-metric-label{font-size:11px;}
+  .filter-field label{font-size:10px;}
+  .filter-field input, .filter-field select{font-size:12px;}
+  .plate{font-size:12px;}
+  .login-title{font-size:26px;}
+  .login-sub{font-size:13px;}
+  .login-card label{font-size:12px;}
+  .login-card select{font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -428,9 +467,9 @@
         <div class="subtab" data-view="vehicles">Cadastro de veículos</div>
         <div class="subtab" data-view="fuel">Combustível</div>
         <div class="subtab" data-view="costs">Custos Extras</div>
-        <div class="subtab" data-view="sinistros">Sinistros</div>
+        <div class="subtab" data-view="sinistros">Acidente de Trânsito</div>
         <div class="subtab" data-view="fines">Multas</div>
-        <div class="subtab" data-view="ranking">LOTS GO</div>
+        <div class="subtab" data-view="ranking">Premiação</div>
         <div class="subtab" data-view="tires">Controle de Pneus</div>
         <div class="subtab" data-view="users" id="nav-users">Usuários</div>
       </div>
@@ -438,9 +477,9 @@
         <div class="subtab active" data-view="heavydash">Painel</div>
         <div class="subtab" data-view="heavyfleet">Cadastro de veículos</div>
         <div class="subtab" data-view="heavycosts">Custos Extras</div>
-        <div class="subtab" data-view="heavysinistros">Sinistros</div>
+        <div class="subtab" data-view="heavysinistros">Acidente de Trânsito</div>
         <div class="subtab" data-view="heavyfines">Multas</div>
-        <div class="subtab" data-view="heavyranking">LOTS GO</div>
+        <div class="subtab" data-view="heavyranking">Premiação</div>
       </div>
 
       <!-- DASHBOARD -->
@@ -488,6 +527,13 @@
 
         <div class="kpi-grid" id="kpi-grid"></div>
 
+        <div class="card" id="card-revisao">
+          <div class="card-head"><div class="card-title">Controle de Revisão</div></div>
+          <div class="page-sub" style="margin:-6px 0 10px 2px;">Revisão programada a cada 10.000 km. Aparecem aqui os veículos ativos a 1.000 km ou menos da próxima revisão.</div>
+          <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>Próxima revisão</th><th>Faltam</th></tr></thead>
+          <tbody id="dash-revisao"></tbody></table>
+        </div>
+
         <div class="card">
           <div class="card-head"><div class="card-title">Lançamentos</div></div>
           <table><thead><tr><th>Data</th><th>Unidade</th><th>Veículo</th><th>Tipo</th><th>KM</th><th>Litros</th><th>Valor</th><th>Motorista / Descrição</th></tr></thead>
@@ -509,8 +555,12 @@
             <div class="field"><label>Modelo do veículo</label><input id="rf-model" placeholder="Ex: Fiat Strada"></div>
             <div class="field"><label>UO</label>
               <select id="rf-uo">
-                <option value="MNS">MNS</option>
-                <option value="PRA">PRA</option>
+                <option value="4823-MNS">4823-MNS</option>
+                <option value="4824-PRA">4824-PRA</option>
+                <option value="4818-NRAV">4818-NRAV</option>
+                <option value="4813-NRA">4813-NRA</option>
+                <option value="4830-PPAV">4830-PPAV</option>
+                <option value="4812-PPA">4812-PPA</option>
               </select>
             </div>
           </div>
@@ -527,7 +577,8 @@
                 <option value="Administrativo">Administrativo</option>
               </select>
             </div>
-            <div class="field"><label>KM atual</label><input id="rf-km" placeholder="0"></div>
+            <div class="field"><label>KM inicial</label><input id="rf-km" placeholder="0"></div>
+            <div class="field"><label>Data de cadastro</label><input type="date" id="rf-data-cadastro"></div>
           </div>
           <div class="field-grid-4">
             <div class="field"><label>Locadora</label><input id="rf-locadora" placeholder="Ex: Localiza, Movida..."></div>
@@ -558,10 +609,13 @@
             <div class="field"><label>Status</label>
               <select id="rf-status">
                 <option value="ativo">Ativo</option>
-                <option value="manutencao">Manutenção</option>
                 <option value="inativo">Inativo</option>
               </select>
             </div>
+          </div>
+          <div class="field-grid-4" id="rf-devolucao-wrap" style="display:none;">
+            <div class="field"><label>Data da devolução</label><input type="date" id="rf-devolucao-data"></div>
+            <div class="field"><label>Local da devolução</label><input id="rf-devolucao-local" placeholder="Ex: Pátio Cuiabá"></div>
           </div>
           <div class="field-grid-4">
             <div class="field"><label>Nº CRLV</label><input id="rf-crlv" placeholder="Ex: 123456789"></div>
@@ -695,7 +749,8 @@
             <div class="field"><label>Nome da empresa</label><input id="fn-nome" placeholder="Ex: Oficina Central"></div>
             <div class="field"><button class="btn-primary" id="btn-add-fornecedor" style="width:100%;">+ Cadastrar fornecedor</button></div>
           </div>
-          <div id="fornecedor-list" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+          <button class="btn-ghost btn-sm" id="btn-toggle-fornecedores" style="margin-top:4px;">Ver fornecedores cadastrados</button>
+          <div id="fornecedor-list" style="margin-top:10px; display:none; flex-wrap:wrap; gap:8px;"></div>
         </div>
 
         <div class="card reg-card">
@@ -753,7 +808,7 @@
           </div>
 
           <div class="field-grid-4" id="cf-despachante-row" style="display:none;">
-            <div class="field"><label>B.O. relacionado (Sinistros)</label><select id="cf-despachante-bo"><option value="">Nenhum</option></select></div>
+            <div class="field"><label>B.O. relacionado (Acidente de Trânsito)</label><select id="cf-despachante-bo"><option value="">Nenhum</option></select></div>
           </div>
 
           <div class="field-grid-4" id="cf-servico-datas-row" style="display:none;">
@@ -808,11 +863,11 @@
       <!-- SINISTROS -->
       <div class="view" id="view-sinistros">
         <div class="topbar">
-          <div><div class="page-title">Sinistros</div><div class="page-sub">Ocorrências, B.O. e custos relacionados</div></div>
+          <div><div class="page-title">Acidente de Trânsito</div><div class="page-sub">Ocorrências, B.O. e custos relacionados</div></div>
         </div>
 
         <div class="card reg-card">
-          <div class="card-head"><div class="card-title">Novo sinistro</div></div>
+          <div class="card-head"><div class="card-title">Novo acidente de trânsito</div></div>
           <div class="field-grid-4">
             <div class="field"><label>Veículo</label><select id="sf-vehicle"><option value="">Selecione</option></select></div>
             <div class="field"><label>Placa</label><input id="sf-plate" placeholder="—" readonly></div>
@@ -858,12 +913,12 @@
             </div>
             <input type="file" id="sf-files" multiple accept="image/*,.pdf">
           </div>
-          <button class="btn-primary reg-submit" id="btn-save-sinistro">Salvar sinistro</button>
+          <button class="btn-primary reg-submit" id="btn-save-sinistro">Salvar acidente de trânsito</button>
           <div class="err-msg" id="sf-err"></div>
         </div>
 
         <div class="lane accent"></div>
-        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Sinistros</div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Acidente de Trânsito</div>
         <div class="filter-bar">
           <div class="filter-field"><label>Período inicial</label><input type="date" id="bisin-start"></div>
           <div class="filter-field"><label>Período final</label><input type="date" id="bisin-end"></div>
@@ -875,7 +930,7 @@
         <div class="kpi-grid" id="bisin-kpi-grid"></div>
 
         <div class="card">
-          <div class="card-head"><div class="card-title">Histórico de sinistros</div></div>
+          <div class="card-head"><div class="card-title">Histórico de acidentes de trânsito</div></div>
           <table><thead><tr><th>Data</th><th>Placa</th><th>UO</th><th>B.O.</th><th>Motorista</th><th>Valor</th><th>Anexos</th><th></th></tr></thead>
           <tbody id="tbl-sinistros"></tbody></table>
         </div>
@@ -939,7 +994,7 @@
       <!-- RANKING -->
       <div class="view" id="view-ranking">
         <div class="topbar">
-          <div><div class="page-title">LOTS GO</div><div class="page-sub">Ranking, premiação e importação de dados</div></div>
+          <div><div class="page-title">Premiação</div><div class="page-sub">Ranking, premiação e importação de dados</div></div>
         </div>
 
         <div class="card import-card">
@@ -957,7 +1012,7 @@
 
         <div class="card">
           <div class="card-head">
-            <div class="card-title">Orçamento LOTS GO (referência da safra)</div>
+            <div class="card-title">Orçamento Premiação (referência da safra)</div>
             <button class="btn-ghost btn-sm" id="btn-toggle-lgb-edit">✏️ Editar</button>
           </div>
           <div class="page-sub" style="margin-bottom:12px;">Valores por UO, categoria e mês. Esses números alimentam o comparativo Orçado × Real logo abaixo — clique em "Editar" para poder alterar. O total de cada mês e o FY são calculados sozinhos.</div>
@@ -970,7 +1025,7 @@
           </div>
           <div style="overflow-x:auto;">
             <table id="lgb-grid-table"><thead><tr>
-              <th style="min-width:170px;">LOTS GO</th>
+              <th style="min-width:170px;">Premiação</th>
               <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th>
               <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th><th>FY</th>
             </tr></thead>
@@ -1236,10 +1291,10 @@
       <!-- HEAVY SINISTROS -->
       <div class="view" id="view-heavysinistros">
         <div class="topbar">
-          <div><div class="page-title">Sinistros — Frota Pesada</div><div class="page-sub">Ocorrências, B.O. e custos relacionados</div></div>
+          <div><div class="page-title">Acidente de Trânsito — Frota Pesada</div><div class="page-sub">Ocorrências, B.O. e custos relacionados</div></div>
         </div>
         <div class="card reg-card">
-          <div class="card-head"><div class="card-title">Novo sinistro</div></div>
+          <div class="card-head"><div class="card-title">Novo acidente de trânsito</div></div>
           <div class="field-grid-4">
             <div class="field"><label>Veículo</label><select id="hsf-vehicle"><option value="">Selecione</option></select></div>
             <div class="field"><label>Placa</label><input id="hsf-plate" placeholder="—" readonly></div>
@@ -1256,11 +1311,11 @@
             <label>Observações</label>
             <textarea id="hsf-obs" rows="3" placeholder="Detalhes do ocorrido..." style="width:100%; resize:vertical; font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px;"></textarea>
           </div>
-          <button class="btn-primary reg-submit" id="btn-save-heavysinistro">Salvar sinistro</button>
+          <button class="btn-primary reg-submit" id="btn-save-heavysinistro">Salvar acidente de trânsito</button>
           <div class="err-msg" id="hsf-err"></div>
         </div>
         <div class="lane accent"></div>
-        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Sinistros — Frota Pesada</div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI de Acidente de Trânsito — Frota Pesada</div>
         <div class="filter-bar">
           <div class="filter-field"><label>Período inicial</label><input type="date" id="hbisin-start"></div>
           <div class="filter-field"><label>Período final</label><input type="date" id="hbisin-end"></div>
@@ -1271,7 +1326,7 @@
         </div>
         <div class="kpi-grid" id="hbisin-kpi-grid"></div>
         <div class="card">
-          <div class="card-head"><div class="card-title">Histórico de sinistros</div></div>
+          <div class="card-head"><div class="card-title">Histórico de acidentes de trânsito</div></div>
           <table><thead><tr><th>Data</th><th>Placa</th><th>UO</th><th>B.O.</th><th>Motorista</th><th>Valor</th><th></th></tr></thead>
           <tbody id="tbl-heavysinistros"></tbody></table>
         </div>
@@ -1321,6 +1376,33 @@
 
 <script>
 (function(){
+
+  /* ---------------- CONFIGURAÇÕES GERAIS ---------------- */
+  const UO_LIST = ['4823-MNS','4824-PRA','4818-NRAV','4813-NRA','4830-PPAV','4812-PPA'];
+  const UOS_TRANSPORTE_ESPECIAL = uo => /NRA|PPA/.test(uo||''); // NRAV, NRA, PPAV, PPA
+  const REVISAO_INTERVALO_KM = 10000;
+  const REVISAO_ALERTA_KM = 1000;
+
+  // preenche todos os <select> de UO fixos do sistema com a lista atual de UOs
+  function populateAllUoSelects(){
+    const idsComTodas = ['filter-unidade','vfilter-uo','bicost-uo','bisin-uo','bifine-uo','bilg-uo','hdfilter-uo','hfilter-uo','hbicost-uo','hbisin-uo'];
+    idsComTodas.forEach(id=>{
+      const sel = document.getElementById(id);
+      if(!sel) return;
+      const keep = sel.value;
+      sel.innerHTML = '<option value="">Todas</option>' + UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('');
+      if(UO_LIST.includes(keep)) sel.value = keep;
+    });
+    ['rf-uo','lgb-uo','hf-uo'].forEach(id=>{
+      const sel = document.getElementById(id);
+      if(!sel) return;
+      const keep = sel.value;
+      sel.innerHTML = UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('');
+      sel.value = UO_LIST.includes(keep) ? keep : UO_LIST[0];
+    });
+  }
+  document.addEventListener('DOMContentLoaded', populateAllUoSelects);
+  if(document.readyState!=='loading') populateAllUoSelects();
 
   /* ---------------- FIREBASE CONFIG ----------------
      1. Crie um projeto grátis em https://console.firebase.google.com
@@ -1678,7 +1760,6 @@
     tbl.innerHTML = list.map(v=>{
       const driver = userById(v.driverId);
       const statusBadge = v.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' :
-                           v.status==='manutencao' ? '<span class="badge badge-pending">Manutenção</span>' :
                            '<span class="badge badge-danger">Inativo</span>';
       return `<tr>
         <td class="mono">${v.frota||'—'}</td>
@@ -1757,12 +1838,13 @@
     document.getElementById('rf-frota').value = v?.frota || '';
     document.getElementById('rf-plate').value = v?.plate || '';
     document.getElementById('rf-model').value = v?.model || '';
-    document.getElementById('rf-uo').value = v?.unidade || 'MNS';
+    document.getElementById('rf-uo').value = (v?.unidade && UO_LIST.includes(v.unidade)) ? v.unidade : UO_LIST[0];
     document.getElementById('rf-tag').value = v?.tag || '';
     document.getElementById('rf-filial').value = v?.filial || '';
     document.getElementById('rf-filial').readOnly = !!v;
     document.getElementById('rf-filial').title = v ? 'A filial de origem não pode ser alterada depois do cadastro. Use "Transferência entre filial" no Painel.' : '';
-    document.getElementById('rf-depto').value = v?.departamento || 'Transporte de pessoas';
+    applyDeptoOptionsForUo(v?.departamento);
+    document.getElementById('rf-data-cadastro').value = v?.dataCadastro || todayISO();
     document.getElementById('rf-km').value = v?.km || '';
     document.getElementById('rf-locadora').value = v?.locadora || '';
     document.getElementById('rf-regime').value = v?.regime || 'Contrato';
@@ -1772,6 +1854,9 @@
     document.getElementById('rf-periodicidade').value = v?.periodicidade || 'Mensal';
     document.getElementById('rf-telemetria').value = v?.telemetria || '';
     document.getElementById('rf-status').value = v?.status || 'ativo';
+    document.getElementById('rf-devolucao-data').value = v?.devolucaoData || '';
+    document.getElementById('rf-devolucao-local').value = v?.devolucaoLocal || '';
+    document.getElementById('rf-devolucao-wrap').style.display = (document.getElementById('rf-status').value==='inativo') ? 'grid' : 'none';
     document.getElementById('rf-crlv').value = v?.crlv || '';
     document.getElementById('rf-renavam').value = v?.renavam || '';
     document.getElementById('rf-chassi').value = v?.chassi || '';
@@ -1844,11 +1929,29 @@
     toast('Transferência registrada. Veículo marcado como inativo.');
   };
 
+  function applyDeptoOptionsForUo(desiredValue){
+    const uoSel = document.getElementById('rf-uo');
+    const deptoSel = document.getElementById('rf-depto');
+    if(!uoSel || !deptoSel) return;
+    const especial = UOS_TRANSPORTE_ESPECIAL(uoSel.value);
+    const opts = especial
+      ? ['Transporte de pessoas vinhaça','Transporte de pessoas cana','Liderança','Manutenção','Coordenação','SSMA','Administrativo']
+      : ['Transporte de pessoas','Liderança','Manutenção','Coordenação','SSMA','Administrativo'];
+    const keep = desiredValue!==undefined ? desiredValue : deptoSel.value;
+    deptoSel.innerHTML = opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+    deptoSel.value = opts.includes(keep) ? keep : opts[0];
+  }
+  document.getElementById('rf-uo')?.addEventListener('change', ()=>applyDeptoOptionsForUo());
+  applyDeptoOptionsForUo();
+
   document.getElementById('rf-regime')?.addEventListener('change', (e)=>{
     document.getElementById('rf-franquia-wrap').style.display = e.target.value==='Limite de KM mensal' ? 'block' : 'none';
   });
   document.getElementById('rf-crlv')?.addEventListener('input', (e)=>{
     document.getElementById('rf-crlv-file-wrap').style.display = e.target.value.trim() ? 'grid' : 'none';
+  });
+  document.getElementById('rf-status')?.addEventListener('change', (e)=>{
+    document.getElementById('rf-devolucao-wrap').style.display = e.target.value==='inativo' ? 'grid' : 'none';
   });
 
   document.getElementById('btn-register-vehicle').addEventListener('click', async ()=>{
@@ -1861,6 +1964,7 @@
       tag: document.getElementById('rf-tag').value.trim(),
       filial: document.getElementById('rf-filial').value.trim(),
       departamento: document.getElementById('rf-depto').value.trim(),
+      dataCadastro: document.getElementById('rf-data-cadastro').value || todayISO(),
       km: Number(document.getElementById('rf-km').value)||0,
       locadora: document.getElementById('rf-locadora').value.trim(),
       regime: document.getElementById('rf-regime').value,
@@ -1869,6 +1973,8 @@
       periodicidade: document.getElementById('rf-periodicidade').value,
       telemetria: Number(document.getElementById('rf-telemetria').value)||0,
       status: document.getElementById('rf-status').value,
+      devolucaoData: document.getElementById('rf-status').value==='inativo' ? (document.getElementById('rf-devolucao-data').value||'') : '',
+      devolucaoLocal: document.getElementById('rf-status').value==='inativo' ? document.getElementById('rf-devolucao-local').value.trim() : '',
       crlv: document.getElementById('rf-crlv').value.trim(),
       renavam: document.getElementById('rf-renavam').value.trim(),
       chassi: document.getElementById('rf-chassi').value.trim(),
@@ -1910,7 +2016,7 @@
     if(id){
       Object.assign(vehicleById(id), data);
     } else {
-      state.vehicles.push({id:uid(), dataCadastro: todayISO(), consumoEsperado:0, precoLitro:0, ...data});
+      state.vehicles.push({id:uid(), consumoEsperado:0, precoLitro:0, ...data});
     }
     await save.vehicles();
     fillVehicleRegForm(null);
@@ -2364,10 +2470,19 @@
   }
   function renderFornecedorList(){
     const wrap = document.getElementById('fornecedor-list');
+    const btn = document.getElementById('btn-toggle-fornecedores');
     if(!wrap) return;
-    if(state.fornecedores.length===0){ wrap.innerHTML='<span class="page-sub" style="margin:0;">Nenhum fornecedor cadastrado ainda.</span>'; return; }
-    wrap.innerHTML = state.fornecedores.map(f=>`<span class="plate" style="display:inline-flex; align-items:center; gap:8px;">${f.nome} <button class="icon-btn danger" style="padding:0;" onclick="LOTS.deleteFornecedor('${f.id}')">✕</button></span>`).join('');
+    if(state.fornecedores.length===0){ wrap.innerHTML='<span class="page-sub" style="margin:0;">Nenhum fornecedor cadastrado ainda.</span>'; }
+    else {
+      wrap.innerHTML = state.fornecedores.map(f=>`<span class="fornecedor-chip">${f.nome} <button class="icon-btn danger" style="padding:0;" onclick="LOTS.deleteFornecedor('${f.id}')">✕</button></span>`).join('');
+    }
+    if(btn) btn.textContent = (wrap.style.display==='none' ? 'Ver' : 'Ocultar') + ` fornecedores cadastrados (${state.fornecedores.length})`;
   }
+  document.getElementById('btn-toggle-fornecedores')?.addEventListener('click', ()=>{
+    const wrap = document.getElementById('fornecedor-list');
+    wrap.style.display = (wrap.style.display==='none') ? 'flex' : 'none';
+    renderFornecedorList();
+  });
   document.getElementById('btn-add-fornecedor')?.addEventListener('click', async ()=>{
     const nome = document.getElementById('fn-nome').value.trim();
     if(!nome){ toast('Digite o nome da empresa.'); return; }
@@ -4036,12 +4151,40 @@
       {label:'Consumo médio', val: consumoMedio.toFixed(2)+' km/L'},
       {label:'Custo total', val: fmtMoney(totalGeral)},
       {label:'Multas', val: fmtMoney(totalFines)},
-      {label:'Premiação LOTS GO', val: premiacaoTotal.toLocaleString('pt-BR')+' pts'}
+      {label:'Premiação', val: premiacaoTotal.toLocaleString('pt-BR')+' pts'}
     ];
     document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
       <div class="kpi">
         <div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div>
       </div>`).join('');
+
+    // ---- Controle de Revisão: revisão a cada 10.000 km, alerta a 1.000 km ----
+    const revisaoBody = document.getElementById('dash-revisao');
+    if(revisaoBody){
+      const revisaoList = vlist
+        .filter(v=>v.status==='ativo')
+        .map(v=>{
+          const km0 = Number(v.km)||0;
+          const resto = km0 % REVISAO_INTERVALO_KM;
+          const faltam = resto===0 ? 0 : (REVISAO_INTERVALO_KM - resto);
+          const proxima = km0 + faltam;
+          return {v, km0, proxima, faltam};
+        })
+        .filter(r=>r.faltam<=REVISAO_ALERTA_KM)
+        .sort((a,b)=>a.faltam-b.faltam);
+      if(revisaoList.length===0){
+        revisaoBody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum veículo próximo da revisão no momento.</td></tr>';
+      } else {
+        revisaoBody.innerHTML = revisaoList.map(r=>`<tr>
+          <td class="mono">${r.v.frota||'—'}</td>
+          <td><span class="plate">${r.v.plate}</span></td>
+          <td>${r.v.unidade||'—'}</td>
+          <td class="mono">${r.km0.toLocaleString('pt-BR')} km</td>
+          <td class="mono">${r.proxima.toLocaleString('pt-BR')} km</td>
+          <td class="mono">${r.faltam===0 ? '<span class="badge badge-danger">Vencida</span>' : r.faltam.toLocaleString('pt-BR')+' km'}</td>
+        </tr>`).join('');
+      }
+    }
 
     const recent = [
       ...flist.map(x=>({type:'Abastecimento', vehicleId:x.vehicleId, date:x.date, value:x.value, km:x.km, liters:x.liters, desc:x.station})),
