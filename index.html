@@ -529,7 +529,7 @@
 
         <div class="card" id="card-revisao">
           <div class="card-head"><div class="card-title">Controle de Revisão</div></div>
-          <div class="page-sub" style="margin:-6px 0 10px 2px;">Revisão programada a cada 10.000 km. Aparecem aqui os veículos ativos a 1.000 km ou menos da próxima revisão.</div>
+          <div class="page-sub" style="margin:-6px 0 10px 2px;">Revisão programada a cada 10.000 km, calculada pelo maior KM já registrado na planilha de abastecimento (atualizada semanalmente). Aparecem aqui os veículos ativos a 1.000 km ou menos da próxima revisão.</div>
           <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>Próxima revisão</th><th>Faltam</th></tr></thead>
           <tbody id="dash-revisao"></tbody></table>
         </div>
@@ -675,14 +675,20 @@
         <div class="card import-card">
           <div class="card-head"><div class="card-title">Importar planilha de abastecimento</div></div>
           <div class="page-sub" style="margin-bottom:12px;">
-            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>Veículo</b>, <b>Litros</b>, <b>KM atual</b>, <b>Posto</b> (e opcionalmente <b>Data</b>). Pode ser usado diariamente, semanalmente ou mensalmente — os dados vão se somando ao histórico.
+            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>Veículo</b>, <b>Litros</b>, <b>KM atual</b>, <b>Posto</b> e <b>Data</b> (data do abastecimento, já vem da própria planilha). Pode ser usado diariamente, semanalmente ou mensalmente — os dados vão se somando ao histórico.
           </div>
           <div class="field-grid-4" style="align-items:end;">
             <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-file" accept=".xlsx,.xls,.csv"></div>
-            <div class="field"><label>Data do lote (se a planilha não tiver coluna Data)</label><input type="date" id="import-date"></div>
             <div class="field"><button class="btn-primary" id="btn-import-fuel" style="width:100%;">⬆ Importar planilha</button></div>
           </div>
           <div class="err-msg" id="import-fuel-msg"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Histórico de importações semanais</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Cada planilha importada fica registrada aqui, com a data da importação e a somatória de litros e valor daquele lote.</div>
+          <table><thead><tr><th>Data da importação</th><th>Arquivo</th><th>Registros</th><th>Ignorados</th><th>Litros (total)</th><th>Valor (total)</th><th>Importado por</th></tr></thead>
+          <tbody id="tbl-fuel-import-batches"></tbody></table>
         </div>
 
         <div class="card">
@@ -1505,7 +1511,7 @@
   let state = {
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
     heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{},
-    transfers:[], fornecedores:[], tires:[],
+    transfers:[], fornecedores:[], tires:[], fuelImportBatches:[],
     currentProfile:null
   };
 
@@ -1535,6 +1541,7 @@
     state.transfers = await loadShared('lots-transfers', []);
     state.fornecedores = await loadShared('lots-fornecedores', []);
     state.tires = await loadShared('lots-tires', []);
+    state.fuelImportBatches = await loadShared('lots-fuel-import-batches', []);
     setLoadingProgress(100, 'Pronto');
   }
 
@@ -1591,6 +1598,7 @@
     transfers: () => saveShared('lots-transfers', state.transfers),
     fornecedores: () => saveShared('lots-fornecedores', state.fornecedores),
     tires: () => saveShared('lots-tires', state.tires),
+    fuelImportBatches: () => saveShared('lots-fuel-import-batches', state.fuelImportBatches),
     lotsGoEntries: () => saveShared('lots-go-entries', state.lotsGoEntries),
     lotsGoBudget: () => saveShared('lots-go-budget', state.lotsGoBudget),
     lotsGoBudgetGrid: () => saveShared('lots-go-budget-grid', state.lotsGoBudgetGrid)
@@ -2062,6 +2070,7 @@
     populateFuelParamsSelect();
     populateFuelBIFilters();
     renderFuelBI();
+    renderFuelImportBatches();
     const tbl = document.getElementById('tbl-fuel');
     const list = visibleFuel().slice().sort((a,b)=>b.date.localeCompare(a.date));
     if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum abastecimento registrado.</td></tr>'; return; }
@@ -2079,10 +2088,37 @@
       </tr>`;
     }).join('');
   }
+  function renderFuelImportBatches(){
+    const tbl = document.getElementById('tbl-fuel-import-batches');
+    if(!tbl) return;
+    const list = (state.fuelImportBatches||[]).slice().sort((a,b)=>b.dataImportacao.localeCompare(a.dataImportacao));
+    if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhuma planilha importada ainda.</td></tr>'; return; }
+    const totalLitros = list.reduce((s,b)=>s+(b.litros||0),0);
+    const totalValor = list.reduce((s,b)=>s+(b.valor||0),0);
+    tbl.innerHTML = list.map(b=>`<tr>
+        <td class="mono">${fmtDate(b.dataImportacao)}</td>
+        <td>${b.arquivo||'—'}</td>
+        <td class="mono">${b.registros}</td>
+        <td class="mono">${b.ignorados||0}</td>
+        <td class="mono">${(b.litros||0).toLocaleString('pt-BR')} L</td>
+        <td class="mono">${fmtMoney(b.valor||0)}</td>
+        <td>${b.importadoPor||'—'}</td>
+      </tr>`).join('') + `<tr>
+        <td colspan="4" style="text-align:right; font-weight:700;">Somatória geral</td>
+        <td class="mono" style="font-weight:700;">${totalLitros.toLocaleString('pt-BR')} L</td>
+        <td class="mono" style="font-weight:700;">${fmtMoney(totalValor)}</td>
+        <td></td>
+      </tr>`;
+  }
   function visibleFuel(){
     const u = currentUser();
     if(u.role==='motorista') return state.fuel.filter(f=>f.vehicleId===u.vehicleId);
     return state.fuel;
+  }
+  // maior KM já registrado na planilha/lançamentos de combustível de um veículo (base do Controle de Revisão)
+  function kmAtualDaFrota(vehicleId){
+    const kms = state.fuel.filter(f=>f.vehicleId===vehicleId).map(f=>Number(f.km)||0).filter(k=>k>0);
+    return kms.length ? Math.max(...kms) : 0;
   }
   function fuelForm(){
     const u = currentUser();
@@ -2158,7 +2194,6 @@
   document.getElementById('btn-import-fuel')?.addEventListener('click', async ()=>{
     const msgEl = document.getElementById('import-fuel-msg');
     const fileInput = document.getElementById('import-file');
-    const batchDate = document.getElementById('import-date').value || todayISO();
     if(!fileInput.files.length){ msgEl.textContent='Selecione um arquivo primeiro.'; msgEl.style.color='var(--danger)'; return; }
     if(typeof XLSX === 'undefined'){ msgEl.textContent='Biblioteca de importação não carregada.'; return; }
     msgEl.style.color='var(--text-muted)';
@@ -2169,32 +2204,52 @@
       const wb = XLSX.read(buf, {type:'array', cellDates:false});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-      let imported=0, skipped=0, kmUpdates={};
+      let imported=0, skipped=0, semData=0, kmUpdates={}, litrosLote=0, valorLote=0;
       for(const row of rows){
         const frota = String(pickCol(row,'frota')||'').trim();
         const placaRaw = String(pickCol(row,'placa')||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
         const litros = Number(pickCol(row,'litros','quantidade de litros','qtd litros'))||0;
         const km = Number(pickCol(row,'km atual','km','quilometragem'))||0;
         const posto = String(pickCol(row,'posto','nome do posto')||'').trim();
-        const dataRaw = pickCol(row,'data');
-        const dataISO = excelDateToISO(dataRaw) || batchDate;
+        const dataRaw = pickCol(row,'data','data do abastecimento','período','periodo');
+        const dataISO = excelDateToISO(dataRaw);
+        if(!dataISO) semData++;
 
         let v = state.vehicles.find(x=>x.plate.replace(/[^A-Z0-9]/g,'')===placaRaw);
         if(!v && frota) v = state.vehicles.find(x=>String(x.frota||'').trim()===frota);
         if(!v || litros<=0){ skipped++; continue; }
 
+        const valorLinha = Number((litros*(v.precoLitro||0)).toFixed(2));
         state.fuel.push({
-          id:uid(), vehicleId:v.id, date:dataISO, liters:litros,
-          value: Number((litros*(v.precoLitro||0)).toFixed(2)),
+          id:uid(), vehicleId:v.id, date: dataISO || todayISO(), liters:litros,
+          value: valorLinha,
           km: km, station: posto, imported:true
         });
+        litrosLote += litros;
+        valorLote += valorLinha;
         if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
         imported++;
       }
       Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
-      if(imported>0){ await save.fuel(); if(Object.keys(kmUpdates).length) await save.vehicles(); }
+      if(imported>0){
+        await save.fuel();
+        if(Object.keys(kmUpdates).length) await save.vehicles();
+        state.fuelImportBatches.push({
+          id: uid(),
+          dataImportacao: todayISO(),
+          arquivo: file.name,
+          registros: imported,
+          ignorados: skipped,
+          litros: Number(litrosLote.toFixed(2)),
+          valor: Number(valorLote.toFixed(2)),
+          importadoPor: currentUser()?.name || ''
+        });
+        await save.fuelImportBatches();
+      }
       msgEl.style.color = imported>0 ? 'var(--go)' : 'var(--danger)';
-      msgEl.textContent = `${imported} registro(s) importado(s).` + (skipped>0?` ${skipped} linha(s) ignorada(s) (veículo não encontrado ou sem litros).`:'');
+      msgEl.textContent = `${imported} registro(s) importado(s).`
+        + (skipped>0?` ${skipped} linha(s) ignorada(s) (veículo não encontrado ou sem litros).`:'')
+        + (semData>0?` ${semData} linha(s) sem data reconhecida na planilha (usada a data de hoje).`:'');
       fileInput.value='';
       renderView('fuel'); renderView('dashboard');
     }catch(e){
@@ -4159,18 +4214,20 @@
       </div>`).join('');
 
     // ---- Controle de Revisão: revisão a cada 10.000 km, alerta a 1.000 km ----
+    // KM usado é o maior km já registrado na planilha de abastecimento (atualizada semanalmente), não o km do cadastro.
     const revisaoBody = document.getElementById('dash-revisao');
     if(revisaoBody){
       const revisaoList = vlist
         .filter(v=>v.status==='ativo')
         .map(v=>{
-          const km0 = Number(v.km)||0;
+          const km0 = kmAtualDaFrota(v.id);
+          if(km0<=0) return null; // sem abastecimento registrado ainda pra esse veículo: não dá pra avaliar
           const resto = km0 % REVISAO_INTERVALO_KM;
           const faltam = resto===0 ? 0 : (REVISAO_INTERVALO_KM - resto);
           const proxima = km0 + faltam;
           return {v, km0, proxima, faltam};
         })
-        .filter(r=>r.faltam<=REVISAO_ALERTA_KM)
+        .filter(r=>r && r.faltam<=REVISAO_ALERTA_KM)
         .sort((a,b)=>a.faltam-b.faltam);
       if(revisaoList.length===0){
         revisaoBody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum veículo próximo da revisão no momento.</td></tr>';
@@ -4296,6 +4353,7 @@
   listenShared('lots-transfers', d => state.transfers = d);
   listenShared('lots-fornecedores', d => state.fornecedores = d);
   listenShared('lots-tires', d => state.tires = d);
+  listenShared('lots-fuel-import-batches', d => state.fuelImportBatches = d);
   listenShared('lots-go-entries', d => state.lotsGoEntries = d);
   listenShared('lots-go-budget', d => state.lotsGoBudget = d);
   listenShared('lots-go-budget-grid', d => state.lotsGoBudgetGrid = d);
