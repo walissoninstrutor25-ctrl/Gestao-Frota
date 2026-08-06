@@ -255,6 +255,9 @@
   @media (max-width:900px){ .bi-grid{grid-template-columns:1fr;} }
   .rank-good{color:var(--go); font-weight:700;}
   .rank-bad{color:var(--danger); font-weight:700;}
+  #lgb-grid-table th, #lgb-grid-table td{padding:6px 8px; font-size:12px;}
+  #lgb-grid-table td.lgb-total{font-weight:700; color:var(--accent);}
+  .lgb-cell-input{width:80px; padding:5px 6px; font-size:12px; text-align:right; font-family:'Roboto Mono',monospace;}
   .anexo-thumb{width:38px; height:38px; object-fit:cover; border-radius:6px; border:1px solid var(--line); cursor:pointer; margin:2px;}
   .anexo-thumb:hover{border-color:var(--accent);}
   .anexo-file{font-size:11.5px; color:var(--text-muted);}
@@ -508,6 +511,8 @@
             </div>
           </div>
           <div class="field-grid-4">
+            <div class="field"><label>Nº TAG</label><input id="rf-tag" placeholder="Ex: TAG-00123"></div>
+            <div class="field"><label>Filial de origem</label><input id="rf-filial" placeholder="Ex: Matriz Cuiabá"></div>
             <div class="field"><label>Departamento</label>
               <select id="rf-depto">
                 <option value="Transporte de pessoas">Transporte de pessoas</option>
@@ -519,12 +524,21 @@
               </select>
             </div>
             <div class="field"><label>KM atual</label><input id="rf-km" placeholder="0"></div>
+          </div>
+          <div class="field-grid-4">
             <div class="field"><label>Locadora</label><input id="rf-locadora" placeholder="Ex: Localiza, Movida..."></div>
             <div class="field"><label>Regime</label>
               <select id="rf-regime">
                 <option value="Contrato">Contrato</option>
                 <option value="Spot">Spot</option>
                 <option value="Limite de KM mensal">Limite de KM mensal</option>
+              </select>
+            </div>
+            <div class="field" id="rf-franquia-wrap" style="display:none;"><label>Limite de KM da franquia</label>
+              <select id="rf-franquia">
+                <option value="9000">9.000 km</option>
+                <option value="5000">5.000 km</option>
+                <option value="sem-limite">Sem limite</option>
               </select>
             </div>
           </div>
@@ -906,6 +920,26 @@
           <div class="err-msg" id="lg-budget-msg"></div>
         </div>
 
+        <div class="card">
+          <div class="card-head"><div class="card-title">Orçamento LOTS GO (referência da safra)</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">Valores por UO, categoria e mês — editável direto na tabela, só para conferência. O total de cada mês e o FY são calculados sozinhos.</div>
+          <div class="field" style="max-width:220px; margin-bottom:14px;">
+            <label>UO</label>
+            <select id="lgb-uo">
+              <option value="MNS">MNS</option>
+              <option value="PRA">PRA</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto;">
+            <table id="lgb-grid-table"><thead><tr>
+              <th style="min-width:170px;">LOTS GO</th>
+              <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th>
+              <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th><th>FY</th>
+            </tr></thead>
+            <tbody id="lgb-grid-body"></tbody></table>
+          </div>
+        </div>
+
         <div class="lane accent"></div>
         <div class="card-title" style="margin:6px 0 12px 2px;">BI — Orçado × Real</div>
         <div class="filter-bar">
@@ -1004,7 +1038,11 @@
           </div>
           <div class="field-grid-4">
             <div class="field"><label>KM atual</label><input id="hf-km" placeholder="0"></div>
+            <div class="field"><label>Nº TAG</label><input id="hf-tag" placeholder="Ex: TAG-00123"></div>
+            <div class="field"><label>Filial de origem</label><input id="hf-filial" placeholder="Ex: Matriz Cuiabá"></div>
             <div class="field"><label>Responsável do ativo</label><input id="hf-responsavel" placeholder="Ex: Carlos Mendes"></div>
+          </div>
+          <div class="field-grid-4">
             <div class="field"><label>Status</label>
               <select id="hf-status">
                 <option value="ativo">Ativo</option>
@@ -1286,7 +1324,7 @@
   /* ---------------- app state ---------------- */
   let state = {
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
-    heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{},
+    heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{},
     currentProfile:null
   };
 
@@ -1304,6 +1342,7 @@
     setLoadingProgress(58, 'Carregando LOTS GO…');
     state.lotsGoEntries = await loadShared('lots-go-entries', []);
     state.lotsGoBudget = await loadShared('lots-go-budget', {});
+    state.lotsGoBudgetGrid = await loadShared('lots-go-budget-grid', null);
     setLoadingProgress(66, 'Carregando frota pesada…');
     state.heavyVehicles = await loadShared('lots-heavy-vehicles', []);
     setLoadingProgress(76, 'Carregando custos (pesada)…');
@@ -1366,7 +1405,8 @@
     heavyFines: () => saveShared('lots-heavy-fines', state.heavyFines),
     heavySinistros: () => saveShared('lots-heavy-sinistros', state.heavySinistros),
     lotsGoEntries: () => saveShared('lots-go-entries', state.lotsGoEntries),
-    lotsGoBudget: () => saveShared('lots-go-budget', state.lotsGoBudget)
+    lotsGoBudget: () => saveShared('lots-go-budget', state.lotsGoBudget),
+    lotsGoBudgetGrid: () => saveShared('lots-go-budget-grid', state.lotsGoBudgetGrid)
   };
 
   function currentUser(){
@@ -1611,10 +1651,14 @@
     document.getElementById('rf-plate').value = v?.plate || '';
     document.getElementById('rf-model').value = v?.model || '';
     document.getElementById('rf-uo').value = v?.unidade || 'MNS';
+    document.getElementById('rf-tag').value = v?.tag || '';
+    document.getElementById('rf-filial').value = v?.filial || '';
     document.getElementById('rf-depto').value = v?.departamento || 'Transporte de pessoas';
     document.getElementById('rf-km').value = v?.km || '';
     document.getElementById('rf-locadora').value = v?.locadora || '';
     document.getElementById('rf-regime').value = v?.regime || 'Contrato';
+    document.getElementById('rf-franquia').value = v?.franquiaKm || '9000';
+    document.getElementById('rf-franquia-wrap').style.display = (v?.regime==='Limite de KM mensal') ? 'block' : 'none';
     document.getElementById('rf-valor-locacao').value = v?.valorLocacao || '';
     document.getElementById('rf-periodicidade').value = v?.periodicidade || 'Mensal';
     document.getElementById('rf-telemetria').value = v?.telemetria || '';
@@ -1632,6 +1676,9 @@
     fillVehicleRegForm(vehicleById(id));
     document.querySelector('.reg-card').scrollIntoView({behavior:'smooth'});
   };
+  document.getElementById('rf-regime')?.addEventListener('change', (e)=>{
+    document.getElementById('rf-franquia-wrap').style.display = e.target.value==='Limite de KM mensal' ? 'block' : 'none';
+  });
 
   document.getElementById('btn-register-vehicle').addEventListener('click', async ()=>{
     const errEl = document.getElementById('reg-vehicle-err');
@@ -1640,10 +1687,13 @@
       plate: document.getElementById('rf-plate').value.trim().toUpperCase(),
       model: document.getElementById('rf-model').value.trim(),
       unidade: document.getElementById('rf-uo').value,
+      tag: document.getElementById('rf-tag').value.trim(),
+      filial: document.getElementById('rf-filial').value.trim(),
       departamento: document.getElementById('rf-depto').value.trim(),
       km: Number(document.getElementById('rf-km').value)||0,
       locadora: document.getElementById('rf-locadora').value.trim(),
       regime: document.getElementById('rf-regime').value,
+      franquiaKm: document.getElementById('rf-regime').value==='Limite de KM mensal' ? document.getElementById('rf-franquia').value : '',
       valorLocacao: Number(document.getElementById('rf-valor-locacao').value)||0,
       periodicidade: document.getElementById('rf-periodicidade').value,
       telemetria: Number(document.getElementById('rf-telemetria').value)||0,
@@ -2491,6 +2541,8 @@
     document.getElementById('hf-model').value = v?.model || '';
     document.getElementById('hf-uo').value = v?.unidade || 'MNS';
     document.getElementById('hf-km').value = v?.km || '';
+    document.getElementById('hf-tag').value = v?.tag || '';
+    document.getElementById('hf-filial').value = v?.filial || '';
     document.getElementById('hf-responsavel').value = v?.responsavel || '';
     document.getElementById('hf-status').value = v?.status || 'ativo';
     document.getElementById('btn-register-heavy').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
@@ -2507,6 +2559,8 @@
       model: document.getElementById('hf-model').value.trim(),
       unidade: document.getElementById('hf-uo').value,
       km: Number(document.getElementById('hf-km').value)||0,
+      tag: document.getElementById('hf-tag').value.trim(),
+      filial: document.getElementById('hf-filial').value.trim(),
       responsavel: document.getElementById('hf-responsavel').value.trim(),
       status: document.getElementById('hf-status').value
     };
@@ -2896,9 +2950,71 @@
     toast('Exportação gerada.');
   });
 
+  /* ---------------- ORÇAMENTO LOTS GO (grade editável de referência) ---------------- */
+  const LGB_DEFAULT = {
+    MNS: {
+      locacao:   [37980,37980,37980,52223,52223,52223,52223,52223,52223,52223,52223,52223],
+      manutencao:[8469,8469,8469,9469,9469,9469,9469,9469,9469,9469,9469,9469],
+      lavagem:   [3376,3376,3376,5280,5280,5280,5280,5280,5280,5280,5280,5280],
+      avarias:   [2110,2110,2110,3110,3110,3110,3110,3110,3110,3110,3110,3110]
+    },
+    PRA: {
+      locacao:   [33233,33233,33233,52223,52223,52223,52223,52223,52223,52223,52223,52223],
+      manutencao:[7133,7133,7133,9469,9469,9469,9469,9469,9469,9469,9469,9469],
+      lavagem:   [2954,2954,2954,5280,5280,5280,5280,5280,5280,5280,5280,5280],
+      avarias:   [1846,1846,1846,3110,3110,3110,3110,3110,3110,3110,3110,3110]
+    }
+  };
+  const LGB_ROWS = [
+    {key:'locacao', label:'Locação LOTS GO'},
+    {key:'manutencao', label:'Manutenção por Km, LOTS GO'},
+    {key:'lavagem', label:'Lavagem LOTS GO'},
+    {key:'avarias', label:'Avarias LOTS GO'}
+  ];
+  function getLGBGrid(){
+    if(!state.lotsGoBudgetGrid){ state.lotsGoBudgetGrid = JSON.parse(JSON.stringify(LGB_DEFAULT)); }
+    return state.lotsGoBudgetGrid;
+  }
+  function fmtInt(n){ return Math.round(n||0).toLocaleString('pt-BR'); }
+  function renderLGBGrid(){
+    const body = document.getElementById('lgb-grid-body');
+    if(!body) return;
+    const uo = document.getElementById('lgb-uo').value || 'MNS';
+    const grid = getLGBGrid();
+    const uoData = grid[uo] || (grid[uo] = JSON.parse(JSON.stringify(LGB_DEFAULT.MNS)));
+
+    let rowsHtml = LGB_ROWS.map(r=>{
+      const vals = uoData[r.key] || (uoData[r.key] = Array(12).fill(0));
+      const fy = vals.reduce((s,v)=>s+Number(v||0),0);
+      const cells = vals.map((v,i)=>`<td><input type="number" class="lgb-cell-input" data-cat="${r.key}" data-idx="${i}" value="${v}"></td>`).join('');
+      return `<tr><td>${r.label}</td>${cells}<td class="lgb-total">${fmtInt(fy)}</td></tr>`;
+    }).join('');
+
+    // linha de total por mês
+    const monthTotals = Array(12).fill(0);
+    LGB_ROWS.forEach(r=>{ (uoData[r.key]||[]).forEach((v,i)=>{ monthTotals[i]+=Number(v||0); }); });
+    const fyTotal = monthTotals.reduce((s,v)=>s+v,0);
+    rowsHtml += `<tr><td class="lgb-total">Total</td>${monthTotals.map(v=>`<td class="lgb-total">${fmtInt(v)}</td>`).join('')}<td class="lgb-total">${fmtInt(fyTotal)}</td></tr>`;
+
+    body.innerHTML = rowsHtml;
+
+    body.querySelectorAll('.lgb-cell-input').forEach(inp=>{
+      inp.addEventListener('change', async (e)=>{
+        const cat = e.target.dataset.cat;
+        const idx = Number(e.target.dataset.idx);
+        const grid2 = getLGBGrid();
+        grid2[uo][cat][idx] = Number(e.target.value)||0;
+        await save.lotsGoBudgetGrid();
+        renderLGBGrid();
+      });
+    });
+  }
+  document.getElementById('lgb-uo')?.addEventListener('change', renderLGBGrid);
+
   /* ---------------- RANKING (LOTS GO) ---------------- */
   function renderRanking(){
     renderRankingBI();
+    renderLGBGrid();
     const tbl = document.getElementById('tbl-ranking');
     const drivers = state.users.filter(u=>u.role==='motorista');
     if(drivers.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">Cadastre motoristas para ver o ranking.</td></tr>'; return; }
@@ -3589,6 +3705,7 @@
   listenShared('lots-heavy-sinistros', d => state.heavySinistros = d);
   listenShared('lots-go-entries', d => state.lotsGoEntries = d);
   listenShared('lots-go-budget', d => state.lotsGoBudget = d);
+  listenShared('lots-go-budget-grid', d => state.lotsGoBudgetGrid = d);
   updateOnlineStatus();
   setTimeout(hideLoadingSplash, 8000); // segurança: nunca trava na tela de carregamento
 
