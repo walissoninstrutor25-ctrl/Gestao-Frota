@@ -89,6 +89,7 @@
   }
   input:focus,select:focus{border-color:var(--accent);}
   input[readonly]{background:var(--surface); color:var(--text-muted); cursor:not-allowed;}
+  input:disabled{background:var(--surface); color:var(--text-muted); cursor:not-allowed; opacity:0.7;}
   label{font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:6px;}
   .field{margin-bottom:14px;}
   .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
@@ -910,19 +911,11 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><div class="card-title">Orçamento da safra LOTS GO</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">Cadastre quanto está orçado para o mês selecionado no filtro abaixo, e compare com o que foi realmente gasto.</div>
-          <div class="field-grid-4" style="align-items:end;">
-            <div class="field"><label>Mês</label><input type="month" id="lg-budget-month"></div>
-            <div class="field"><label>Valor orçado (R$)</label><input id="lg-budget-value" placeholder="Ex: 15000.00"></div>
-            <div class="field"><button class="btn-primary" id="btn-save-lgbudget" style="width:100%;">Salvar orçamento</button></div>
+          <div class="card-head">
+            <div class="card-title">Orçamento LOTS GO (referência da safra)</div>
+            <button class="btn-ghost btn-sm" id="btn-toggle-lgb-edit">✏️ Editar</button>
           </div>
-          <div class="err-msg" id="lg-budget-msg"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-head"><div class="card-title">Orçamento LOTS GO (referência da safra)</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">Valores por UO, categoria e mês — editável direto na tabela, só para conferência. O total de cada mês e o FY são calculados sozinhos.</div>
+          <div class="page-sub" style="margin-bottom:12px;">Valores por UO, categoria e mês. Esses números alimentam o comparativo Orçado × Real logo abaixo — clique em "Editar" para poder alterar. O total de cada mês e o FY são calculados sozinhos.</div>
           <div class="field" style="max-width:220px; margin-bottom:14px;">
             <label>UO</label>
             <select id="lgb-uo">
@@ -946,6 +939,7 @@
           <div class="filter-field"><label>Período inicial</label><input type="date" id="bilg-start"></div>
           <div class="filter-field"><label>Período final</label><input type="date" id="bilg-end"></div>
           <div class="filter-field"><label>Mês</label><select id="bilg-month"><option value="">Todos</option></select></div>
+          <div class="filter-field"><label>UO</label><select id="bilg-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
           <div class="filter-field"><label>Matrícula</label><select id="bilg-matricula"><option value="">Todas</option></select></div>
           <button class="btn-ghost" id="btn-clear-bilg">Limpar</button>
           <button class="btn-primary" id="btn-export-lotsgo">⬇ Exportar</button>
@@ -2833,22 +2827,6 @@
     }
   });
 
-  document.getElementById('btn-save-lgbudget')?.addEventListener('click', async ()=>{
-    const msgEl = document.getElementById('lg-budget-msg');
-    const month = document.getElementById('lg-budget-month').value;
-    const value = Number(document.getElementById('lg-budget-value').value)||0;
-    if(!month){ msgEl.style.color='var(--danger)'; msgEl.textContent='Escolha o mês.'; return; }
-    state.lotsGoBudget[month] = value;
-    await save.lotsGoBudget();
-    msgEl.style.color='var(--go)';
-    msgEl.textContent='Orçamento salvo para '+month+'.';
-    renderRankingBI();
-  });
-  document.getElementById('lg-budget-month')?.addEventListener('change', (e)=>{
-    const v = state.lotsGoBudget[e.target.value];
-    document.getElementById('lg-budget-value').value = v || '';
-  });
-
   function populateLotsGoBIFilters(){
     const mSel = document.getElementById('bilg-month');
     const matSel = document.getElementById('bilg-matricula');
@@ -2864,11 +2842,11 @@
     matSel.innerHTML = '<option value="">Todas</option>' + matriculas.map(m=>`<option value="${m}">${m}</option>`).join('');
     matSel.value = matriculas.includes(keepMat) ? keepMat : '';
   }
-  ['bilg-start','bilg-end','bilg-month','bilg-matricula'].forEach(id=>{
+  ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-matricula'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderRankingBI(); });
   });
   document.getElementById('btn-clear-bilg')?.addEventListener('click', ()=>{
-    ['bilg-start','bilg-end','bilg-month','bilg-matricula'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-matricula'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     renderRankingBI();
   });
 
@@ -2876,14 +2854,31 @@
     const start = document.getElementById('bilg-start').value;
     const end = document.getElementById('bilg-end').value;
     const month = document.getElementById('bilg-month').value;
+    const uo = document.getElementById('bilg-uo').value;
     const matricula = document.getElementById('bilg-matricula').value;
     return state.lotsGoEntries.filter(e=>{
       if(start && e.periodo<start) return false;
       if(end && e.periodo>end) return false;
       if(month && e.mes!==month) return false;
+      if(uo && (e.unidade||'').toUpperCase()!==uo) return false;
       if(matricula && e.matricula!==matricula) return false;
       return true;
     });
+  }
+
+  /* soma o orçamento de referência (grade editável) para um mês/UO específicos */
+  function getLGBMonthTotal(uoFilter, month){
+    if(!month) return 0;
+    const monthIndex = Number(month.split('-')[1]) - 1;
+    if(monthIndex<0 || monthIndex>11) return 0;
+    const grid = getLGBGrid();
+    const uos = uoFilter ? [uoFilter] : ['MNS','PRA'];
+    let total = 0;
+    uos.forEach(u=>{
+      const uoData = grid[u] || LGB_DEFAULT[u] || {};
+      LGB_ROWS.forEach(r=>{ total += Number((uoData[r.key]||[])[monthIndex]||0); });
+    });
+    return total;
   }
 
   function renderRankingBI(){
@@ -2894,7 +2889,8 @@
     const totalReal = list.reduce((s,e)=>s+e.valor,0);
 
     const month = document.getElementById('bilg-month').value;
-    const orcado = month ? (state.lotsGoBudget[month]||0) : 0;
+    const uoFilter = document.getElementById('bilg-uo').value;
+    const orcado = getLGBMonthTotal(uoFilter, month);
 
     document.getElementById('lg-orcvsreal-title').textContent = month
       ? `Orçado: ${fmtMoney(orcado)}  •  Real: ${fmtMoney(totalReal)}`
@@ -2976,6 +2972,7 @@
     return state.lotsGoBudgetGrid;
   }
   function fmtInt(n){ return Math.round(n||0).toLocaleString('pt-BR'); }
+  let lgbEditMode = false;
   function renderLGBGrid(){
     const body = document.getElementById('lgb-grid-body');
     if(!body) return;
@@ -2986,7 +2983,7 @@
     let rowsHtml = LGB_ROWS.map(r=>{
       const vals = uoData[r.key] || (uoData[r.key] = Array(12).fill(0));
       const fy = vals.reduce((s,v)=>s+Number(v||0),0);
-      const cells = vals.map((v,i)=>`<td><input type="number" class="lgb-cell-input" data-cat="${r.key}" data-idx="${i}" value="${v}"></td>`).join('');
+      const cells = vals.map((v,i)=>`<td><input type="number" class="lgb-cell-input" data-cat="${r.key}" data-idx="${i}" value="${v}" ${lgbEditMode?'':'disabled'}></td>`).join('');
       return `<tr><td>${r.label}</td>${cells}<td class="lgb-total">${fmtInt(fy)}</td></tr>`;
     }).join('');
 
@@ -3006,10 +3003,16 @@
         grid2[uo][cat][idx] = Number(e.target.value)||0;
         await save.lotsGoBudgetGrid();
         renderLGBGrid();
+        renderRankingBI();
       });
     });
   }
   document.getElementById('lgb-uo')?.addEventListener('change', renderLGBGrid);
+  document.getElementById('btn-toggle-lgb-edit')?.addEventListener('click', (e)=>{
+    lgbEditMode = !lgbEditMode;
+    e.target.textContent = lgbEditMode ? '🔒 Travar edição' : '✏️ Editar';
+    renderLGBGrid();
+  });
 
   /* ---------------- RANKING (LOTS GO) ---------------- */
   function renderRanking(){
