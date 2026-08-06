@@ -431,6 +431,7 @@
         <div class="subtab" data-view="sinistros">Sinistros</div>
         <div class="subtab" data-view="fines">Multas</div>
         <div class="subtab" data-view="ranking">LOTS GO</div>
+        <div class="subtab" data-view="tires">Controle de Pneus</div>
         <div class="subtab" data-view="users" id="nav-users">Usuários</div>
       </div>
       <div class="subtab-bar" id="subtabs-heavy" style="display:none;">
@@ -449,6 +450,7 @@
             <div class="page-title">Painel</div>
             <div class="page-sub">Visão geral da operação</div>
           </div>
+          <button class="btn-primary" id="btn-open-transfer">🔄 Transferência entre filial</button>
         </div>
 
         <div class="filter-bar">
@@ -500,6 +502,7 @@
         </div>
 
         <div class="card reg-card">
+          <div class="err-msg" id="reg-vehicle-admin-note" style="display:none; color:var(--accent); margin-bottom:14px;">Somente o administrador pode cadastrar, editar ou excluir veículos. Você pode visualizar os dados abaixo.</div>
           <div class="field-grid-4">
             <div class="field"><label>Frota</label><input id="rf-frota" placeholder="Ex: 0123"></div>
             <div class="field"><label>Placa</label><input id="rf-plate" placeholder="ABC1D23"></div>
@@ -565,6 +568,10 @@
             <div class="field"><label>Nº Renavam</label><input id="rf-renavam" placeholder="Ex: 00123456789"></div>
             <div class="field"><label>Nº de chassi</label><input id="rf-chassi" placeholder="Ex: 9BWZZZ377VT004251"></div>
             <div class="field"><label>Motorista responsável</label><select id="rf-driver"><option value="">— Nenhum —</option></select></div>
+          </div>
+          <div class="field-grid-4" id="rf-crlv-file-wrap" style="display:none;">
+            <div class="field"><label>Anexar PDF do CRLV</label><input type="file" id="rf-crlv-file" accept="application/pdf"></div>
+            <div class="field"><span class="page-sub" id="rf-crlv-file-status" style="margin:0;"></span></div>
           </div>
 
           <div class="expand-toggle" id="toggle-embarcados">📡 Cadastro Embarcados <span class="expand-arrow">▾</span></div>
@@ -682,6 +689,15 @@
           <div><div class="page-title">Custos Extras</div><div class="page-sub">Manutenção, sinistros, avarias e demais despesas extras</div></div>
         </div>
 
+        <div class="card">
+          <div class="card-head"><div class="card-title">Fornecedores</div></div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Nome da empresa</label><input id="fn-nome" placeholder="Ex: Oficina Central"></div>
+            <div class="field"><button class="btn-primary" id="btn-add-fornecedor" style="width:100%;">+ Cadastrar fornecedor</button></div>
+          </div>
+          <div id="fornecedor-list" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+
         <div class="card reg-card">
           <div class="card-head"><div class="card-title">Novo lançamento</div></div>
           <div class="field-grid-4">
@@ -707,8 +723,9 @@
             <div class="field"><label>Valor do serviço</label><input id="cf-value" placeholder="Ex: 350.00"></div>
           </div>
           <div class="field-grid-4">
-            <div class="field"><label>Fornecedor do serviço</label><input id="cf-fornecedor" placeholder="Ex: Oficina Central"></div>
+            <div class="field"><label>Fornecedor do serviço</label><select id="cf-fornecedor"><option value="">Selecione</option></select></div>
           </div>
+
           <div class="field-grid-4" id="cf-funilaria-row" style="display:none;">
             <div class="field"><label>Tipo de avaria (Funilaria)</label>
               <select id="cf-funilaria-tipo">
@@ -723,10 +740,34 @@
             </div>
             <div class="field" id="cf-funilaria-servico-wrap" style="display:none;"><label>Tipo de serviço</label><input id="cf-funilaria-servico" placeholder="Ex: Troca completa, reparo, polimento..."></div>
           </div>
+
+          <div class="field-grid-4" id="cf-mecanica-row" style="display:none;">
+            <div class="field"><label>Tipo de manutenção</label>
+              <select id="cf-mecanica-tipo">
+                <option value="">Selecione</option>
+                <option value="Preventiva">Preventiva</option>
+                <option value="Corretiva">Corretiva</option>
+              </select>
+            </div>
+            <div class="field" id="cf-mecanica-km-wrap" style="display:none;"><label>KM de revisão</label><input id="cf-mecanica-km" placeholder="Ex: 45000"></div>
+          </div>
+
+          <div class="field-grid-4" id="cf-despachante-row" style="display:none;">
+            <div class="field"><label>B.O. relacionado (Sinistros)</label><select id="cf-despachante-bo"><option value="">Nenhum</option></select></div>
+          </div>
+
+          <div class="field-grid-4" id="cf-servico-datas-row" style="display:none;">
+            <div class="field"><label>Data inicial</label><input type="date" id="cf-data-inicial"></div>
+            <div class="field"><label>Hora inicial</label><input type="time" id="cf-hora-inicial"></div>
+            <div class="field"><label>Data de liberação do serviço</label><input type="date" id="cf-data-liberacao"></div>
+            <div class="field"><label>Hora final</label><input type="time" id="cf-hora-final"></div>
+          </div>
+
           <div class="field">
             <label>Observações</label>
             <textarea id="cf-obs" rows="3" placeholder="Detalhes do ocorrido, do serviço realizado, etc." style="width:100%; resize:vertical; font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px;"></textarea>
           </div>
+
           <div class="field">
             <label>Fotos e arquivos de avarias</label>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
@@ -869,6 +910,10 @@
           <div class="field-grid-4" id="ff-motivo-row" style="display:none;">
             <div class="field"><label>Por que não foi descontado?</label><input id="ff-motivo" placeholder="Ex: Multa contestada, erro de identificação..."></div>
           </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Anexar PDF da multa</label><input type="file" id="ff-file" accept="application/pdf"></div>
+            <div class="field"><span class="page-sub" id="ff-file-status" style="margin:0;"></span></div>
+          </div>
           <button class="btn-primary reg-submit" id="btn-save-fine">Salvar multa</button>
           <div class="err-msg" id="ff-err"></div>
         </div>
@@ -886,7 +931,7 @@
         <div class="kpi-grid" id="bifine-kpi-grid"></div>
 
         <div class="card">
-          <table><thead><tr><th>Data</th><th>Veículo</th><th>UO</th><th>Motorista</th><th>Infração</th><th>Valor</th><th>Descontado</th><th>Status</th><th></th></tr></thead>
+          <table><thead><tr><th>Data</th><th>Veículo</th><th>UO</th><th>Motorista</th><th>Infração</th><th>Valor</th><th>Descontado</th><th>PDF</th><th>Status</th><th></th></tr></thead>
           <tbody id="tbl-fines"></tbody></table>
         </div>
       </div>
@@ -900,7 +945,7 @@
         <div class="card import-card">
           <div class="card-head"><div class="card-title">Importar planilha de premiação</div></div>
           <div class="page-sub" style="margin-bottom:12px;">
-            Colunas esperadas: <b>Matrícula</b>, <b>Colaborador</b>, <b>Atividade</b>, <b>Unidade</b>, <b>Turno</b>, <b>Valor</b>, <b>Período</b>. Pode importar todo mês — os dados se somam ao histórico, sem apagar nada.
+            Colunas esperadas: <b>Matrícula</b>, <b>Colaborador</b>, <b>Atividade</b>, <b>Unidade</b>, <b>Turno</b>, <b>Valor</b>, <b>Período</b> (e opcionalmente <b>Categoria</b>: Locação, Manutenção, Lavagem ou Avarias). Pode importar todo mês — os dados se somam ao histórico, sem apagar nada.
           </div>
           <div class="field-grid-4" style="align-items:end;">
             <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="lg-import-file" accept=".xlsx,.xls,.csv"></div>
@@ -940,6 +985,7 @@
           <div class="filter-field"><label>Período final</label><input type="date" id="bilg-end"></div>
           <div class="filter-field"><label>Mês</label><select id="bilg-month"><option value="">Todos</option></select></div>
           <div class="filter-field"><label>UO</label><select id="bilg-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
+          <div class="filter-field"><label>Categoria</label><select id="bilg-categoria"><option value="">Todas</option><option value="locacao">Locação</option><option value="manutencao">Manutenção</option><option value="lavagem">Lavagem</option><option value="avarias">Avarias</option></select></div>
           <div class="filter-field"><label>Matrícula</label><select id="bilg-matricula"><option value="">Todas</option></select></div>
           <button class="btn-ghost" id="btn-clear-bilg">Limpar</button>
           <button class="btn-primary" id="btn-export-lotsgo">⬇ Exportar</button>
@@ -969,6 +1015,64 @@
           <div class="page-sub" style="margin-bottom:6px;">Pontuação = 1000 − (100 × multas pendentes) − (30 × multas pagas) − (custos extras ÷ 50)</div>
           <table><thead><tr><th>Pos.</th><th>Motorista</th><th>Veículo</th><th>Multas</th><th>Pontuação</th></tr></thead>
           <tbody id="tbl-ranking"></tbody></table>
+        </div>
+      </div>
+
+      <!-- TIRES -->
+      <div class="view" id="view-tires">
+        <div class="topbar">
+          <div><div class="page-title">Controle de Pneus</div><div class="page-sub">Cadastro e desgaste dos pneus da frota</div></div>
+        </div>
+
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Novo pneu</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo (Frota/Placa)</label><select id="ty-vehicle"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Posição</label>
+              <select id="ty-posicao">
+                <option value="Dianteiro Esquerdo">Dianteiro Esquerdo</option>
+                <option value="Dianteiro Direito">Dianteiro Direito</option>
+                <option value="Traseiro Esquerdo">Traseiro Esquerdo</option>
+                <option value="Traseiro Direito">Traseiro Direito</option>
+                <option value="Traseiro Esquerdo Interno">Traseiro Esquerdo Interno</option>
+                <option value="Traseiro Direito Interno">Traseiro Direito Interno</option>
+                <option value="Estepe">Estepe</option>
+              </select>
+            </div>
+            <div class="field"><label>Marca</label><input id="ty-marca" placeholder="Ex: Michelin"></div>
+            <div class="field"><label>Modelo</label><input id="ty-modelo" placeholder="Ex: XZA2 Energy"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Nº de fogo / identificação</label><input id="ty-fogo" placeholder="Ex: PN-00123"></div>
+            <div class="field"><label>KM de instalação</label><input id="ty-km-instalacao" placeholder="Ex: 42000"></div>
+            <div class="field"><label>KM atual</label><input id="ty-km-atual" placeholder="Ex: 48500"></div>
+            <div class="field"><label>Status</label>
+              <select id="ty-status">
+                <option value="novo">Novo</option>
+                <option value="em-uso">Em uso</option>
+                <option value="recapado">Recapado</option>
+                <option value="sucateado">Sucateado</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-save-tire">Cadastrar pneu</button>
+          <div class="err-msg" id="ty-err"></div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">Painel de pneus</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Veículo</label><select id="tyfilter-vehicle"><option value="">Todos</option></select></div>
+          <div class="filter-field"><label>Status</label><select id="tyfilter-status"><option value="">Todos</option><option value="novo">Novo</option><option value="em-uso">Em uso</option><option value="recapado">Recapado</option><option value="sucateado">Sucateado</option></select></div>
+          <button class="btn-ghost" id="btn-clear-tyfilter">Limpar</button>
+          <button class="btn-primary" id="btn-export-tires">⬇ Exportar</button>
+        </div>
+        <div class="kpi-grid" id="ty-kpi-grid"></div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Pneus cadastrados</div></div>
+          <table><thead><tr><th>Veículo</th><th>Posição</th><th>Marca/Modelo</th><th>Nº fogo</th><th>KM instalação</th><th>KM atual</th><th>Rodado</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-tires"></tbody></table>
         </div>
       </div>
 
@@ -1319,6 +1423,7 @@
   let state = {
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
     heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{},
+    transfers:[], fornecedores:[], tires:[],
     currentProfile:null
   };
 
@@ -1345,6 +1450,9 @@
     state.heavyFines = await loadShared('lots-heavy-fines', []);
     setLoadingProgress(95, 'Carregando sinistros (pesada)…');
     state.heavySinistros = await loadShared('lots-heavy-sinistros', []);
+    state.transfers = await loadShared('lots-transfers', []);
+    state.fornecedores = await loadShared('lots-fornecedores', []);
+    state.tires = await loadShared('lots-tires', []);
     setLoadingProgress(100, 'Pronto');
   }
 
@@ -1398,6 +1506,9 @@
     heavyCosts: () => saveShared('lots-heavy-costs', state.heavyCosts),
     heavyFines: () => saveShared('lots-heavy-fines', state.heavyFines),
     heavySinistros: () => saveShared('lots-heavy-sinistros', state.heavySinistros),
+    transfers: () => saveShared('lots-transfers', state.transfers),
+    fornecedores: () => saveShared('lots-fornecedores', state.fornecedores),
+    tires: () => saveShared('lots-tires', state.tires),
     lotsGoEntries: () => saveShared('lots-go-entries', state.lotsGoEntries),
     lotsGoBudget: () => saveShared('lots-go-budget', state.lotsGoBudget),
     lotsGoBudgetGrid: () => saveShared('lots-go-budget-grid', state.lotsGoBudgetGrid)
@@ -1552,11 +1663,13 @@
 
   /* ---------------- VEHICLES ---------------- */
   function renderVehicles(){
+    applyVehicleFormPermissions();
     populateVehicleFilterOptions();
     const keepDriver = document.getElementById('rf-driver')?.value || '';
     populateVehicleDriverSelect(keepDriver);
     const f = getVehicleFilters();
     const tbl = document.getElementById('tbl-vehicles');
+    const isAdmin = currentUser()?.role==='admin';
     let list = visibleVehicles()
       .filter(v => !f.uo || v.unidade===f.uo)
       .filter(v => !f.vehicleId || v.id===f.vehicleId)
@@ -1578,8 +1691,8 @@
         <td>${driver?driver.name:'—'}</td>
         <td>${statusBadge}</td>
         <td><div class="action-links">
-          <button class="icon-btn" onclick="LOTS.editVehicle('${v.id}')">editar</button>
-          <button class="icon-btn danger" onclick="LOTS.deleteVehicle('${v.id}')">excluir</button>
+          ${isAdmin ? `<button class="icon-btn" onclick="LOTS.editVehicle('${v.id}')">editar</button>
+          <button class="icon-btn danger" onclick="LOTS.deleteVehicle('${v.id}')">excluir</button>` : '—'}
         </div></td>
       </tr>`;
     }).join('');
@@ -1647,6 +1760,8 @@
     document.getElementById('rf-uo').value = v?.unidade || 'MNS';
     document.getElementById('rf-tag').value = v?.tag || '';
     document.getElementById('rf-filial').value = v?.filial || '';
+    document.getElementById('rf-filial').readOnly = !!v;
+    document.getElementById('rf-filial').title = v ? 'A filial de origem não pode ser alterada depois do cadastro. Use "Transferência entre filial" no Painel.' : '';
     document.getElementById('rf-depto').value = v?.departamento || 'Transporte de pessoas';
     document.getElementById('rf-km').value = v?.km || '';
     document.getElementById('rf-locadora').value = v?.locadora || '';
@@ -1663,15 +1778,77 @@
     document.getElementById('rf-trimble').value = v?.trimble || '';
     document.getElementById('rf-radio-modelo').value = v?.radioModelo || '';
     document.getElementById('rf-radio-serie').value = v?.radioSerie || '';
+    document.getElementById('rf-crlv-file-wrap').style.display = document.getElementById('rf-crlv').value.trim() ? 'grid' : 'none';
+    document.getElementById('rf-crlv-file-status').textContent = v?.crlvAnexo ? ('Anexado: '+v.crlvAnexo) : '';
     populateVehicleDriverSelect(v?.driverId);
     document.getElementById('btn-register-vehicle').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
+    applyVehicleFormPermissions();
   }
   LOTS.editVehicle = (id)=>{
+    if(currentUser().role!=='admin'){ toast('Somente o administrador pode editar veículos.'); return; }
     fillVehicleRegForm(vehicleById(id));
     document.querySelector('.reg-card').scrollIntoView({behavior:'smooth'});
   };
+  function applyVehicleFormPermissions(){
+    const isAdmin = currentUser()?.role==='admin';
+    const card = document.querySelector('#view-vehicles .reg-card');
+    if(!card) return;
+    card.querySelectorAll('input,select,button').forEach(el=>{ el.disabled = !isAdmin; });
+    const note = document.getElementById('reg-vehicle-admin-note');
+    if(note) note.style.display = isAdmin ? 'none' : 'block';
+  }
+
+  /* ---------------- TRANSFERÊNCIA ENTRE FILIAL ---------------- */
+  function transferForm(){
+    const ativos = visibleVehicles().filter(v=>v.status!=='inativo');
+    return `
+      <div class="modal-title">Transferência entre filial</div>
+      <div class="field"><label>Veículo</label><select id="tr-vehicle">${vehicleOptions(null)}</select></div>
+      <div class="field"><label>Filial atual</label><input id="tr-filial-origem" readonly></div>
+      <div class="field"><label>Data da transferência</label><input type="date" id="tr-date" value="${todayISO()}"></div>
+      <div class="field"><label>Filial de destino</label><input id="tr-filial-destino" placeholder="Ex: Filial Sinop"></div>
+      <div class="page-sub" style="margin:6px 0 4px 0;">A filial cadastrada no veículo não muda. Ao salvar, este veículo fica com status <b>Inativo</b>, registrando que foi transferido.</div>
+      <div class="err-msg" id="tr-err"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.saveTransfer()">Confirmar transferência</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-open-transfer')?.addEventListener('click', ()=>{
+    openModal(transferForm());
+    document.getElementById('tr-vehicle').addEventListener('change', fillTransferOrigem);
+    fillTransferOrigem();
+  });
+  function fillTransferOrigem(){
+    const v = vehicleById(document.getElementById('tr-vehicle').value);
+    document.getElementById('tr-filial-origem').value = v ? (v.filial||'—') : '';
+  }
+  LOTS.saveTransfer = async ()=>{
+    const errEl = document.getElementById('tr-err');
+    const vehicleId = document.getElementById('tr-vehicle').value;
+    const destino = document.getElementById('tr-filial-destino').value.trim();
+    const date = document.getElementById('tr-date').value || todayISO();
+    if(!vehicleId){ errEl.textContent='Selecione um veículo.'; return; }
+    if(!destino){ errEl.textContent='Informe a filial de destino.'; return; }
+    const v = vehicleById(vehicleId);
+    state.transfers.push({
+      id: uid(), vehicleId, date,
+      filialOrigem: v.filial||'', filialDestino: destino,
+      registradoPor: currentUser().name
+    });
+    v.status = 'inativo';
+    await save.transfers();
+    await save.vehicles();
+    closeModal();
+    renderView('vehicles'); renderView('dashboard');
+    toast('Transferência registrada. Veículo marcado como inativo.');
+  };
+
   document.getElementById('rf-regime')?.addEventListener('change', (e)=>{
     document.getElementById('rf-franquia-wrap').style.display = e.target.value==='Limite de KM mensal' ? 'block' : 'none';
+  });
+  document.getElementById('rf-crlv')?.addEventListener('input', (e)=>{
+    document.getElementById('rf-crlv-file-wrap').style.display = e.target.value.trim() ? 'grid' : 'none';
   });
 
   document.getElementById('btn-register-vehicle').addEventListener('click', async ()=>{
@@ -1700,9 +1877,36 @@
       radioSerie: document.getElementById('rf-radio-serie').value.trim(),
       driverId: document.getElementById('rf-driver').value || null
     };
-    if(!data.plate || !data.model){ errEl.textContent='Preencha ao menos placa e modelo.'; return; }
+    const required = [
+      ['frota','Frota'],['plate','Placa'],['model','Modelo'],['filial','Filial de origem'],
+      ['departamento','Departamento'],['locadora','Locadora'],['regime','Regime'],
+      ['periodicidade','Periodicidade'],['status','Status'],['crlv','Nº CRLV'],
+      ['renavam','Nº Renavam'],['chassi','Nº de chassi']
+    ];
+    const faltando = required.filter(([k])=>!data[k]).map(([,label])=>label);
+    if(faltando.length){ errEl.textContent='Preencha: '+faltando.join(', ')+'.'; return; }
+    if(!data.km && data.km!==0){ errEl.textContent='Informe o KM atual.'; return; }
+    if(!data.valorLocacao){ errEl.textContent='Informe o valor da locação.'; return; }
     errEl.textContent='';
+
     const id = LOTS._editingVehicleId;
+    const crlvFile = document.getElementById('rf-crlv-file').files[0];
+    if(crlvFile){
+      if(onedriveDirHandle){
+        try{
+          const perm = await onedriveDirHandle.requestPermission({mode:'readwrite'});
+          if(perm==='granted'){
+            const safeName = `CRLV_${data.plate}_${Date.now()}_${crlvFile.name}`.replace(/[\\/:*?"<>|]/g,'_');
+            const fh = await onedriveDirHandle.getFileHandle(safeName, {create:true});
+            const w = await fh.createWritable(); await w.write(crlvFile); await w.close();
+            data.crlvAnexo = crlvFile.name;
+          }
+        }catch(e){ console.error('anexo crlv falhou', e); }
+      } else {
+        data.crlvAnexo = crlvFile.name+' (pasta não selecionada — só o nome foi salvo)';
+      }
+    }
+
     if(id){
       Object.assign(vehicleById(id), data);
     } else {
@@ -1714,7 +1918,7 @@
     toast(id ? 'Veículo atualizado.' : 'Veículo cadastrado.');
   });
   LOTS.deleteVehicle = async (id)=>{
-
+    if(currentUser().role!=='admin'){ toast('Somente o administrador pode excluir veículos.'); return; }
     state.vehicles = state.vehicles.filter(v=>v.id!==id);
     await save.vehicles();
     renderView('vehicles'); renderView('dashboard');
@@ -2101,6 +2305,8 @@
   /* ---------------- COSTS ---------------- */
   function renderCosts(){
     populateCostVehicleSelect();
+    populateFornecedorSelect();
+    renderFornecedorList();
     populateCostBIFilters();
     renderCostBI();
     const tbl = document.getElementById('tbl-costs');
@@ -2147,16 +2353,71 @@
     document.getElementById('cf-uo').value = v ? (v.unidade||'') : '';
   }
   document.getElementById('cf-vehicle')?.addEventListener('change', fillCostVehicleReadonly);
+
+  /* ---- Fornecedores ---- */
+  function populateFornecedorSelect(){
+    const sel = document.getElementById('cf-fornecedor');
+    if(!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + state.fornecedores.map(f=>`<option value="${f.nome}">${f.nome}</option>`).join('');
+    sel.value = state.fornecedores.some(f=>f.nome===keep) ? keep : '';
+  }
+  function renderFornecedorList(){
+    const wrap = document.getElementById('fornecedor-list');
+    if(!wrap) return;
+    if(state.fornecedores.length===0){ wrap.innerHTML='<span class="page-sub" style="margin:0;">Nenhum fornecedor cadastrado ainda.</span>'; return; }
+    wrap.innerHTML = state.fornecedores.map(f=>`<span class="plate" style="display:inline-flex; align-items:center; gap:8px;">${f.nome} <button class="icon-btn danger" style="padding:0;" onclick="LOTS.deleteFornecedor('${f.id}')">✕</button></span>`).join('');
+  }
+  document.getElementById('btn-add-fornecedor')?.addEventListener('click', async ()=>{
+    const nome = document.getElementById('fn-nome').value.trim();
+    if(!nome){ toast('Digite o nome da empresa.'); return; }
+    if(state.fornecedores.some(f=>f.nome.toLowerCase()===nome.toLowerCase())){ toast('Esse fornecedor já está cadastrado.'); return; }
+    state.fornecedores.push({id:uid(), nome});
+    await save.fornecedores();
+    document.getElementById('fn-nome').value='';
+    renderFornecedorList(); populateFornecedorSelect();
+    toast('Fornecedor cadastrado.');
+  });
+  LOTS.deleteFornecedor = async (id)=>{
+    state.fornecedores = state.fornecedores.filter(f=>f.id!==id);
+    await save.fornecedores();
+    renderFornecedorList(); populateFornecedorSelect();
+  };
+
+  /* ---- B.O. do despachante (vindo de Sinistros) ---- */
+  function populateDespachanteBO(){
+    const sel = document.getElementById('cf-despachante-bo');
+    if(!sel) return;
+    const keep = sel.value;
+    const bos = state.sinistros.filter(s=>s.bo).map(s=>s.bo);
+    sel.innerHTML = '<option value="">Nenhum</option>' + [...new Set(bos)].map(bo=>`<option value="${bo}">${bo}</option>`).join('');
+    sel.value = bos.includes(keep) ? keep : '';
+  }
+
   document.getElementById('cf-category')?.addEventListener('change', (e)=>{
-    document.getElementById('cf-funilaria-row').style.display = e.target.value==='Funilaria' ? 'grid' : 'none';
-    if(e.target.value!=='Funilaria'){
+    const cat = e.target.value;
+    document.getElementById('cf-funilaria-row').style.display = cat==='Funilaria' ? 'grid' : 'none';
+    if(cat!=='Funilaria'){
       document.getElementById('cf-funilaria-tipo').value='';
       document.getElementById('cf-funilaria-servico-wrap').style.display='none';
       document.getElementById('cf-funilaria-servico').value='';
     }
+    document.getElementById('cf-mecanica-row').style.display = cat==='Mecânica' ? 'grid' : 'none';
+    if(cat!=='Mecânica'){
+      document.getElementById('cf-mecanica-tipo').value='';
+      document.getElementById('cf-mecanica-km-wrap').style.display='none';
+      document.getElementById('cf-mecanica-km').value='';
+    }
+    document.getElementById('cf-despachante-row').style.display = cat==='Despachante' ? 'grid' : 'none';
+    if(cat==='Despachante') populateDespachanteBO();
+    // qualquer categoria escolhida mostra as datas/horas do serviço
+    document.getElementById('cf-servico-datas-row').style.display = cat ? 'grid' : 'none';
   });
   document.getElementById('cf-funilaria-tipo')?.addEventListener('change', (e)=>{
     document.getElementById('cf-funilaria-servico-wrap').style.display = e.target.value ? 'block' : 'none';
+  });
+  document.getElementById('cf-mecanica-tipo')?.addEventListener('change', (e)=>{
+    document.getElementById('cf-mecanica-km-wrap').style.display = e.target.value==='Preventiva' ? 'block' : 'none';
   });
 
   document.getElementById('btn-save-cost')?.addEventListener('click', async ()=>{
@@ -2175,9 +2436,16 @@
       category: document.getElementById('cf-category').value,
       budgetNumber: document.getElementById('cf-budget').value.trim(),
       value,
-      fornecedor: document.getElementById('cf-fornecedor').value.trim(),
+      fornecedor: document.getElementById('cf-fornecedor').value,
       funilariaTipo: document.getElementById('cf-funilaria-tipo').value,
       funilariaServico: document.getElementById('cf-funilaria-servico').value.trim(),
+      mecanicaTipo: document.getElementById('cf-mecanica-tipo').value,
+      mecanicaKmRevisao: document.getElementById('cf-mecanica-km').value.trim(),
+      despachanteBO: document.getElementById('cf-despachante-bo').value,
+      dataInicial: document.getElementById('cf-data-inicial').value,
+      horaInicial: document.getElementById('cf-hora-inicial').value,
+      dataLiberacao: document.getElementById('cf-data-liberacao').value,
+      horaFinal: document.getElementById('cf-hora-final').value,
       description: document.getElementById('cf-obs').value.trim(),
       anexos: []
     };
@@ -2228,10 +2496,21 @@
     document.getElementById('cf-fornecedor').value='';
     document.getElementById('cf-funilaria-tipo').value='';
     document.getElementById('cf-funilaria-servico').value='';
+    document.getElementById('cf-mecanica-tipo').value='';
+    document.getElementById('cf-mecanica-km').value='';
+    document.getElementById('cf-despachante-bo').value='';
+    document.getElementById('cf-data-inicial').value='';
+    document.getElementById('cf-hora-inicial').value='';
+    document.getElementById('cf-data-liberacao').value='';
+    document.getElementById('cf-hora-final').value='';
     document.getElementById('cf-obs').value='';
     filesInput.value='';
     document.getElementById('cf-funilaria-row').style.display='none';
     document.getElementById('cf-funilaria-servico-wrap').style.display='none';
+    document.getElementById('cf-mecanica-row').style.display='none';
+    document.getElementById('cf-mecanica-km-wrap').style.display='none';
+    document.getElementById('cf-despachante-row').style.display='none';
+    document.getElementById('cf-servico-datas-row').style.display='none';
 
     renderView('costs'); renderView('dashboard');
     toast('Lançamento salvo.');
@@ -2286,11 +2565,28 @@
     const categorias = Object.entries(porCategoria).sort((a,b)=>b[1].val-a[1].val);
     const maiorCategoria = categorias[0] ? categorias[0][0] : '—';
 
+    // tempo médio de serviço (data/hora inicial até liberação), em horas
+    const comTempo = list.filter(c=>c.dataInicial && c.dataLiberacao);
+    let horasMedias = 0;
+    if(comTempo.length>0){
+      const totalHoras = comTempo.reduce((s,c)=>{
+        const ini = new Date(`${c.dataInicial}T${c.horaInicial||'00:00'}`);
+        const fim = new Date(`${c.dataLiberacao}T${c.horaFinal||'00:00'}`);
+        const diffH = (fim-ini)/(1000*60*60);
+        return s + (diffH>0?diffH:0);
+      },0);
+      horasMedias = totalHoras/comTempo.length;
+    }
+    const preventivas = list.filter(c=>c.category==='Mecânica' && c.mecanicaTipo==='Preventiva').length;
+    const corretivas = list.filter(c=>c.category==='Mecânica' && c.mecanicaTipo==='Corretiva').length;
+
     kpiGrid.innerHTML = [
       {label:'Lançamentos', val: list.length},
       {label:'Valor total', val: fmtMoney(total)},
       {label:'Ticket médio', val: fmtMoney(list.length?total/list.length:0)},
-      {label:'Categoria com maior gasto', val: maiorCategoria}
+      {label:'Categoria com maior gasto', val: maiorCategoria},
+      {label:'Tempo médio de serviço', val: comTempo.length?horasMedias.toFixed(1)+' h':'—'},
+      {label:'Mecânica: preventiva × corretiva', val: preventivas+' × '+corretivas}
     ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
 
     const byCatBody = document.getElementById('bicost-by-category');
@@ -2666,6 +2962,22 @@
       motivoNaoDescontado: descontado==='nao' ? document.getElementById('ff-motivo').value.trim() : '',
       status: 'pendente'
     };
+    const pdfFile = document.getElementById('ff-file').files[0];
+    if(pdfFile){
+      if(onedriveDirHandle){
+        try{
+          const perm = await onedriveDirHandle.requestPermission({mode:'readwrite'});
+          if(perm==='granted'){
+            const safeName = `Multa_${Date.now()}_${pdfFile.name}`.replace(/[\\/:*?"<>|]/g,'_');
+            const fh = await onedriveDirHandle.getFileHandle(safeName, {create:true});
+            const w = await fh.createWritable(); await w.write(pdfFile); await w.close();
+            rec.pdfAnexo = pdfFile.name;
+          }
+        }catch(e){ console.error('anexo multa falhou', e); }
+      } else {
+        rec.pdfAnexo = pdfFile.name+' (pasta não selecionada — só o nome foi salvo)';
+      }
+    }
     state.fines.push(rec);
     await save.fines();
     document.getElementById('ff-vehicle').value='';
@@ -2676,6 +2988,8 @@
     document.getElementById('ff-value').value='';
     document.getElementById('ff-descontado').value='';
     document.getElementById('ff-motivo').value='';
+    document.getElementById('ff-file').value='';
+    document.getElementById('ff-file-status').textContent='';
     document.getElementById('ff-motivo-row').style.display='none';
     renderView('fines'); renderView('dashboard'); renderView('ranking');
     toast('Multa registrada.');
@@ -2753,7 +3067,7 @@
     renderFineBI();
     const tbl = document.getElementById('tbl-fines');
     const list = visibleFines().slice().sort((a,b)=>b.date.localeCompare(a.date));
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="9">Nenhuma multa registrada.</td></tr>'; return; }
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="10">Nenhuma multa registrada.</td></tr>'; return; }
     tbl.innerHTML = list.map(f=>{
       const v = vehicleById(f.vehicleId);
       const d = userById(f.driverId);
@@ -2768,6 +3082,7 @@
         <td>${f.infraction}</td>
         <td class="mono">${fmtMoney(f.value)}</td>
         <td>${descontadoTxt}</td>
+        <td style="font-size:11.5px;">${f.pdfAnexo ? '📎 '+f.pdfAnexo : '—'}</td>
         <td>${badge}</td>
         <td><div class="action-links">
           ${f.status!=='paga'?`<button class="icon-btn" onclick="LOTS.markPaid('${f.id}')">marcar paga</button>`:''}
@@ -2798,6 +3113,7 @@
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
       let imported=0, skipped=0;
+      const catMap = {'locação':'locacao','locacao':'locacao','manutenção':'manutencao','manutencao':'manutencao','lavagem':'lavagem','avarias':'avarias'};
       for(const row of rows){
         const matricula = String(pickCol(row,'matricula','matrícula')||'').trim();
         const colaborador = String(pickCol(row,'colaborador','nome')||'').trim();
@@ -2805,12 +3121,14 @@
         const unidade = String(pickCol(row,'unidade','uo')||'').trim();
         const turno = String(pickCol(row,'turno')||'').trim();
         const valor = Number(pickCol(row,'valor'))||0;
+        const categoriaRaw = normKey(pickCol(row,'categoria')||'');
+        const categoria = catMap[categoriaRaw] || '';
         const periodoRaw = pickCol(row,'periodo','período','data');
         let periodo = excelDateToISO(periodoRaw);
         if(!periodo && batchMonth) periodo = batchMonth+'-01';
         if(!matricula || valor<=0 || !periodo){ skipped++; continue; }
         state.lotsGoEntries.push({
-          id:uid(), matricula, colaborador, atividade, unidade, turno, valor, periodo,
+          id:uid(), matricula, colaborador, atividade, unidade, turno, valor, periodo, categoria,
           mes: periodo.slice(0,7)
         });
         imported++;
@@ -2842,11 +3160,11 @@
     matSel.innerHTML = '<option value="">Todas</option>' + matriculas.map(m=>`<option value="${m}">${m}</option>`).join('');
     matSel.value = matriculas.includes(keepMat) ? keepMat : '';
   }
-  ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-matricula'].forEach(id=>{
+  ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-categoria','bilg-matricula'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderRankingBI(); });
   });
   document.getElementById('btn-clear-bilg')?.addEventListener('click', ()=>{
-    ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-matricula'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-categoria','bilg-matricula'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     renderRankingBI();
   });
 
@@ -2855,28 +3173,31 @@
     const end = document.getElementById('bilg-end').value;
     const month = document.getElementById('bilg-month').value;
     const uo = document.getElementById('bilg-uo').value;
+    const categoria = document.getElementById('bilg-categoria').value;
     const matricula = document.getElementById('bilg-matricula').value;
     return state.lotsGoEntries.filter(e=>{
       if(start && e.periodo<start) return false;
       if(end && e.periodo>end) return false;
       if(month && e.mes!==month) return false;
       if(uo && (e.unidade||'').toUpperCase()!==uo) return false;
+      if(categoria && e.categoria!==categoria) return false;
       if(matricula && e.matricula!==matricula) return false;
       return true;
     });
   }
 
-  /* soma o orçamento de referência (grade editável) para um mês/UO específicos */
-  function getLGBMonthTotal(uoFilter, month){
+  /* soma o orçamento de referência (grade editável) para um mês/UO/categoria específicos */
+  function getLGBMonthTotal(uoFilter, month, categoriaFilter){
     if(!month) return 0;
     const monthIndex = Number(month.split('-')[1]) - 1;
     if(monthIndex<0 || monthIndex>11) return 0;
     const grid = getLGBGrid();
     const uos = uoFilter ? [uoFilter] : ['MNS','PRA'];
+    const rows = categoriaFilter ? LGB_ROWS.filter(r=>r.key===categoriaFilter) : LGB_ROWS;
     let total = 0;
     uos.forEach(u=>{
       const uoData = grid[u] || LGB_DEFAULT[u] || {};
-      LGB_ROWS.forEach(r=>{ total += Number((uoData[r.key]||[])[monthIndex]||0); });
+      rows.forEach(r=>{ total += Number((uoData[r.key]||[])[monthIndex]||0); });
     });
     return total;
   }
@@ -2890,7 +3211,8 @@
 
     const month = document.getElementById('bilg-month').value;
     const uoFilter = document.getElementById('bilg-uo').value;
-    const orcado = getLGBMonthTotal(uoFilter, month);
+    const categoriaFilter = document.getElementById('bilg-categoria').value;
+    const orcado = getLGBMonthTotal(uoFilter, month, categoriaFilter);
 
     document.getElementById('lg-orcvsreal-title').textContent = month
       ? `Orçado: ${fmtMoney(orcado)}  •  Real: ${fmtMoney(totalReal)}`
@@ -3435,6 +3757,127 @@
     }).join('');
   }
 
+  /* ---------------- CONTROLE DE PNEUS ---------------- */
+  function populateTireVehicleSelects(){
+    const opts = '<option value="">Selecione</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    const sel1 = document.getElementById('ty-vehicle');
+    if(sel1){ const keep=sel1.value; sel1.innerHTML=opts; sel1.value = visibleVehicles().some(v=>v.id===keep)?keep:''; }
+    const sel2 = document.getElementById('tyfilter-vehicle');
+    if(sel2){ const keep=sel2.value; sel2.innerHTML='<option value="">Todos</option>'+visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join(''); sel2.value = visibleVehicles().some(v=>v.id===keep)?keep:''; }
+  }
+  document.getElementById('ty-vehicle')?.addEventListener('change', (e)=>{
+    const v = vehicleById(e.target.value);
+    if(v) document.getElementById('ty-km-atual').value = v.km || '';
+  });
+
+  document.getElementById('btn-save-tire')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('ty-err');
+    const vehicleId = document.getElementById('ty-vehicle').value;
+    if(!vehicleId){ errEl.textContent='Selecione o veículo.'; return; }
+    const kmInst = Number(document.getElementById('ty-km-instalacao').value)||0;
+    const kmAtual = Number(document.getElementById('ty-km-atual').value)||0;
+    if(!kmInst){ errEl.textContent='Informe o KM de instalação.'; return; }
+    errEl.textContent='';
+    state.tires.push({
+      id: uid(), vehicleId,
+      posicao: document.getElementById('ty-posicao').value,
+      marca: document.getElementById('ty-marca').value.trim(),
+      modelo: document.getElementById('ty-modelo').value.trim(),
+      fogo: document.getElementById('ty-fogo').value.trim(),
+      kmInstalacao: kmInst,
+      kmAtual: kmAtual,
+      status: document.getElementById('ty-status').value,
+      dataCadastro: todayISO()
+    });
+    await save.tires();
+    document.getElementById('ty-marca').value='';
+    document.getElementById('ty-modelo').value='';
+    document.getElementById('ty-fogo').value='';
+    document.getElementById('ty-km-instalacao').value='';
+    document.getElementById('ty-km-atual').value='';
+    renderView('tires');
+    toast('Pneu cadastrado.');
+  });
+  LOTS.deleteTire = async (id)=>{
+    state.tires = state.tires.filter(t=>t.id!==id);
+    await save.tires();
+    renderView('tires');
+  };
+  LOTS.updateTireKm = async (id)=>{
+    const t = state.tires.find(x=>x.id===id);
+    const novo = prompt('Novo KM atual deste pneu:', t.kmAtual);
+    if(novo===null) return;
+    t.kmAtual = Number(novo)||t.kmAtual;
+    await save.tires();
+    renderView('tires');
+  };
+
+  ['tyfilter-vehicle','tyfilter-status'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderTires(); });
+  });
+  document.getElementById('btn-clear-tyfilter')?.addEventListener('click', ()=>{
+    document.getElementById('tyfilter-vehicle').value='';
+    document.getElementById('tyfilter-status').value='';
+    renderTires();
+  });
+  document.getElementById('btn-export-tires')?.addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
+    const list = LOTS._tiresSnapshot || [];
+    if(list.length===0){ toast('Nada para exportar.'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(t=>{
+      const v = vehicleById(t.vehicleId);
+      return {Frota:v?.frota||'', Placa:v?.plate||'', Posição:t.posicao, Marca:t.marca, Modelo:t.modelo, 'Nº fogo':t.fogo, 'KM instalação':t.kmInstalacao, 'KM atual':t.kmAtual, 'KM rodado':t.kmAtual-t.kmInstalacao, Status:t.status};
+    })), 'Pneus');
+    XLSX.writeFile(wb, 'controle-pneus-gestao-frota-lots.xlsx');
+    toast('Exportação gerada.');
+  });
+
+  function renderTires(){
+    populateTireVehicleSelects();
+    const vf = document.getElementById('tyfilter-vehicle')?.value || '';
+    const sf = document.getElementById('tyfilter-status')?.value || '';
+    const okVids = visibleVehicles().map(v=>v.id);
+    let list = state.tires.filter(t=>okVids.includes(t.vehicleId))
+      .filter(t=>!vf || t.vehicleId===vf)
+      .filter(t=>!sf || t.status===sf);
+
+    const kpiGrid = document.getElementById('ty-kpi-grid');
+    if(kpiGrid){
+      const rodados = list.map(t=>t.kmAtual-t.kmInstalacao).filter(k=>k>=0);
+      const mediaRodado = rodados.length ? rodados.reduce((s,k)=>s+k,0)/rodados.length : 0;
+      kpiGrid.innerHTML = [
+        {label:'Pneus cadastrados', val: list.length},
+        {label:'Em uso', val: list.filter(t=>t.status==='em-uso'||t.status==='novo').length},
+        {label:'Sucateados', val: list.filter(t=>t.status==='sucateado').length},
+        {label:'KM médio rodado', val: fmtInt(mediaRodado)+' km'}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    const tbl = document.getElementById('tbl-tires');
+    if(!tbl) return;
+    LOTS._tiresSnapshot = list;
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="9">Nenhum pneu cadastrado ainda.</td></tr>'; return; }
+    const statusBadge = s => s==='sucateado' ? '<span class="badge badge-danger">Sucateado</span>' :
+                              s==='recapado' ? '<span class="badge badge-pending">Recapado</span>' :
+                              '<span class="badge badge-ok">'+(s==='novo'?'Novo':'Em uso')+'</span>';
+    tbl.innerHTML = list.map(t=>{
+      const v = vehicleById(t.vehicleId);
+      const rodado = t.kmAtual - t.kmInstalacao;
+      return `<tr>
+        <td>${v?(v.frota?v.frota+' — ':'')+`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${t.posicao||'—'}</td>
+        <td>${t.marca||'—'} ${t.modelo||''}</td>
+        <td class="mono">${t.fogo||'—'}</td>
+        <td class="mono">${Number(t.kmInstalacao).toLocaleString('pt-BR')} km</td>
+        <td class="mono">${Number(t.kmAtual).toLocaleString('pt-BR')} km <button class="icon-btn" onclick="LOTS.updateTireKm('${t.id}')">atualizar</button></td>
+        <td class="mono ${rodado>60000?'rank-bad':''}">${rodado.toLocaleString('pt-BR')} km</td>
+        <td>${statusBadge(t.status)}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteTire('${t.id}')">excluir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
   /* ---------------- USERS ---------------- */
   function renderUsers(){
     const tbl = document.getElementById('tbl-users');
@@ -3669,6 +4112,7 @@
     else if(name==='sinistros') renderSinistros();
     else if(name==='fines') renderFines();
     else if(name==='ranking') renderRanking();
+    else if(name==='tires') renderTires();
     else if(name==='users') renderUsers();
     else if(name==='heavyfleet') renderHeavyFleet();
     else if(name==='heavydash') renderHeavyDash();
@@ -3678,7 +4122,7 @@
     else if(name==='heavyranking') renderHeavyRanking();
   }
   function renderAll(){
-    ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','users',
+    ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','tires','users',
      'heavyfleet','heavydash','heavycosts','heavysinistros','heavyfines','heavyranking'].forEach(renderView);
   }
 
@@ -3706,6 +4150,9 @@
   listenShared('lots-heavy-costs', d => state.heavyCosts = d);
   listenShared('lots-heavy-fines', d => state.heavyFines = d);
   listenShared('lots-heavy-sinistros', d => state.heavySinistros = d);
+  listenShared('lots-transfers', d => state.transfers = d);
+  listenShared('lots-fornecedores', d => state.fornecedores = d);
+  listenShared('lots-tires', d => state.tires = d);
   listenShared('lots-go-entries', d => state.lotsGoEntries = d);
   listenShared('lots-go-budget', d => state.lotsGoBudget = d);
   listenShared('lots-go-budget-grid', d => state.lotsGoBudgetGrid = d);
