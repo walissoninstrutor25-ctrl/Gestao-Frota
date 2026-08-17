@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-06T20-45-00Z -->
+<!-- APP_BUILD:2026-08-08T23-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -267,9 +267,16 @@
   @media (max-width:900px){ .bi-grid{grid-template-columns:1fr;} }
   .rank-good{color:var(--go); font-weight:700;}
   .rank-bad{color:var(--danger); font-weight:700;}
-  #lgb-grid-table th, #lgb-grid-table td{padding:6px 8px; font-size:12px;}
+  #lgb-grid-table{table-layout:fixed; min-width:1180px;}
+  #lgb-grid-table th, #lgb-grid-table td{padding:6px 6px; font-size:12px; text-align:right;}
+  #lgb-grid-table th:first-child, #lgb-grid-table td:first-child{text-align:left;}
+  #lgb-grid-table th:first-child, #lgb-grid-table td:first-child{width:150px;}
+  #lgb-grid-table th:not(:first-child):not(:last-child), #lgb-grid-table td:not(:first-child):not(:last-child){width:78px;}
+  #lgb-grid-table th:last-child, #lgb-grid-table td:last-child{width:100px;}
   #lgb-grid-table td.lgb-total{font-weight:700; color:var(--accent);}
-  .lgb-cell-input{width:80px; padding:5px 6px; font-size:12px; text-align:right; font-family:'Roboto Mono',monospace;}
+  .lgb-cell-input{width:100%; padding:5px 3px; font-size:12px; text-align:right; font-family:'Roboto Mono',monospace; box-sizing:border-box;}
+  .lgb-cell-input::-webkit-outer-spin-button, .lgb-cell-input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+  .lgb-cell-input[type=number]{-moz-appearance:textfield; appearance:textfield;}
   .anexo-thumb{width:38px; height:38px; object-fit:cover; border-radius:6px; border:1px solid var(--line); cursor:pointer; margin:2px;}
   .anexo-thumb:hover{border-color:var(--accent);}
   .anexo-file{font-size:11.5px; color:var(--text-muted);}
@@ -310,11 +317,20 @@
   .card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
   .card-title{font-family:'Oswald',sans-serif; font-size:15px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text);}
 
-  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
-  th{text-align:left; color:var(--text-faint); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px; border-bottom:1px dashed var(--line);}
+  table{width:100%; border-collapse:collapse; margin-top:0; font-size:13px;}
+  th{text-align:left; color:var(--text-faint); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px; border-bottom:1px dashed var(--line); white-space:nowrap;}
   td{padding:10px 10px; border-bottom:1px solid var(--line-soft); color:var(--text);}
   tr:last-child td{border-bottom:none;}
   .empty-row td{color:var(--text-faint); text-align:center; padding:24px; font-style:italic;}
+  .mono{white-space:nowrap;}
+
+  /* toda tabela do sistema fica dentro de uma faixa com rolagem horizontal própria,
+     assim ela nunca "quebra"/estica a página inteira — em celular, tablet ou PC,
+     só a tabela rola de lado, o resto da tela (menu, filtros, cards) fica parado. */
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:12px; border-radius:8px;}
+  .table-scroll table{margin-top:0;}
+  .table-scroll table td, .table-scroll table th{white-space:nowrap;}
+  .table-scroll table td.wrap-ok{white-space:normal; min-width:160px;}
 
   .badge{display:inline-block; padding:3px 9px; border-radius:5px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;}
   .badge-ok{background:rgba(22,121,74,0.12); color:var(--go);}
@@ -342,14 +358,28 @@
   .toast{position:fixed; bottom:20px; right:20px; background:var(--surface-2); border:1px solid var(--accent-dim); color:var(--text); padding:12px 18px; border-radius:8px; font-size:13px; z-index:100; opacity:0; transform:translateY(10px); transition:all .25s ease;}
   .toast.show{opacity:1; transform:translateY(0);}
 
+  @media (max-width:1024px){
+    .main{padding:22px 20px;}
+    .card{padding:16px;}
+    .reg-card{padding:18px 20px;}
+  }
+
   @media (max-width:760px){
     .shell{flex-direction:column;}
     .sidebar{width:100%; flex-direction:row; overflow-x:auto; padding:12px;}
     .sidebar-footer{display:none;}
     .brand{display:none;}
     .nav-item{flex-direction:column; font-size:10px; gap:4px; white-space:nowrap;}
-    .main{padding:18px;}
+    .main{padding:14px;}
     .field-row{grid-template-columns:1fr;}
+    .card{padding:14px; border-radius:12px;}
+    .reg-card{padding:16px;}
+    .filter-bar{padding:12px 14px; gap:10px;}
+    .filter-field{min-width:130px;}
+    .kpi-grid{gap:10px;}
+    .field-grid-4{gap:12px;}
+    .card-head{flex-wrap:wrap; gap:8px;}
+    .topbar{flex-wrap:wrap; gap:10px;}
   }
 
   /* ---------- ajuste geral de tamanho de fonte: mais compacto, mantendo boa legibilidade ---------- */
@@ -471,16 +501,14 @@
         <div class="subtab" data-view="sinistros">Acidente de Trânsito</div>
         <div class="subtab" data-view="fines">Multas</div>
         <div class="subtab" data-view="ranking">Premiação</div>
+        <div class="subtab" data-view="bu">BU</div>
         <div class="subtab" data-view="tires">Controle de Pneus</div>
         <div class="subtab" data-view="users" id="nav-users">Usuários</div>
       </div>
       <div class="subtab-bar" id="subtabs-heavy" style="display:none;">
         <div class="subtab active" data-view="heavydash">Painel</div>
         <div class="subtab" data-view="heavyfleet">Cadastro de veículos</div>
-        <div class="subtab" data-view="heavycosts">Custos Extras</div>
-        <div class="subtab" data-view="heavysinistros">Acidente de Trânsito</div>
         <div class="subtab" data-view="heavyfines">Multas</div>
-        <div class="subtab" data-view="heavyranking">Premiação</div>
       </div>
 
       <!-- DASHBOARD -->
@@ -490,7 +518,6 @@
             <div class="page-title">Painel</div>
             <div class="page-sub">Visão geral da operação</div>
           </div>
-          <button class="btn-primary" id="btn-open-transfer">🔄 Transferência entre filial</button>
         </div>
 
         <div class="filter-bar">
@@ -531,8 +558,16 @@
         <div class="card" id="card-revisao">
           <div class="card-head"><div class="card-title">Controle de Revisão</div></div>
           <div class="page-sub" style="margin:-6px 0 10px 2px;">Revisão programada a cada 10.000 km, calculada pelo maior KM já registrado na planilha de abastecimento (atualizada semanalmente). Aparecem aqui os veículos ativos a 1.000 km ou menos da próxima revisão.</div>
-          <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>Próxima revisão</th><th>Faltam</th></tr></thead>
+          <div class="kpi-grid" id="revisao-kpi-grid" style="margin-bottom:16px;"></div>
+          <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>KM faltante</th></tr></thead>
           <tbody id="dash-revisao"></tbody></table>
+        </div>
+
+        <div class="card" id="card-controle-km">
+          <div class="card-head"><div class="card-title">Controle de KM</div></div>
+          <div class="page-sub" style="margin:-6px 0 10px 2px;">KM atual (do último abastecimento ou da importação em lote) x KM limite do contrato, no regime de Limite de KM mensal (limite mensal × 12 = limite anual). Km excedente: Strada R$ 0,95/km, Polo/Saveiro R$ 0,75/km.</div>
+          <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>KM limite (anual)</th><th>KM restante</th><th>Custo excedente</th><th></th></tr></thead>
+          <tbody id="dash-controle-km"></tbody></table>
         </div>
 
         <div class="card">
@@ -546,6 +581,7 @@
       <div class="view" id="view-vehicles">
         <div class="topbar">
           <div><div class="page-title">Cadastro de veículos</div><div class="page-sub">Controle placa a placa, frota, modelo, unidade e custos fixos.</div></div>
+          <button class="btn-primary" id="btn-open-transfer">🔄 Transferência entre filial</button>
         </div>
 
         <div class="card reg-card">
@@ -585,15 +621,17 @@
             <div class="field"><label>Locadora</label><input id="rf-locadora" placeholder="Ex: Localiza, Movida..."></div>
             <div class="field"><label>Regime</label>
               <select id="rf-regime">
-                <option value="Contrato">Contrato</option>
                 <option value="Spot">Spot</option>
                 <option value="Limite de KM mensal">Limite de KM mensal</option>
               </select>
             </div>
             <div class="field" id="rf-franquia-wrap" style="display:none;"><label>Limite de KM da franquia</label>
               <select id="rf-franquia">
-                <option value="9000">9.000 km</option>
+                <option value="3000">3.000 km</option>
                 <option value="5000">5.000 km</option>
+                <option value="8000">8.000 km</option>
+                <option value="9000">9.000 km</option>
+                <option value="12000">12.000 km</option>
                 <option value="sem-limite">Sem limite</option>
               </select>
             </div>
@@ -622,11 +660,21 @@
             <div class="field"><label>Nº CRLV</label><input id="rf-crlv" placeholder="Ex: 123456789"></div>
             <div class="field"><label>Nº Renavam</label><input id="rf-renavam" placeholder="Ex: 00123456789"></div>
             <div class="field"><label>Nº de chassi</label><input id="rf-chassi" placeholder="Ex: 9BWZZZ377VT004251"></div>
-            <div class="field"><label>Motorista responsável</label><select id="rf-driver"><option value="">— Nenhum —</option></select></div>
+            <div class="field"><label>Veículo</label>
+              <select id="rf-condicao">
+                <option value="novo">Novo</option>
+                <option value="usado">Usado</option>
+              </select>
+            </div>
           </div>
-          <div class="field-grid-4" id="rf-crlv-file-wrap" style="display:none;">
-            <div class="field"><label>Anexar PDF do CRLV</label><input type="file" id="rf-crlv-file" accept="application/pdf"></div>
-            <div class="field"><span class="page-sub" id="rf-crlv-file-status" style="margin:0;"></span></div>
+
+          <div class="field">
+            <label>Pasta dos CRLVs (pra usar o botão "ver CRLV" da lista abaixo)</label>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn-ghost btn-sm" id="btn-pick-onedrive-veh">📁 Selecionar pasta</button>
+              <span class="page-sub" id="onedrive-folder-name-veh" style="margin:0;">Nenhuma pasta selecionada ainda.</span>
+            </div>
+            <div class="page-sub" style="margin-top:6px;">Escolha a pasta do OneDrive (sincronizada no seu computador) onde ficam os PDFs de CRLV, nomeados como Frota_Placa (ex: 4823-MNS_ABC1D23.pdf). Selecionar aqui uma vez já vale pra qualquer veículo — cada aparelho/navegador precisa selecionar a sua própria vez.</div>
           </div>
 
           <div class="expand-toggle" id="toggle-embarcados">📡 Cadastro Embarcados <span class="expand-arrow">▾</span></div>
@@ -661,8 +709,24 @@
         </div>
 
         <div class="card">
-          <table><thead><tr><th>Frota</th><th>Placa</th><th>Modelo</th><th>UO</th><th>KM atual</th><th>Locadora</th><th>Valor locação</th><th>Motorista</th><th>Status</th><th></th></tr></thead>
-          <tbody id="tbl-vehicles"></tbody></table>
+          <div style="max-height:520px; overflow-y:auto;">
+            <table><thead><tr><th>Frota</th><th>Placa</th><th>Modelo</th><th>UO</th><th>KM atual</th><th>Locadora</th><th>Valor locação</th><th>KM limite do contrato</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tbl-vehicles"></tbody></table>
+          </div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Importação de KM em lote para atualização de sistema</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">
+            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>KM Inicial</b>. Cada linha precisa bater Frota <u>e</u> Placa com um veículo já cadastrado — se não bater, nada é importado até você corrigir a planilha. Use isso pra ajustar o km de partida de vários veículos de uma vez (ex: veículo comprado usado, ou acerto de km no início do uso do sistema).
+          </div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-kminicial-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field"><button class="btn-primary" id="btn-import-kminicial" style="width:100%;">⬆ Importar KM inicial</button></div>
+          </div>
+          <div class="err-msg" id="import-kminicial-msg"></div>
+          <div id="import-kminicial-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06);"></div>
         </div>
       </div>
 
@@ -674,12 +738,33 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><div class="card-title">Meta de consumo e preço por litro</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">Ajuste vale a partir de hoje — os abastecimentos já lançados não mudam de valor, só os cálculos futuros usam o novo número.</div>
+          <div class="card-head">
+            <div class="card-title">Lançar abastecimentos (planilha do sistema)</div>
+            <button class="btn-ghost btn-sm" id="btn-fuelsheet-add-row">+ Adicionar linha</button>
+          </div>
+          <div class="page-sub" style="margin-bottom:12px;">
+            Preencha as linhas abaixo (pode lançar vários veículos de uma vez, diário ou semanal) e clique em "Salvar lançamentos". Depois de salvar, a planilha limpa sozinha pra você lançar o próximo lote. Os dados ficam salvos no sistema — use os filtros logo abaixo pra consultar o que já foi lançado.
+          </div>
+          <div class="field" style="max-width:260px; margin-bottom:14px;">
+            <label>Preço do combustível deste lote (R$/litro)</label>
+            <input id="fuelsheet-preco" placeholder="Ex: 6.09">
+          </div>
+          <div style="overflow-x:auto;">
+            <table id="fuelsheet-table"><thead><tr>
+              <th style="min-width:170px;">Frota</th><th>Placa</th><th>KM atual</th><th>Litros</th><th>Posto</th><th>Data</th><th></th>
+            </tr></thead>
+            <tbody id="fuelsheet-body"></tbody></table>
+          </div>
+          <button class="btn-primary" id="btn-fuelsheet-save" style="margin-top:14px;">💾 Salvar lançamentos</button>
+          <div class="err-msg" id="fuelsheet-msg"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Meta de consumo</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">Consumo esperado por veículo, usado como referência no BI de combustível abaixo. O preço do combustível agora é informado direto na planilha de lançamento (diário/semanal), não precisa mais cadastrar aqui.</div>
           <div class="field-grid-4" style="align-items:end;">
             <div class="field"><label>Veículo</label><select id="fp-vehicle"><option value="">Selecione</option></select></div>
             <div class="field"><label>Consumo esperado (km/L)</label><input id="fp-consumo" placeholder="Ex: 9.5"></div>
-            <div class="field"><label>Preço pago por litro (R$)</label><input id="fp-preco" placeholder="Ex: 6.09"></div>
             <div class="field"><button class="btn-primary" id="btn-save-fuelparams" style="width:100%;">Salvar</button></div>
           </div>
           <div class="err-msg" id="fp-msg"></div>
@@ -998,52 +1083,57 @@
           <div class="err-msg" id="lg-import-msg"></div>
         </div>
 
+        <div class="lane accent"></div>
         <div class="card">
           <div class="card-head">
-            <div class="card-title">Orçamento Premiação (referência da safra)</div>
-            <button class="btn-ghost btn-sm" id="btn-toggle-lgb-edit">✏️ Editar</button>
+            <div class="card-title">Orçamento de Premiação (valor pago aos colaboradores)</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-ghost btn-sm" id="btn-toggle-pb-edit">✏️ Editar</button>
+              <button class="btn-primary btn-sm" id="btn-save-pb" style="display:none;">💾 Salvar orçamento do ano</button>
+            </div>
           </div>
-          <div class="page-sub" style="margin-bottom:12px;">Valores por UO, categoria e mês. Esses números alimentam o comparativo Orçado × Real logo abaixo — clique em "Editar" para poder alterar. O total de cada mês e o FY são calculados sozinhos.</div>
-          <div class="field" style="max-width:220px; margin-bottom:14px;">
-            <label>UO</label>
-            <select id="lgb-uo">
-              <option value="MNS">MNS</option>
-              <option value="PRA">PRA</option>
-            </select>
+          <div class="page-sub" style="margin-bottom:12px;">Valor orçado por mês/ano/UO para a premiação paga aos colaboradores. O BI logo abaixo compara com o Real, que vem direto dos lançamentos importados (planilha de premiação).</div>
+          <div class="field-grid-4" style="max-width:520px; margin-bottom:14px;">
+            <div class="field"><label>Ano</label><select id="pb-year"></select></div>
+            <div class="field"><label>UO</label><select id="pb-uo"></select></div>
           </div>
           <div style="overflow-x:auto;">
-            <table id="lgb-grid-table"><thead><tr>
-              <th style="min-width:170px;">Premiação</th>
+            <table id="pb-grid-table"><thead><tr>
+              <th style="min-width:140px;">Orçado</th>
               <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th>
               <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th><th>FY</th>
             </tr></thead>
-            <tbody id="lgb-grid-body"></tbody></table>
+            <tbody id="pb-grid-body"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI — Orçado × Real da Premiação</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Ano</label><select id="pbi-year"></select></div>
+          <div class="filter-field"><label>Mês</label><select id="pbi-month"><option value="">Todos</option><option value="0">Jan</option><option value="1">Fev</option><option value="2">Mar</option><option value="3">Abr</option><option value="4">Mai</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Ago</option><option value="8">Set</option><option value="9">Out</option><option value="10">Nov</option><option value="11">Dez</option></select></div>
+          <div class="filter-field"><label>UO</label><select id="pbi-uo"><option value="">Todas</option></select></div>
+        </div>
+        <div class="kpi-grid" id="pbi-kpi-grid"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Orçado × Real por mês</div></div>
+          <div class="page-sub" style="margin-bottom:10px;">O Real fica <span style="color:var(--danger); font-weight:700;">vermelho</span> quando passa do orçado, e <span style="color:var(--go); font-weight:700;">verde</span> quando fica igual ou abaixo do orçado.</div>
+          <div style="overflow-x:auto;">
+            <table><thead><tr><th>Mês</th><th>Orçado</th><th>Real</th><th>Desvio (R$)</th><th>Desvio (%)</th></tr></thead>
+            <tbody id="pbi-table"></tbody></table>
           </div>
         </div>
 
         <div class="lane accent"></div>
-        <div class="card-title" style="margin:6px 0 12px 2px;">BI — Orçado × Real</div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">Lançamentos de premiação</div>
         <div class="filter-bar">
           <div class="filter-field"><label>Período inicial</label><input type="date" id="bilg-start"></div>
           <div class="filter-field"><label>Período final</label><input type="date" id="bilg-end"></div>
+          <div class="filter-field"><label>Ano</label><select id="bilg-year"><option value="">Todos</option></select></div>
           <div class="filter-field"><label>Mês</label><select id="bilg-month"><option value="">Todos</option></select></div>
           <div class="filter-field"><label>UO</label><select id="bilg-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
-          <div class="filter-field"><label>Categoria</label><select id="bilg-categoria"><option value="">Todas</option><option value="locacao">Locação</option><option value="manutencao">Manutenção</option><option value="lavagem">Lavagem</option><option value="avarias">Avarias</option></select></div>
           <div class="filter-field"><label>Matrícula</label><select id="bilg-matricula"><option value="">Todas</option></select></div>
           <button class="btn-ghost" id="btn-clear-bilg">Limpar</button>
           <button class="btn-primary" id="btn-export-lotsgo">⬇ Exportar</button>
-        </div>
-
-        <div class="ops-banner">
-          <div>
-            <div class="ops-eyebrow">Orçado × Real</div>
-            <div class="ops-title" id="lg-orcvsreal-title">Sem orçamento cadastrado para o mês selecionado</div>
-            <div class="ops-sub">Compare o valor orçado da safra com o que realmente foi lançado.</div>
-          </div>
-          <div class="ops-metric">
-            <div class="ops-metric-label">Diferença</div>
-            <div class="ops-metric-val" id="lg-diff-pct">—</div>
-          </div>
         </div>
         <div class="kpi-grid" id="bilg-kpi-grid"></div>
 
@@ -1058,6 +1148,67 @@
           <div class="page-sub" style="margin-bottom:6px;">Pontuação = 1000 − (100 × multas pendentes) − (30 × multas pagas) − (custos extras ÷ 50)</div>
           <table><thead><tr><th>Pos.</th><th>Motorista</th><th>Veículo</th><th>Multas</th><th>Pontuação</th></tr></thead>
           <tbody id="tbl-ranking"></tbody></table>
+        </div>
+      </div>
+
+      <!-- BU -->
+      <div class="view" id="view-bu">
+        <div class="topbar">
+          <div><div class="page-title">BU</div><div class="page-sub">Orçado × Real da premiação, por UO e por mês</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Orçamento Premiação (referência da safra)</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-ghost btn-sm" id="btn-toggle-lgb-edit">✏️ Editar</button>
+              <button class="btn-primary btn-sm" id="btn-save-lgb" style="display:none;">💾 Salvar orçamento do ano</button>
+            </div>
+          </div>
+          <div class="page-sub" style="margin-bottom:12px;">Valores por ano, UO, categoria e mês. Esses números alimentam o comparativo Orçado × Real logo abaixo. Clique em "Editar", altere os valores e depois em "Salvar orçamento do ano" para gravar. O total de cada mês e o FY são calculados sozinhos.</div>
+          <div class="field-grid-4" style="max-width:520px; margin-bottom:14px;">
+            <div class="field">
+              <label>Ano</label>
+              <select id="lgb-year"></select>
+            </div>
+            <div class="field">
+              <label>UO</label>
+              <select id="lgb-uo">
+                <option value="MNS">MNS</option>
+                <option value="PRA">PRA</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table id="lgb-grid-table"><thead><tr>
+              <th style="min-width:170px;">Premiação</th>
+              <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th>
+              <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th><th>FY</th>
+            </tr></thead>
+            <tbody id="lgb-grid-body"></tbody></table>
+          </div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">BI — Orçado × Real do ano</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Ano</label><select id="bu-year"></select></div>
+          <div class="filter-field"><label>Mês</label><select id="bu-month"><option value="">Todos</option><option value="0">Jan</option><option value="1">Fev</option><option value="2">Mar</option><option value="3">Abr</option><option value="4">Mai</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Ago</option><option value="8">Set</option><option value="9">Out</option><option value="10">Nov</option><option value="11">Dez</option></select></div>
+          <div class="filter-field"><label>UO</label><select id="bu-uo"><option value="">Todas</option></select></div>
+          <div class="filter-field"><label>Categoria (Custos Extras)</label><select id="bu-categoria"><option value="">Todas</option><option value="Mecânica">Mecânica</option><option value="Funilaria">Funilaria</option><option value="Extras Contratos">Extras Contratos</option><option value="Borracharia">Borracharia</option><option value="Custo com Lavagens">Custo com Lavagens</option><option value="Despachante">Despachante</option><option value="Custo Embarcados">Custo Embarcados</option></select></div>
+        </div>
+
+        <div class="kpi-grid" id="bu-kpi-grid"></div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Orçado × Real por mês</div></div>
+          <div class="page-sub" style="margin-bottom:10px;">O que já foi orçado, já está orçado. Sem nenhum Custo Extra lançado no mês, o desvio aparece como "—" (não é considerado desvio). O desvio só é calculado quando existir Custo Extra lançado naquele mês/UO.</div>
+          <div style="overflow-x:auto;">
+            <table><thead><tr>
+              <th>Mês</th><th>Orçado</th><th>Real (Custos Extras)</th><th>Desvio (R$)</th><th>Desvio (%)</th>
+            </tr></thead>
+            <tbody id="bu-annual-table"></tbody></table>
+          </div>
         </div>
       </div>
 
@@ -1087,12 +1238,14 @@
           </div>
           <div class="field-grid-4">
             <div class="field"><label>Nº de fogo / identificação</label><input id="ty-fogo" placeholder="Ex: PN-00123"></div>
+            <div class="field"><label>DOT do pneu</label><input id="ty-dot" placeholder="Ex: 2223 (semana 22, ano 2023)"></div>
             <div class="field"><label>KM de instalação</label><input id="ty-km-instalacao" placeholder="Ex: 42000"></div>
             <div class="field"><label>KM atual</label><input id="ty-km-atual" placeholder="Ex: 48500"></div>
+          </div>
+          <div class="field-grid-4">
             <div class="field"><label>Status</label>
               <select id="ty-status">
                 <option value="novo">Novo</option>
-                <option value="em-uso">Em uso</option>
                 <option value="recapado">Recapado</option>
                 <option value="sucateado">Sucateado</option>
               </select>
@@ -1106,7 +1259,7 @@
         <div class="card-title" style="margin:6px 0 12px 2px;">Painel de pneus</div>
         <div class="filter-bar">
           <div class="filter-field"><label>Veículo</label><select id="tyfilter-vehicle"><option value="">Todos</option></select></div>
-          <div class="filter-field"><label>Status</label><select id="tyfilter-status"><option value="">Todos</option><option value="novo">Novo</option><option value="em-uso">Em uso</option><option value="recapado">Recapado</option><option value="sucateado">Sucateado</option></select></div>
+          <div class="filter-field"><label>Status</label><select id="tyfilter-status"><option value="">Todos</option><option value="novo">Novo</option><option value="recapado">Recapado</option><option value="sucateado">Sucateado</option></select></div>
           <button class="btn-ghost" id="btn-clear-tyfilter">Limpar</button>
           <button class="btn-primary" id="btn-export-tires">⬇ Exportar</button>
         </div>
@@ -1114,7 +1267,7 @@
 
         <div class="card">
           <div class="card-head"><div class="card-title">Pneus cadastrados</div></div>
-          <table><thead><tr><th>Veículo</th><th>Posição</th><th>Marca/Modelo</th><th>Nº fogo</th><th>KM instalação</th><th>KM atual</th><th>Rodado</th><th>Status</th><th></th></tr></thead>
+          <table><thead><tr><th>Veículo</th><th>Posição</th><th>Marca/Modelo</th><th>Nº fogo</th><th>DOT</th><th>KM instalação</th><th>KM atual</th><th>Rodado</th><th>Status</th><th></th></tr></thead>
           <tbody id="tbl-tires"></tbody></table>
         </div>
       </div>
@@ -1128,6 +1281,14 @@
         <div class="card">
           <table><thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Veículo vinculado</th><th></th></tr></thead>
           <tbody id="tbl-users"></tbody></table>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Auditoria (últimas alterações)</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Registro de quem cadastrou, editou ou excluiu algo no sistema. Guarda as últimas 300 ações.</div>
+          <table><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Detalhe</th></tr></thead>
+          <tbody id="tbl-audit"></tbody></table>
         </div>
       </div>
 
@@ -1151,8 +1312,16 @@
           </div>
         </div>
         <div class="kpi-grid" id="heavydash-kpi-grid"></div>
+
+        <div class="card" id="card-crlv-alert">
+          <div class="card-head"><div class="card-title">Alerta de vencimento de CRLV</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Aparecem aqui os veículos com CRLV vencido ou vencendo em até 30 dias.</div>
+          <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>Nº CRLV</th><th>Vencimento</th><th>Situação</th></tr></thead>
+          <tbody id="tbl-crlv-alert"></tbody></table>
+        </div>
+
         <div class="card">
-          <div class="card-head"><div class="card-title">Lançamentos (Custos Extras, Multas e Sinistros)</div></div>
+          <div class="card-head"><div class="card-title">Lançamentos (Multas)</div></div>
           <table><thead><tr><th>Data</th><th>UO</th><th>Veículo</th><th>Tipo</th><th>Valor</th><th>Descrição</th></tr></thead>
           <tbody id="heavydash-recent"></tbody></table>
         </div>
@@ -1178,17 +1347,30 @@
             </div>
           </div>
           <div class="field-grid-4">
-            <div class="field"><label>KM atual</label><input id="hf-km" placeholder="0"></div>
+            <div class="field"><label>KM inicial</label><input id="hf-km" placeholder="0"></div>
+            <div class="field"><label>Data inicial</label><input type="date" id="hf-data-inicial"></div>
             <div class="field"><label>Nº TAG</label><input id="hf-tag" placeholder="Ex: TAG-00123"></div>
             <div class="field"><label>Filial de origem</label><input id="hf-filial" placeholder="Ex: Matriz Cuiabá"></div>
-            <div class="field"><label>Responsável do ativo</label><input id="hf-responsavel" placeholder="Ex: Carlos Mendes"></div>
           </div>
           <div class="field-grid-4">
+            <div class="field"><label>Responsável do ativo</label>
+              <select id="hf-responsavel">
+                <option value="LOTS">LOTS</option>
+                <option value="ATIVOS">ATIVOS</option>
+                <option value="ADIANTE">ADIANTE</option>
+              </select>
+            </div>
+            <div class="field"><label>Nº do Chassis</label><input id="hf-chassis" placeholder="Ex: 9BWZZZ377VT004251"></div>
+            <div class="field"><label>Nº CRLV</label><input id="hf-crlv" placeholder="Ex: 123456789"></div>
+            <div class="field"><label>Data de vencimento do CRLV</label><input type="date" id="hf-crlv-venc"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Custo telemetria Trimble (R$)</label><input id="hf-telemetria-trimble" placeholder="Ex: 45.00"></div>
+            <div class="field"><label>Custo telemetria SGPA (R$)</label><input id="hf-telemetria-sgpa" placeholder="Ex: 35.00"></div>
             <div class="field"><label>Status</label>
               <select id="hf-status">
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>
-                <option value="manutencao">Manutenção</option>
               </select>
             </div>
           </div>
@@ -1196,18 +1378,35 @@
           <div class="err-msg" id="hf-err"></div>
         </div>
 
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Cadastro de embarcados</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">Equipamentos de rastreamento/telemetria instalados no veículo selecionado acima.</div>
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo</label><select id="emb-vehicle"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Trimble — Nº série</label><input id="emb-trimble-serie" placeholder="Ex: TRB-00123"></div>
+            <div class="field"><label>Modelo de rádio</label><input id="emb-radio-modelo" placeholder="Ex: Motorola XPR"></div>
+            <div class="field"><label>Nº de série do rádio</label><input id="emb-radio-serie" placeholder="Ex: RD-00456"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>SGPA — Qual o MAG</label><input id="emb-sgpa-mag" placeholder="Ex: MAG-021"></div>
+            <div class="field"><label>SGPA — Nº tela</label><input id="emb-sgpa-tela" placeholder="Ex: TL-0078"></div>
+            <div class="field"><button class="btn-primary" id="btn-save-embarcados" style="width:100%;">Salvar embarcados</button></div>
+          </div>
+          <div class="err-msg" id="emb-err"></div>
+        </div>
+
         <div class="lane accent"></div>
         <div class="card-title" style="margin:6px 0 12px 2px;">Situação da frota</div>
         <div class="filter-bar">
           <div class="filter-field"><label>UO</label><select id="hfilter-uo"><option value="">Todas</option><option value="MNS">MNS</option><option value="PRA">PRA</option></select></div>
-          <div class="filter-field"><label>Status</label><select id="hfilter-status"><option value="">Todos</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option><option value="manutencao">Manutenção</option></select></div>
+          <div class="filter-field"><label>Status</label><select id="hfilter-status"><option value="">Todos</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
           <button class="btn-ghost" id="btn-clear-hfilter">Limpar</button>
         </div>
         <div class="kpi-grid" id="heavy-kpi-grid"></div>
 
         <div class="card">
           <div class="card-head"><div class="card-title">Veículos da frota pesada</div></div>
-          <table><thead><tr><th>Frota</th><th>Placa</th><th>Modelo</th><th>UO</th><th>KM atual</th><th>Responsável</th><th>Status</th><th></th></tr></thead>
+          <table><thead><tr><th>Frota</th><th>Placa</th><th>Modelo</th><th>UO</th><th>KM inicial</th><th>Responsável</th><th>Nº CRLV</th><th>Venc. CRLV</th><th>Status</th><th></th></tr></thead>
           <tbody id="tbl-heavy"></tbody></table>
         </div>
       </div>
@@ -1439,7 +1638,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-06T20-45-00Z';
+  const APP_VERSION = '2026-08-08T23-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1478,6 +1677,12 @@
   function usernameToEmail(username){
     return username.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'') + '@lotsfrota.internal';
   }
+  // gera um e-mail interno ÚNICO a cada cadastro (mesmo repetindo o mesmo "login"),
+  // assim excluir e recriar um usuário com o mesmo login nunca mais dá erro de "já existe"
+  function generateAuthEmail(username){
+    const base = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'');
+    return base + '.' + uid() + '@lotsfrota.internal';
+  }
 
   /* ---------------- storage helpers (Firebase Firestore) ---------------- */
   async function saveShared(key, data){
@@ -1499,7 +1704,7 @@
     }, err=>console.error('listen fail', key, err));
   }
   async function saveProfile(u){
-    await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, role:u.role, vehicleId:u.vehicleId||null});
+    await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, authEmail:u.authEmail||null, role:u.role, vehicleId:u.vehicleId||null, uoResponsavel:u.uoResponsavel||null});
   }
   async function loadAllProfiles(){
     const snap = await db.collection(PROFILES).get();
@@ -1592,7 +1797,7 @@
   /* ---------------- app state ---------------- */
   let state = {
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
-    heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{},
+    heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{}, premiacaoBudget:{}, auditLog:[],
     transfers:[], fornecedores:[], tires:[],
     currentProfile:null
   };
@@ -1618,6 +1823,8 @@
     state.lotsGoEntries = await loadShared('lots-go-entries', []);
     state.lotsGoBudget = await loadShared('lots-go-budget', {});
     state.lotsGoBudgetGrid = await loadShared('lots-go-budget-grid', null);
+    state.premiacaoBudget = await loadShared('lots-premiacao-budget', null);
+    state.auditLog = await loadShared('lots-audit-log', []);
     setLoadingProgress(66, 'Carregando frota pesada…');
     state.heavyVehicles = await loadShared('lots-heavy-vehicles', []);
     setLoadingProgress(76, 'Carregando custos (pesada)…');
@@ -1687,7 +1894,9 @@
     tires: () => saveShared('lots-tires', state.tires),
     lotsGoEntries: () => saveShared('lots-go-entries', state.lotsGoEntries),
     lotsGoBudget: () => saveShared('lots-go-budget', state.lotsGoBudget),
-    lotsGoBudgetGrid: () => saveShared('lots-go-budget-grid', state.lotsGoBudgetGrid)
+    lotsGoBudgetGrid: () => saveShared('lots-go-budget-grid', state.lotsGoBudgetGrid),
+    premiacaoBudget: () => saveShared('lots-premiacao-budget', state.premiacaoBudget),
+    auditLog: () => saveShared('lots-audit-log', state.auditLog)
   };
 
   function currentUser(){
@@ -1695,6 +1904,32 @@
   }
   function vehicleById(id){ return state.vehicles.find(v=>v.id===id); }
   function userById(id){ return state.users.find(u=>u.id===id); }
+
+  /* ---------------- AUDITORIA (log de alterações) ---------------- */
+  function logAudit(acao, detalhe){
+    if(!state.auditLog) state.auditLog = [];
+    state.auditLog.unshift({
+      id: uid(),
+      data: new Date().toISOString(),
+      usuario: currentUser()?.name || 'Sistema',
+      acao,
+      detalhe: detalhe || ''
+    });
+    if(state.auditLog.length>300) state.auditLog = state.auditLog.slice(0,300);
+    save.auditLog();
+  }
+  function renderAuditLog(){
+    const tbl = document.getElementById('tbl-audit');
+    if(!tbl) return;
+    const list = state.auditLog||[];
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="4">Nenhuma ação registrada ainda.</td></tr>'; return; }
+    tbl.innerHTML = list.map(a=>`<tr>
+      <td class="mono">${new Date(a.data).toLocaleString('pt-BR')}</td>
+      <td>${a.usuario}</td>
+      <td>${a.acao}</td>
+      <td>${a.detalhe||'—'}</td>
+    </tr>`).join('');
+  }
 
   /* ---------------- LOGIN / AUTH ---------------- */
   document.getElementById('btn-show-setup').addEventListener('click', ()=>{
@@ -1725,14 +1960,16 @@
     }
     errEl.textContent='';
     try{
-      const cred = await auth.createUserWithEmailAndPassword(usernameToEmail(username), pass);
-      await saveProfile({id:cred.user.uid, name, username, role:'admin', vehicleId:null});
+      const authEmail = usernameToEmail(username);
+      const cred = await auth.createUserWithEmailAndPassword(authEmail, pass);
+      await saveProfile({id:cred.user.uid, name, username, authEmail, role:'admin', vehicleId:null});
       // onAuthStateChanged cuida de carregar o perfil e entrar no app
     }catch(e){
       errEl.textContent = firebaseErrorMsg(e);
     }
   });
 
+  let loginSubmitInProgress = false;
   document.getElementById('form-login').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const username = document.getElementById('login-user').value.trim();
@@ -1740,10 +1977,40 @@
     const errEl = document.getElementById('login-err');
     if(!username || !pass){ errEl.textContent='Preencha usuário e senha.'; return; }
     errEl.textContent='';
+    loginSubmitInProgress = true;
     try{
-      await auth.signInWithEmailAndPassword(usernameToEmail(username), pass);
-    }catch(e){
-      errEl.textContent = firebaseErrorMsg(e);
+      async function tentarEntrar(email){
+        await auth.signInWithEmailAndPassword(email, pass);
+        // login pode ter entrado numa conta "órfã" (sem perfil, de um usuário excluído
+        // e depois recriado) — confere se existe perfil de verdade antes de considerar sucesso
+        const doc = await db.collection(PROFILES).doc(auth.currentUser.uid).get();
+        if(!doc.exists){ await auth.signOut(); return false; }
+        return true;
+      }
+
+      // 1) tenta primeiro o e-mail interno padrão (não depende de ler o banco antes de logar)
+      let entrou = false;
+      try{ entrou = await tentarEntrar(usernameToEmail(username)); }
+      catch(e1){ /* usuário/senha errados nesse caminho — tenta o alternativo abaixo */ }
+
+      if(entrou) return;
+
+      // 2) se não achou (ou achou uma conta órfã sem perfil), tenta o e-mail alternativo
+      //    salvo no perfil (caso de login recriado depois de excluído)
+      try{
+        const snap = await db.collection(PROFILES).where('username','==',username).limit(1).get();
+        if(!snap.empty){
+          const authEmail = snap.docs[0].data().authEmail;
+          if(authEmail && authEmail!==usernameToEmail(username)){
+            entrou = await tentarEntrar(authEmail);
+            if(entrou) return;
+          }
+        }
+      }catch(e2){ /* busca falhou (ex: regra de segurança) — cai no erro genérico abaixo */ }
+
+      errEl.textContent = 'Usuário ou senha incorretos.';
+    } finally {
+      loginSubmitInProgress = false;
     }
   });
 
@@ -1768,10 +2035,14 @@
     if(user){
       const doc = await db.collection(PROFILES).doc(user.uid).get();
       if(!doc.exists){
-        // conta existe no Firebase Auth mas o perfil foi removido pelo admin
+        // conta existe no Firebase Auth mas o perfil foi removido pelo admin —
+        // se o formulário de login estiver no meio de uma tentativa (ex: testando um
+        // e-mail alternativo), deixa ele terminar e mostrar a mensagem certa sozinho.
         await auth.signOut();
-        showLoginOrSetup();
-        document.getElementById('login-err').textContent = 'Este acesso foi removido. Fale com o administrador.';
+        if(!loginSubmitInProgress){
+          showLoginOrSetup();
+          document.getElementById('login-err').textContent = 'Este acesso foi removido. Fale com o administrador.';
+        }
         return;
       }
       state.currentProfile = {id:user.uid, ...doc.data()};
@@ -1812,11 +2083,32 @@
     document.getElementById('app-screen').style.display='block';
     const u = currentUser();
     document.getElementById('who-name').textContent = u.name;
-    document.getElementById('who-role').textContent = u.role;
+    document.getElementById('who-role').textContent = ({admin:'Administrador', gestor:'Gestor de UO', auxiliar_adm:'Auxiliar ADM', motorista:'Motorista'})[u.role] || u.role;
     document.getElementById('nav-users').style.display = (u.role==='admin') ? 'block' : 'none';
+    applyNavRestrictions(u);
     updateOnlineStatus();
     hideLoadingSplash();
     renderAll();
+  }
+  // Auxiliar ADM só enxerga Cadastro de veículos e Combustível (frota leve),
+  // sem acesso à frota pesada nem às demais abas.
+  function applyNavRestrictions(u){
+    const isAuxiliar = u?.role==='auxiliar_adm';
+    document.querySelector('.nav-item[data-fleet="heavy"]').style.display = isAuxiliar ? 'none' : '';
+    document.querySelectorAll('#subtabs-light .subtab[data-view]').forEach(el=>{
+      const permitido = ['vehicles','fuel'].includes(el.dataset.view);
+      el.style.display = (isAuxiliar && !permitido) ? 'none' : '';
+    });
+    if(isAuxiliar){
+      document.querySelectorAll('#subtabs-light .subtab').forEach(n=>n.classList.remove('active'));
+      document.querySelector('#subtabs-light .subtab[data-view="vehicles"]').classList.add('active');
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      document.getElementById('view-vehicles').classList.add('active');
+    }
+  }
+  // auxiliar_adm só cadastra/edita, nunca exclui — vale pra qualquer botão de excluir do sistema
+  function canDelete(){
+    return currentUser()?.role!=='auxiliar_adm';
   }
 
   /* ---------------- MODAL helper ---------------- */
@@ -1838,11 +2130,23 @@
   }
 
   /* ---------------- VEHICLES ---------------- */
+  // admin edita/exclui qualquer UO; gestor só a UO dele; motorista nunca
+  function canEditUO(unidade){
+    const u = currentUser();
+    if(!u) return false;
+    if(u.role==='admin') return true;
+    if(u.role==='gestor') return unidade===u.uoResponsavel;
+    return false;
+  }
+  // auxiliar_adm pode cadastrar/editar veículos (qualquer UO), mas nunca excluir
+  function canManageVehicle(unidade){
+    if(currentUser()?.role==='auxiliar_adm') return true;
+    return canEditUO(unidade);
+  }
+
   function renderVehicles(){
     applyVehicleFormPermissions();
     populateVehicleFilterOptions();
-    const keepDriver = document.getElementById('rf-driver')?.value || '';
-    populateVehicleDriverSelect(keepDriver);
     const f = getVehicleFilters();
     const tbl = document.getElementById('tbl-vehicles');
     const isAdmin = currentUser()?.role==='admin';
@@ -1852,7 +2156,7 @@
       .filter(v => inFilterRange(v.dataCadastro||'1900-01-01', f));
     if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="10">Nenhum veículo encontrado.</td></tr>'; LOTS._vehiclesSnapshot=list; return; }
     tbl.innerHTML = list.map(v=>{
-      const driver = userById(v.driverId);
+      const kmLimite = v.regime==='Limite de KM mensal' ? (v.franquiaKm==='sem-limite' ? 'Sem limite' : Number(v.franquiaKm||0).toLocaleString('pt-BR')+' km/mês') : '—';
       const statusBadge = v.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' :
                            '<span class="badge badge-danger">Inativo</span>';
       return `<tr>
@@ -1863,11 +2167,12 @@
         <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
         <td>${v.locadora||'—'}</td>
         <td class="mono">${v.valorLocacao?fmtMoney(v.valorLocacao)+' / '+(v.periodicidade||''):'—'}</td>
-        <td>${driver?driver.name:'—'}</td>
+        <td class="mono">${kmLimite}</td>
         <td>${statusBadge}</td>
         <td><div class="action-links">
-          ${isAdmin ? `<button class="icon-btn" onclick="LOTS.editVehicle('${v.id}')">editar</button>
-          <button class="icon-btn danger" onclick="LOTS.deleteVehicle('${v.id}')">excluir</button>` : '—'}
+          <button class="icon-btn" onclick="LOTS.verCRLV('${v.id}',false)">ver CRLV</button>
+          ${canManageVehicle(v.unidade) ? `<button class="icon-btn" onclick="LOTS.editVehicle('${v.id}')">editar</button>` : ''}
+          ${canEditUO(v.unidade) ? `<button class="icon-btn danger" onclick="LOTS.deleteVehicle('${v.id}')">excluir</button>` : ''}
         </div></td>
       </tr>`;
     }).join('');
@@ -1876,6 +2181,7 @@
   function visibleVehicles(){
     const u = currentUser();
     if(u.role==='motorista') return state.vehicles.filter(v=>v.id===u.vehicleId);
+    // gestor de UO agora VÊ todas as unidades (só a edição fica restrita à UO dele)
     return state.vehicles;
   }
 
@@ -1918,11 +2224,57 @@
     toast('Exportação gerada.');
   });
 
-  function populateVehicleDriverSelect(selectedId){
-    const sel = document.getElementById('rf-driver');
-    if(!sel) return;
-    sel.innerHTML = '<option value="">— Nenhum —</option>' + driverOptions(selectedId);
-  }
+  document.getElementById('btn-import-kminicial')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('import-kminicial-msg');
+    const errEl = document.getElementById('import-kminicial-errors');
+    const fileInput = document.getElementById('import-kminicial-file');
+    errEl.style.display='none'; errEl.innerHTML='';
+    if(!fileInput.files.length){ msgEl.textContent='Selecione um arquivo primeiro.'; msgEl.style.color='var(--danger)'; return; }
+    if(typeof XLSX === 'undefined'){ msgEl.textContent='Biblioteca de importação não carregada.'; return; }
+    msgEl.style.color='var(--text-muted)';
+    msgEl.textContent='Lendo planilha…';
+    try{
+      const file = fileInput.files[0];
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array', cellDates:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      const erros = [];
+      const validos = [];
+      rows.forEach((row, i)=>{
+        const linha = i+2; // linha 1 = cabeçalho
+        const frota = String(pickCol(row,'frota')||'').trim();
+        const placaCol = pickCol(row,'placa');
+        const placaRaw = String(placaCol||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+        const kmInicial = Number(pickCol(row,'km inicial','kminicial','km'))||0;
+        if(!frota && !placaRaw) return; // linha em branco, ignora
+        const v = state.vehicles.find(x=>String(x.frota||'').trim()===frota);
+        if(!v){ erros.push(`Linha ${linha}: Frota "${frota}" não encontrada no cadastro.`); return; }
+        const placaCadastrada = (v.plate||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+        if(placaCadastrada!==placaRaw){ erros.push(`Linha ${linha}: a Frota "${frota}" está cadastrada com a placa ${v.plate}, mas a planilha traz "${placaCol}".`); return; }
+        validos.push({v, kmInicial});
+      });
+      if(erros.length>0){
+        msgEl.style.color='var(--danger)';
+        msgEl.textContent = `Encontrei ${erros.length} linha(s) com erro. Nada foi importado — corrija a planilha e tente de novo.`;
+        errEl.style.display='block';
+        errEl.innerHTML = erros.map(e=>`<div style="margin-bottom:4px;">⚠️ ${e}</div>`).join('');
+        return;
+      }
+      if(validos.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Nenhuma linha válida encontrada na planilha.'; return; }
+      validos.forEach(({v,kmInicial})=>{ v.km = kmInicial; });
+      await save.vehicles();
+      msgEl.style.color='var(--go)';
+      msgEl.textContent = `${validos.length} veículo(s) com KM inicial atualizado.`;
+      fileInput.value='';
+      renderView('vehicles'); renderView('dashboard');
+    }catch(e){
+      console.error(e);
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent='Não foi possível ler esse arquivo. Confira se é um .xlsx, .xls ou .csv válido.';
+    }
+  });
+
 
   window.LOTS = window.LOTS || {};
   LOTS._editingVehicleId = null;
@@ -1941,7 +2293,7 @@
     document.getElementById('rf-data-cadastro').value = v?.dataCadastro || todayISO();
     document.getElementById('rf-km').value = v?.km || '';
     document.getElementById('rf-locadora').value = v?.locadora || '';
-    document.getElementById('rf-regime').value = v?.regime || 'Contrato';
+    document.getElementById('rf-regime').value = v?.regime || 'Spot';
     document.getElementById('rf-franquia').value = v?.franquiaKm || '9000';
     document.getElementById('rf-franquia-wrap').style.display = (v?.regime==='Limite de KM mensal') ? 'block' : 'none';
     document.getElementById('rf-valor-locacao').value = v?.valorLocacao || '';
@@ -1957,24 +2309,41 @@
     document.getElementById('rf-trimble').value = v?.trimble || '';
     document.getElementById('rf-radio-modelo').value = v?.radioModelo || '';
     document.getElementById('rf-radio-serie').value = v?.radioSerie || '';
-    document.getElementById('rf-crlv-file-wrap').style.display = document.getElementById('rf-crlv').value.trim() ? 'grid' : 'none';
-    document.getElementById('rf-crlv-file-status').textContent = v?.crlvAnexo ? ('Anexado: '+v.crlvAnexo) : '';
-    populateVehicleDriverSelect(v?.driverId);
+    document.getElementById('rf-condicao').value = v?.condicao || 'novo';
     document.getElementById('btn-register-vehicle').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
-    applyVehicleFormPermissions();
+    applyVehicleFormPermissions(v ? v.unidade : undefined);
   }
   LOTS.editVehicle = (id)=>{
-    if(currentUser().role!=='admin'){ toast('Somente o administrador pode editar veículos.'); return; }
-    fillVehicleRegForm(vehicleById(id));
+    const v = vehicleById(id);
+    if(!canManageVehicle(v?.unidade)){ toast('Você só pode editar veículos da sua UO.'); return; }
+    fillVehicleRegForm(v);
     document.querySelector('.reg-card').scrollIntoView({behavior:'smooth'});
   };
-  function applyVehicleFormPermissions(){
-    const isAdmin = currentUser()?.role==='admin';
+  function applyVehicleFormPermissions(editingUnidade){
+    const u = currentUser();
+    const isAdmin = u?.role==='admin';
+    const isGestor = u?.role==='gestor';
+    const isAuxiliar = u?.role==='auxiliar_adm';
     const card = document.querySelector('#view-vehicles .reg-card');
     if(!card) return;
-    card.querySelectorAll('input,select,button').forEach(el=>{ el.disabled = !isAdmin; });
     const note = document.getElementById('reg-vehicle-admin-note');
-    if(note) note.style.display = isAdmin ? 'none' : 'block';
+    if(isAdmin || isAuxiliar){
+      card.querySelectorAll('input,select,button').forEach(el=>{ el.disabled = false; });
+      if(note){
+        note.style.display = isAuxiliar ? 'block' : 'none';
+        if(isAuxiliar) note.textContent = 'Você pode cadastrar e editar veículos, mas não pode excluir.';
+      }
+    } else if(isGestor){
+      const podeEditarEsse = editingUnidade===undefined || editingUnidade===u.uoResponsavel;
+      card.querySelectorAll('input,select,button').forEach(el=>{ el.disabled = !podeEditarEsse; });
+      // ao cadastrar um veículo novo, trava a UO na do próprio gestor (não deixa criar em outra UO)
+      const uoSel = document.getElementById('rf-uo');
+      if(uoSel && editingUnidade===undefined){ uoSel.value = u.uoResponsavel; uoSel.disabled = true; }
+      if(note){ note.style.display = podeEditarEsse ? 'none' : 'block'; note.textContent = 'Você só pode editar veículos da sua própria UO.'; }
+    } else {
+      card.querySelectorAll('input,select,button').forEach(el=>{ el.disabled = true; });
+      if(note){ note.style.display = 'block'; note.textContent = 'Somente o administrador ou o gestor da UO pode cadastrar, editar ou excluir veículos.'; }
+    }
   }
 
   /* ---------------- TRANSFERÊNCIA ENTRE FILIAL ---------------- */
@@ -2041,9 +2410,6 @@
   document.getElementById('rf-regime')?.addEventListener('change', (e)=>{
     document.getElementById('rf-franquia-wrap').style.display = e.target.value==='Limite de KM mensal' ? 'block' : 'none';
   });
-  document.getElementById('rf-crlv')?.addEventListener('input', (e)=>{
-    document.getElementById('rf-crlv-file-wrap').style.display = e.target.value.trim() ? 'grid' : 'none';
-  });
   document.getElementById('rf-status')?.addEventListener('change', (e)=>{
     document.getElementById('rf-devolucao-wrap').style.display = e.target.value==='inativo' ? 'grid' : 'none';
   });
@@ -2075,7 +2441,7 @@
       trimble: document.getElementById('rf-trimble').value.trim(),
       radioModelo: document.getElementById('rf-radio-modelo').value.trim(),
       radioSerie: document.getElementById('rf-radio-serie').value.trim(),
-      driverId: document.getElementById('rf-driver').value || null
+      condicao: document.getElementById('rf-condicao').value
     };
     const required = [
       ['frota','Frota'],['plate','Placa'],['model','Modelo'],['filial','Filial de origem'],
@@ -2087,25 +2453,13 @@
     if(faltando.length){ errEl.textContent='Preencha: '+faltando.join(', ')+'.'; return; }
     if(!data.km && data.km!==0){ errEl.textContent='Informe o KM atual.'; return; }
     if(!data.valorLocacao){ errEl.textContent='Informe o valor da locação.'; return; }
-    errEl.textContent='';
-
     const id = LOTS._editingVehicleId;
-    const crlvFile = document.getElementById('rf-crlv-file').files[0];
-    if(crlvFile){
-      if(onedriveDirHandle){
-        try{
-          const perm = await onedriveDirHandle.requestPermission({mode:'readwrite'});
-          if(perm==='granted'){
-            const safeName = `CRLV_${data.plate}_${Date.now()}_${crlvFile.name}`.replace(/[\\/:*?"<>|]/g,'_');
-            const fh = await onedriveDirHandle.getFileHandle(safeName, {create:true});
-            const w = await fh.createWritable(); await w.write(crlvFile); await w.close();
-            data.crlvAnexo = crlvFile.name;
-          }
-        }catch(e){ console.error('anexo crlv falhou', e); }
-      } else {
-        data.crlvAnexo = crlvFile.name+' (pasta não selecionada — só o nome foi salvo)';
-      }
+    const unidadeOriginal = id ? vehicleById(id)?.unidade : undefined;
+    if(!canManageVehicle(unidadeOriginal!==undefined ? unidadeOriginal : data.unidade)){
+      errEl.textContent='Você só pode cadastrar/editar veículos da sua própria UO.';
+      return;
     }
+    errEl.textContent='';
 
     if(id){
       Object.assign(vehicleById(id), data);
@@ -2115,13 +2469,16 @@
     await save.vehicles();
     fillVehicleRegForm(null);
     renderView('vehicles'); renderView('dashboard'); populateFilterOptions();
+    logAudit(id?'Veículo editado':'Veículo cadastrado', `${data.frota||''} — ${data.plate}`);
     toast(id ? 'Veículo atualizado.' : 'Veículo cadastrado.');
   });
   LOTS.deleteVehicle = async (id)=>{
-    if(currentUser().role!=='admin'){ toast('Somente o administrador pode excluir veículos.'); return; }
+    const v = vehicleById(id);
+    if(!canEditUO(v?.unidade)){ toast(currentUser()?.role==='auxiliar_adm' ? 'Seu perfil não pode excluir veículos.' : 'Você só pode excluir veículos da sua UO.'); return; }
     state.vehicles = state.vehicles.filter(v=>v.id!==id);
     await save.vehicles();
     renderView('vehicles'); renderView('dashboard');
+    logAudit('Veículo excluído', `${v?.frota||''} — ${v?.plate||id}`);
     toast('Veículo removido.');
   };
 
@@ -2137,7 +2494,6 @@
   function fillFuelParams(){
     const v = vehicleById(document.getElementById('fp-vehicle').value);
     document.getElementById('fp-consumo').value = v ? (v.consumoEsperado||'') : '';
-    document.getElementById('fp-preco').value = v ? (v.precoLitro||'') : '';
   }
   document.getElementById('fp-vehicle')?.addEventListener('change', fillFuelParams);
   document.getElementById('btn-save-fuelparams')?.addEventListener('click', async ()=>{
@@ -2145,10 +2501,9 @@
     const v = vehicleById(document.getElementById('fp-vehicle').value);
     if(!v){ msgEl.style.color='var(--danger)'; msgEl.textContent='Selecione um veículo.'; return; }
     v.consumoEsperado = Number(document.getElementById('fp-consumo').value)||0;
-    v.precoLitro = Number(document.getElementById('fp-preco').value)||0;
     await save.vehicles();
     msgEl.style.color='var(--go)';
-    msgEl.textContent='Atualizado! Vale para os abastecimentos e cálculos a partir de agora.';
+    msgEl.textContent='Atualizado! Vale para os cálculos a partir de agora.';
     renderView('fuel');
   });
 
@@ -2156,6 +2511,9 @@
     populateFuelParamsSelect();
     populateFuelBIFilters();
     renderFuelBI();
+    // só inicializa a planilha de lançamento na primeira vez (não apaga o que o usuário está digitando a cada re-render)
+    const sheetBody = document.getElementById('fuelsheet-body');
+    if(sheetBody && sheetBody.children.length===0) fuelSheetReset();
     const tbl = document.getElementById('tbl-fuel');
     const list = visibleFuel().slice().sort((a,b)=>b.date.localeCompare(a.date));
     if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum abastecimento registrado.</td></tr>'; return; }
@@ -2169,19 +2527,24 @@
         <td class="mono">${fmtMoney(f.value)}</td>
         <td class="mono">${Number(f.km).toLocaleString('pt-BR')} km</td>
         <td>${f.station||'—'}</td>
-        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteFuel('${f.id}')">excluir</button></div></td>
+        <td><div class="action-links">${canDelete() ? `<button class="icon-btn danger" onclick="LOTS.deleteFuel('${f.id}')">excluir</button>` : ''}</div></td>
       </tr>`;
     }).join('');
   }
   function visibleFuel(){
     const u = currentUser();
     if(u.role==='motorista') return state.fuel.filter(f=>f.vehicleId===u.vehicleId);
+    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.fuel.filter(f=>ids.includes(f.vehicleId)); } // gestor vê tudo (ids = todas)
     return state.fuel;
   }
-  // maior KM já registrado na planilha/lançamentos de combustível de um veículo (base do Controle de Revisão)
+  // KM atual do veículo pra base do Controle de Revisão: o maior valor entre o km do
+  // cadastro (ponto de partida) e o maior km já lançado nos abastecimentos (diário/semanal).
   function kmAtualDaFrota(vehicleId){
+    const v = vehicleById(vehicleId);
+    const kmCadastro = Number(v?.km)||0;
     const kms = state.fuel.filter(f=>f.vehicleId===vehicleId).map(f=>Number(f.km)||0).filter(k=>k>0);
-    return kms.length ? Math.max(...kms) : 0;
+    const kmAbastecimentos = kms.length ? Math.max(...kms) : 0;
+    return Math.max(kmCadastro, kmAbastecimentos);
   }
   function fuelForm(){
     const u = currentUser();
@@ -2222,6 +2585,7 @@
     toast('Abastecimento registrado.');
   };
   LOTS.deleteFuel = async (id)=>{
+    if(!canDelete()){ toast('Seu perfil não pode excluir lançamentos.'); return; }
     state.fuel = state.fuel.filter(f=>f.id!==id);
     await save.fuel();
     renderView('fuel'); renderView('dashboard');
@@ -2253,6 +2617,102 @@
     if(m) return s;
     return null;
   }
+
+  /* ---------------- planilha de abastecimento dentro do próprio sistema (grid editável) ---------------- */
+  function fuelSheetVehicleOptions(){
+    return '<option value="">Selecione a frota</option>' + state.vehicles
+      .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')))
+      .map(v=>`<option value="${v.id}">${v.frota||'—'} — ${v.plate}</option>`).join('');
+  }
+  function fuelSheetAddRow(){
+    const body = document.getElementById('fuelsheet-body');
+    if(!body) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><select class="fs-frota">${fuelSheetVehicleOptions()}</select></td>
+      <td class="mono fs-placa">—</td>
+      <td><input type="number" class="fs-km" placeholder="0"></td>
+      <td><input type="number" class="fs-litros" placeholder="0" step="0.01"></td>
+      <td><select class="fs-posto">
+        <option value="">Selecione</option>
+        <option value="R7">R7</option>
+        <option value="COQUEIRO">COQUEIRO</option>
+        <option value="7 MILHAS">7 MILHAS</option>
+      </select></td>
+      <td><input type="date" class="fs-data" value="${todayISO()}"></td>
+      <td><button class="icon-btn danger fs-remove" title="Remover linha">✕</button></td>
+    `;
+    body.appendChild(tr);
+    tr.querySelector('.fs-frota').addEventListener('change', (e)=>{
+      const v = vehicleById(e.target.value);
+      tr.querySelector('.fs-placa').textContent = v ? v.plate : '—';
+    });
+    tr.querySelector('.fs-remove').addEventListener('click', ()=>{
+      if(body.children.length>1) tr.remove();
+    });
+  }
+  function fuelSheetReset(linhas){
+    const body = document.getElementById('fuelsheet-body');
+    if(!body) return;
+    body.innerHTML = '';
+    for(let i=0;i<(linhas||8);i++) fuelSheetAddRow();
+  }
+  document.getElementById('btn-fuelsheet-add-row')?.addEventListener('click', ()=>fuelSheetAddRow());
+
+  document.getElementById('btn-fuelsheet-save')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('fuelsheet-msg');
+    const precoLote = Number(document.getElementById('fuelsheet-preco').value)||0;
+    if(!precoLote){ msgEl.style.color='var(--danger)'; msgEl.textContent='Informe o preço do combustível (R$/litro) deste lote.'; return; }
+
+    const linhas = [...document.querySelectorAll('#fuelsheet-body tr')];
+    const erros = [];
+    const validas = [];
+    linhas.forEach((tr, i)=>{
+      const vehicleId = tr.querySelector('.fs-frota').value;
+      const km = Number(tr.querySelector('.fs-km').value)||0;
+      const litros = Number(tr.querySelector('.fs-litros').value)||0;
+      const posto = tr.querySelector('.fs-posto').value;
+      const data = tr.querySelector('.fs-data').value;
+      const linhaNum = i+1;
+      const algoPreenchido = vehicleId || km || litros;
+      if(!algoPreenchido) return; // linha em branco, ignora
+
+      if(!vehicleId){ erros.push(`Linha ${linhaNum}: selecione a frota.`); return; }
+      const v = vehicleById(vehicleId);
+      if(!v){ erros.push(`Linha ${linhaNum}: veículo não encontrado.`); return; }
+      if(km<=0){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): informe o KM atual.`); return; }
+      if(litros<=0){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): informe a quantidade de litros.`); return; }
+      if(!posto){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): selecione o posto.`); return; }
+      if(!data){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): informe a data.`); return; }
+      validas.push({v, km, litros, posto, data});
+    });
+
+    if(erros.length>0){
+      msgEl.style.color='var(--danger)';
+      msgEl.innerHTML = `Corrija antes de salvar:<br>` + erros.map(e=>`⚠️ ${e}`).join('<br>');
+      return;
+    }
+    if(validas.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Preencha pelo menos uma linha antes de salvar.'; return; }
+
+    const kmUpdates = {};
+    validas.forEach(({v, km, litros, posto, data})=>{
+      state.fuel.push({
+        id:uid(), vehicleId:v.id, date:data, liters:litros,
+        value: Number((litros*precoLote).toFixed(2)),
+        km:km, station:posto, imported:false
+      });
+      if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
+    });
+    Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
+    await save.fuel();
+    if(Object.keys(kmUpdates).length) await save.vehicles();
+
+    msgEl.style.color='var(--go)';
+    msgEl.textContent = `${validas.length} lançamento(s) salvo(s) a R$ ${precoLote.toFixed(2)}/litro.`;
+    document.getElementById('fuelsheet-preco').value = '';
+    fuelSheetReset();
+    renderView('fuel'); renderView('dashboard'); renderView('vehicles');
+  });
 
   /* ---------------- BI DE COMBUSTÍVEL ---------------- */
   function populateFuelBIFilters(){
@@ -2424,6 +2884,8 @@
     if(el) el.textContent = text;
     const el2 = document.getElementById('onedrive-folder-name-sin');
     if(el2) el2.textContent = text;
+    const el3 = document.getElementById('onedrive-folder-name-veh');
+    if(el3) el3.textContent = text;
   }
   async function pickOneDriveFolder(){
     if(!('showDirectoryPicker' in window)){
@@ -2442,6 +2904,7 @@
   }
   document.getElementById('btn-pick-onedrive')?.addEventListener('click', pickOneDriveFolder);
   document.getElementById('btn-pick-onedrive-sin')?.addEventListener('click', pickOneDriveFolder);
+  document.getElementById('btn-pick-onedrive-veh')?.addEventListener('click', pickOneDriveFolder);
   async function restoreOneDriveFolder(){
     if(!('indexedDB' in window)) return;
     try{
@@ -2492,6 +2955,7 @@
   function visibleCosts(){
     const u = currentUser();
     if(u.role==='motorista') return state.costs.filter(c=>c.vehicleId===u.vehicleId);
+    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.costs.filter(c=>ids.includes(c.vehicleId)); }
     return state.costs;
   }
 
@@ -2678,13 +3142,62 @@
     document.getElementById('cf-servico-datas-row').style.display='none';
 
     renderView('costs'); renderView('dashboard');
+    logAudit('Custo extra lançado', `${rec.category||''} — ${fmtMoney(rec.value)}`);
     toast('Lançamento salvo.');
   });
 
   LOTS.deleteCost = async (id)=>{
+    const c = state.costs.find(x=>x.id===id);
     state.costs = state.costs.filter(c=>c.id!==id);
     await save.costs();
     renderView('costs'); renderView('dashboard');
+    logAudit('Custo extra excluído', c ? `${c.category||''} — ${fmtMoney(c.value)}` : id);
+  };
+  // abre o PDF do CRLV guardado na pasta local/OneDrive selecionada, numa aba nova
+  // procura na pasta de CRLVs selecionada um arquivo cujo nome contenha "Frota_Placa"
+  // (ex: 4823-MNS_ABC1D23) e abre ele numa aba nova. Não depende de nada ter sido
+  // anexado pelo cadastro — é uma busca direta na pasta pelo nome do arquivo.
+  LOTS.verCRLV = async (vehicleId, isHeavy)=>{
+    const v = isHeavy ? state.heavyVehicles.find(x=>x.id===vehicleId) : vehicleById(vehicleId);
+    if(!v){ toast('Veículo não encontrado.'); return; }
+    if(!onedriveDirHandle){ toast('Selecione a pasta onde ficam os CRLVs primeiro (botão "Selecionar pasta" no Cadastro de Veículos).'); return; }
+    if(!v.frota || !v.plate){ toast('Esse veículo precisa ter Frota e Placa cadastrados pra buscar o CRLV.'); return; }
+    const alvo1 = normKey(`${v.frota}_${v.plate}`);
+    const alvo2 = normKey(`${v.plate}_${v.frota}`); // tenta nos dois sentidos, por segurança
+    try{
+      const perm = await onedriveDirHandle.requestPermission({mode:'read'});
+      if(perm!=='granted'){ toast('Permissão da pasta negada.'); return; }
+      let achou = null;
+      for await (const [name, handle] of onedriveDirHandle.entries()){
+        if(handle.kind!=='file') continue;
+        const nk = normKey(name);
+        if(nk.includes(alvo1) || nk.includes(alvo2)){ achou = handle; break; }
+      }
+      if(!achou){ toast(`Não achei nenhum arquivo com "${v.frota}_${v.plate}" no nome, dentro da pasta selecionada.`); return; }
+      const file = await achou.getFile();
+      const url = URL.createObjectURL(file);
+      window.open(url, '_blank');
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    }catch(e){
+      console.error(e);
+      toast('Não foi possível abrir o CRLV. Confira se a pasta selecionada é a certa.');
+    }
+  };
+  LOTS.lancarCustoExcedente = async (vehicleId, valor, kmExcedente)=>{
+    const v = vehicleById(vehicleId);
+    if(!v){ toast('Veículo não encontrado.'); return; }
+    if(!confirm(`Lançar R$ ${Number(valor).toFixed(2)} de custo extra (${kmExcedente} km excedidos) pra ${v.frota||v.plate}?`)) return;
+    const rec = {
+      id: uid(), vehicleId, date: todayISO(),
+      category: 'Extras Contratos',
+      description: `Km excedente do limite mensal (${kmExcedente} km)`,
+      value: Number(valor)
+    };
+    state.costs.push(rec);
+    await save.costs();
+    renderView('costs'); renderView('dashboard');
+    logAudit('Custo extra (km excedente) lançado', `${v.frota||''} — ${fmtMoney(rec.value)}`);
+    toast('Custo extra lançado.');
   };
 
   /* ---------------- BI DE CUSTOS EXTRAS ---------------- */
@@ -2814,6 +3327,7 @@
   function visibleSinistros(){
     const u = currentUser();
     if(u.role==='motorista') return state.sinistros.filter(s=>s.vehicleId===u.vehicleId);
+    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.sinistros.filter(s=>ids.includes(s.vehicleId)); }
     return state.sinistros;
   }
 
@@ -2893,12 +3407,15 @@
     document.getElementById('sf-obs').value='';
     filesInput.value='';
     renderView('sinistros');
+    logAudit('Acidente de trânsito registrado', `B.O. ${rec.bo||''} — ${fmtMoney(rec.value)}`);
     toast('Sinistro salvo.');
   });
   LOTS.deleteSinistro = async (id)=>{
+    const s = state.sinistros.find(x=>x.id===id);
     state.sinistros = state.sinistros.filter(s=>s.id!==id);
     await save.sinistros();
     renderView('sinistros');
+    logAudit('Acidente de trânsito excluído', s ? `B.O. ${s.bo||''} — ${fmtMoney(s.value)}` : id);
   };
 
   function populateSinBIFilters(){
@@ -2994,11 +3511,17 @@
     document.getElementById('hf-frota').value = v?.frota || '';
     document.getElementById('hf-plate').value = v?.plate || '';
     document.getElementById('hf-model').value = v?.model || '';
-    document.getElementById('hf-uo').value = v?.unidade || 'MNS';
+    document.getElementById('hf-uo').value = (v?.unidade && UO_LIST.includes(v.unidade)) ? v.unidade : UO_LIST[0];
     document.getElementById('hf-km').value = v?.km || '';
+    document.getElementById('hf-data-inicial').value = v?.dataInicial || todayISO();
     document.getElementById('hf-tag').value = v?.tag || '';
     document.getElementById('hf-filial').value = v?.filial || '';
-    document.getElementById('hf-responsavel').value = v?.responsavel || '';
+    document.getElementById('hf-responsavel').value = v?.responsavel || 'LOTS';
+    document.getElementById('hf-chassis').value = v?.chassis || '';
+    document.getElementById('hf-crlv').value = v?.crlv || '';
+    document.getElementById('hf-crlv-venc').value = v?.crlvVencimento || '';
+    document.getElementById('hf-telemetria-trimble').value = v?.telemetriaTrimble || '';
+    document.getElementById('hf-telemetria-sgpa').value = v?.telemetriaSgpa || '';
     document.getElementById('hf-status').value = v?.status || 'ativo';
     document.getElementById('btn-register-heavy').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
   }
@@ -3014,25 +3537,36 @@
       model: document.getElementById('hf-model').value.trim(),
       unidade: document.getElementById('hf-uo').value,
       km: Number(document.getElementById('hf-km').value)||0,
+      dataInicial: document.getElementById('hf-data-inicial').value || todayISO(),
       tag: document.getElementById('hf-tag').value.trim(),
       filial: document.getElementById('hf-filial').value.trim(),
-      responsavel: document.getElementById('hf-responsavel').value.trim(),
+      responsavel: document.getElementById('hf-responsavel').value,
+      chassis: document.getElementById('hf-chassis').value.trim(),
+      crlv: document.getElementById('hf-crlv').value.trim(),
+      crlvVencimento: document.getElementById('hf-crlv-venc').value || '',
+      telemetriaTrimble: Number(document.getElementById('hf-telemetria-trimble').value)||0,
+      telemetriaSgpa: Number(document.getElementById('hf-telemetria-sgpa').value)||0,
       status: document.getElementById('hf-status').value
     };
     if(!data.plate || !data.model){ errEl.textContent='Preencha ao menos placa e modelo.'; return; }
     errEl.textContent='';
+
     const id = LOTS._editingHeavyId;
     if(id){ Object.assign(state.heavyVehicles.find(v=>v.id===id), data); }
     else { state.heavyVehicles.push({id:uid(), dataCadastro:todayISO(), ...data}); }
     await save.heavyVehicles();
     fillHeavyForm(null);
     renderView('heavyfleet');
+    populateEmbarcadosVehicleSelect();
+    logAudit(id?'Veículo (frota pesada) editado':'Veículo (frota pesada) cadastrado', `${data.frota||''} — ${data.plate}`);
     toast(id ? 'Veículo atualizado.' : 'Veículo cadastrado.');
   });
   LOTS.deleteHeavy = async (id)=>{
+    const v = state.heavyVehicles.find(x=>x.id===id);
     state.heavyVehicles = state.heavyVehicles.filter(v=>v.id!==id);
     await save.heavyVehicles();
     renderView('heavyfleet');
+    logAudit('Veículo (frota pesada) excluído', v ? `${v.frota||''} — ${v.plate}` : id);
   };
   ['hfilter-uo','hfilter-status'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavyFleet(); });
@@ -3041,10 +3575,60 @@
     document.getElementById('hfilter-uo').value=''; document.getElementById('hfilter-status').value='';
     renderHeavyFleet();
   });
+  function populateEmbarcadosVehicleSelect(){
+    const sel = document.getElementById('emb-vehicle');
+    if(!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + state.heavyVehicles.map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    fillEmbarcadosForm();
+  }
+  function fillEmbarcadosForm(){
+    const v = state.heavyVehicles.find(x=>x.id===document.getElementById('emb-vehicle')?.value);
+    const e = v?.embarcados || {};
+    document.getElementById('emb-trimble-serie').value = e.trimbleSerie || '';
+    document.getElementById('emb-radio-modelo').value = e.radioModelo || '';
+    document.getElementById('emb-radio-serie').value = e.radioSerie || '';
+    document.getElementById('emb-sgpa-mag').value = e.sgpaMag || '';
+    document.getElementById('emb-sgpa-tela').value = e.sgpaTela || '';
+  }
+  document.getElementById('emb-vehicle')?.addEventListener('change', fillEmbarcadosForm);
+  document.getElementById('btn-save-embarcados')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('emb-err');
+    const v = state.heavyVehicles.find(x=>x.id===document.getElementById('emb-vehicle').value);
+    if(!v){ errEl.textContent='Selecione o veículo.'; return; }
+    errEl.textContent='';
+    v.embarcados = {
+      trimbleSerie: document.getElementById('emb-trimble-serie').value.trim(),
+      radioModelo: document.getElementById('emb-radio-modelo').value.trim(),
+      radioSerie: document.getElementById('emb-radio-serie').value.trim(),
+      sgpaMag: document.getElementById('emb-sgpa-mag').value.trim(),
+      sgpaTela: document.getElementById('emb-sgpa-tela').value.trim()
+    };
+    await save.heavyVehicles();
+    toast('Embarcados salvos.');
+  });
+
+  // veículos de frota pesada com CRLV vencendo em até 30 dias (ou já vencido)
+  function crlvVencendoList(){
+    const hoje = new Date(todayISO());
+    return state.heavyVehicles
+      .filter(v=>v.crlvVencimento)
+      .map(v=>{
+        const venc = new Date(v.crlvVencimento);
+        const diasRestantes = Math.round((venc-hoje)/86400000);
+        return {v, diasRestantes};
+      })
+      .filter(r=>r.diasRestantes<=30)
+      .sort((a,b)=>a.diasRestantes-b.diasRestantes);
+  }
+
   function renderHeavyFleet(){
     const uo = document.getElementById('hfilter-uo')?.value || '';
     const status = document.getElementById('hfilter-status')?.value || '';
     const list = visibleHeavyVehicles().filter(v=>!uo||v.unidade===uo).filter(v=>!status||v.status===status);
+
+    populateEmbarcadosVehicleSelect();
 
     const kpiGrid = document.getElementById('heavy-kpi-grid');
     if(kpiGrid){
@@ -3052,17 +3636,15 @@
       kpiGrid.innerHTML = [
         {label:'Total de veículos', val: all.length},
         {label:'Ativos', val: all.filter(v=>v.status==='ativo').length},
-        {label:'Em manutenção', val: all.filter(v=>v.status==='manutencao').length},
         {label:'Inativos', val: all.filter(v=>v.status==='inativo').length}
       ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
     }
 
     const tbl = document.getElementById('tbl-heavy');
     if(!tbl) return;
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum veículo de frota pesada cadastrado.</td></tr>'; return; }
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="10">Nenhum veículo de frota pesada cadastrado.</td></tr>'; return; }
     tbl.innerHTML = list.map(v=>{
       const badge = v.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' :
-                    v.status==='manutencao' ? '<span class="badge badge-pending">Manutenção</span>' :
                     '<span class="badge badge-danger">Inativo</span>';
       return `<tr>
         <td class="mono">${v.frota||'—'}</td>
@@ -3071,8 +3653,11 @@
         <td>${v.unidade||'—'}</td>
         <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
         <td>${v.responsavel||'—'}</td>
+        <td class="mono">${v.crlv||'—'}</td>
+        <td class="mono">${v.crlvVencimento?fmtDate(v.crlvVencimento):'—'}</td>
         <td>${badge}</td>
         <td><div class="action-links">
+          <button class="icon-btn" onclick="LOTS.verCRLV('${v.id}',true)">ver CRLV</button>
           <button class="icon-btn" onclick="LOTS.editHeavy('${v.id}')">editar</button>
           <button class="icon-btn danger" onclick="LOTS.deleteHeavy('${v.id}')">excluir</button>
         </div></td>
@@ -3157,6 +3742,7 @@
     document.getElementById('ff-file-status').textContent='';
     document.getElementById('ff-motivo-row').style.display='none';
     renderView('fines'); renderView('dashboard'); renderView('ranking');
+    logAudit('Multa registrada', `${rec.infraction||''} — ${fmtMoney(rec.value)}`);
     toast('Multa registrada.');
   });
   LOTS.markPaid = async (id)=>{
@@ -3164,9 +3750,11 @@
     if(f){ f.status='paga'; await save.fines(); renderView('fines'); renderView('ranking'); }
   };
   LOTS.deleteFine = async (id)=>{
+    const f = state.fines.find(x=>x.id===id);
     state.fines = state.fines.filter(f=>f.id!==id);
     await save.fines();
     renderView('fines'); renderView('dashboard'); renderView('ranking');
+    logAudit('Multa excluída', f ? `${f.infraction||''} — ${fmtMoney(f.value)}` : id);
   };
 
   function populateFineBIFilters(){
@@ -3259,6 +3847,7 @@
   function visibleFines(){
     const u = currentUser();
     if(u.role==='motorista') return state.fines.filter(f=>f.vehicleId===u.vehicleId);
+    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.fines.filter(f=>ids.includes(f.vehicleId)); }
     return state.fines;
   }
 
@@ -3311,11 +3900,19 @@
   });
 
   function populateLotsGoBIFilters(){
+    const ySel = document.getElementById('bilg-year');
     const mSel = document.getElementById('bilg-month');
     const matSel = document.getElementById('bilg-matricula');
     if(!mSel) return;
-    const months = [...new Set(state.lotsGoEntries.map(e=>e.mes).filter(Boolean))].sort().reverse();
     const monthNames = {'01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho','07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'};
+
+    const anos = [...new Set(state.lotsGoEntries.map(e=>(e.mes||'').slice(0,4)).filter(Boolean))].sort().reverse();
+    const keepY = ySel.value;
+    ySel.innerHTML = '<option value="">Todos</option>' + anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+    ySel.value = anos.includes(keepY) ? keepY : '';
+
+    const anoFiltro = ySel.value;
+    const months = [...new Set(state.lotsGoEntries.map(e=>e.mes).filter(m=>m && (!anoFiltro || m.slice(0,4)===anoFiltro)))].sort().reverse();
     const keepM = mSel.value;
     mSel.innerHTML = '<option value="">Todos</option>' + months.map(m=>{ const [y,mo]=m.split('-'); return `<option value="${m}">${monthNames[mo]||mo}/${y}</option>`; }).join('');
     mSel.value = months.includes(keepM) ? keepM : '';
@@ -3325,46 +3922,30 @@
     matSel.innerHTML = '<option value="">Todas</option>' + matriculas.map(m=>`<option value="${m}">${m}</option>`).join('');
     matSel.value = matriculas.includes(keepMat) ? keepMat : '';
   }
-  ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-categoria','bilg-matricula'].forEach(id=>{
+  ['bilg-start','bilg-end','bilg-year','bilg-month','bilg-uo','bilg-matricula'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderRankingBI(); });
   });
   document.getElementById('btn-clear-bilg')?.addEventListener('click', ()=>{
-    ['bilg-start','bilg-end','bilg-month','bilg-uo','bilg-categoria','bilg-matricula'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['bilg-start','bilg-end','bilg-year','bilg-month','bilg-uo','bilg-matricula'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     renderRankingBI();
   });
 
   function getLotsGoFiltered(){
     const start = document.getElementById('bilg-start').value;
     const end = document.getElementById('bilg-end').value;
+    const year = document.getElementById('bilg-year').value;
     const month = document.getElementById('bilg-month').value;
     const uo = document.getElementById('bilg-uo').value;
-    const categoria = document.getElementById('bilg-categoria').value;
     const matricula = document.getElementById('bilg-matricula').value;
     return state.lotsGoEntries.filter(e=>{
       if(start && e.periodo<start) return false;
       if(end && e.periodo>end) return false;
+      if(year && (e.mes||'').slice(0,4)!==year) return false;
       if(month && e.mes!==month) return false;
       if(uo && (e.unidade||'').toUpperCase()!==uo) return false;
-      if(categoria && e.categoria!==categoria) return false;
       if(matricula && e.matricula!==matricula) return false;
       return true;
     });
-  }
-
-  /* soma o orçamento de referência (grade editável) para um mês/UO/categoria específicos */
-  function getLGBMonthTotal(uoFilter, month, categoriaFilter){
-    if(!month) return 0;
-    const monthIndex = Number(month.split('-')[1]) - 1;
-    if(monthIndex<0 || monthIndex>11) return 0;
-    const grid = getLGBGrid();
-    const uos = uoFilter ? [uoFilter] : ['MNS','PRA'];
-    const rows = categoriaFilter ? LGB_ROWS.filter(r=>r.key===categoriaFilter) : LGB_ROWS;
-    let total = 0;
-    uos.forEach(u=>{
-      const uoData = grid[u] || LGB_DEFAULT[u] || {};
-      rows.forEach(r=>{ total += Number((uoData[r.key]||[])[monthIndex]||0); });
-    });
-    return total;
   }
 
   function renderRankingBI(){
@@ -3374,29 +3955,9 @@
     const list = getLotsGoFiltered();
     const totalReal = list.reduce((s,e)=>s+e.valor,0);
 
-    const month = document.getElementById('bilg-month').value;
-    const uoFilter = document.getElementById('bilg-uo').value;
-    const categoriaFilter = document.getElementById('bilg-categoria').value;
-    const orcado = getLGBMonthTotal(uoFilter, month, categoriaFilter);
-
-    document.getElementById('lg-orcvsreal-title').textContent = month
-      ? `Orçado: ${fmtMoney(orcado)}  •  Real: ${fmtMoney(totalReal)}`
-      : 'Selecione um mês no filtro para comparar com o orçamento';
-    const diffEl = document.getElementById('lg-diff-pct');
-    if(month && orcado>0){
-      const diffPct = ((totalReal-orcado)/orcado)*100;
-      diffEl.textContent = (diffPct>=0?'+':'')+diffPct.toFixed(1)+'%';
-      diffEl.style.color = diffPct>0 ? '#ffb4b4' : '#a8f0c6';
-    } else {
-      diffEl.textContent = '—';
-      diffEl.style.color = '';
-    }
-
     kpiGrid.innerHTML = [
       {label:'Lançamentos', val: list.length},
-      {label:'Valor real', val: fmtMoney(totalReal)},
-      {label:'Valor orçado (mês)', val: month?fmtMoney(orcado):'—'},
-      {label:'Diferença em R$', val: month?fmtMoney(totalReal-orcado):'—'}
+      {label:'Valor total', val: fmtMoney(totalReal)}
     ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
 
     LOTS._lotsGoBISnapshot = list;
@@ -3420,6 +3981,8 @@
     state.lotsGoEntries = state.lotsGoEntries.filter(e=>e.id!==id);
     await save.lotsGoEntries();
     renderRankingBI();
+    renderBU();
+    renderPremiacaoBI();
   };
   document.getElementById('btn-export-lotsgo')?.addEventListener('click', ()=>{
     if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
@@ -3433,15 +3996,169 @@
     toast('Exportação gerada.');
   });
 
-  /* ---------------- ORÇAMENTO LOTS GO (grade editável de referência) ---------------- */
+  /* ---------------- ORÇAMENTO DE PREMIAÇÃO (valor pago aos colaboradores) ---------------- */
+  /* estrutura: state.premiacaoBudget = { [ano]: { [uo]: [12 valores] } } */
+  function getPBGrid(){
+    if(!state.premiacaoBudget) state.premiacaoBudget = {};
+    return state.premiacaoBudget;
+  }
+  let pbEditMode = false;
+  function populatePBYearUoSelects(){
+    const yearSel = document.getElementById('pb-year');
+    const uoSel = document.getElementById('pb-uo');
+    if(!yearSel || !uoSel) return;
+    const grid = getPBGrid();
+    const anoAtual = new Date().getFullYear();
+    const anos = new Set(Object.keys(grid));
+    for(let a=anoAtual-6; a<=anoAtual+1; a++) anos.add(String(a));
+    const anosOrdenados = [...anos].sort().reverse();
+    const keepY = yearSel.value;
+    yearSel.innerHTML = anosOrdenados.map(a=>`<option value="${a}">${a}</option>`).join('');
+    yearSel.value = anosOrdenados.includes(keepY) ? keepY : String(anoAtual);
+
+    const keepU = uoSel.value;
+    uoSel.innerHTML = UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('');
+    uoSel.value = UO_LIST.includes(keepU) ? keepU : UO_LIST[0];
+  }
+  function renderPBGrid(){
+    const body = document.getElementById('pb-grid-body');
+    if(!body) return;
+    populatePBYearUoSelects();
+    const year = document.getElementById('pb-year').value;
+    const uo = document.getElementById('pb-uo').value;
+    const grid = getPBGrid();
+    if(!grid[year]) grid[year] = {};
+    const vals = grid[year][uo] || (grid[year][uo] = Array(12).fill(0));
+    const fy = vals.reduce((s,v)=>s+Number(v||0),0);
+    const cells = vals.map((v,i)=>`<td><input type="number" class="lgb-cell-input pb-cell-input" data-idx="${i}" value="${v}" ${pbEditMode?'':'disabled'}></td>`).join('');
+    body.innerHTML = `<tr><td>Valor orçado</td>${cells}<td class="lgb-total">${fmtInt(fy)}</td></tr>`;
+    body.querySelectorAll('.pb-cell-input').forEach(inp=>{
+      inp.addEventListener('input', (e)=>{
+        const idx = Number(e.target.dataset.idx);
+        const g = getPBGrid();
+        if(!g[year]) g[year]={};
+        if(!g[year][uo]) g[year][uo]=Array(12).fill(0);
+        g[year][uo][idx] = Number(e.target.value)||0;
+        pbDirty = true;
+        const btnSave = document.getElementById('btn-save-pb');
+        if(btnSave) btnSave.textContent = '💾 Salvar orçamento do ano *';
+        const row = e.target.closest('tr');
+        const fyCell = row.querySelector('.lgb-total');
+        if(fyCell) fyCell.textContent = fmtInt(g[year][uo].reduce((s,v)=>s+Number(v||0),0));
+      });
+    });
+  }
+  let pbDirty = false;
+  document.getElementById('pb-year')?.addEventListener('change', renderPBGrid);
+  document.getElementById('pb-uo')?.addEventListener('change', renderPBGrid);
+  document.getElementById('btn-toggle-pb-edit')?.addEventListener('click', (e)=>{
+    pbEditMode = !pbEditMode;
+    e.target.textContent = pbEditMode ? '🔒 Travar edição' : '✏️ Editar';
+    document.getElementById('btn-save-pb').style.display = pbEditMode ? 'inline-block' : 'none';
+    renderPBGrid();
+  });
+  document.getElementById('btn-save-pb')?.addEventListener('click', async (e)=>{
+    await save.premiacaoBudget();
+    pbDirty = false;
+    e.target.textContent = '💾 Salvar orçamento do ano';
+    toast('Orçamento salvo.');
+    renderPremiacaoBI();
+  });
+  function getPBMonthTotal(year, uo, monthIndex){
+    const grid = getPBGrid();
+    return Number(((grid[year]||{})[uo]||[])[monthIndex]||0);
+  }
+
+  function renderPremiacaoBI(){
+    const table = document.getElementById('pbi-table');
+    const kpiGrid = document.getElementById('pbi-kpi-grid');
+    if(!table || !kpiGrid) return;
+    renderPBGrid();
+
+    const yearSel = document.getElementById('pbi-year');
+    const uoSel = document.getElementById('pbi-uo');
+    if(yearSel && yearSel.options.length===0){
+      const anoAtual = new Date().getFullYear();
+      const anos = new Set(Object.keys(getPBGrid()));
+      for(let a=anoAtual-6; a<=anoAtual+1; a++) anos.add(String(a));
+      yearSel.innerHTML = [...anos].sort().reverse().map(a=>`<option value="${a}">${a}</option>`).join('');
+      yearSel.value = String(anoAtual);
+    }
+    if(uoSel && uoSel.options.length<=1){
+      uoSel.innerHTML = '<option value="">Todas</option>' + UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('');
+    }
+    const year = yearSel.value;
+    const monthFilter = document.getElementById('pbi-month').value;
+    const uoFilter = uoSel.value;
+
+    const realPorMes = Array(12).fill(0);
+    state.lotsGoEntries.forEach(e=>{
+      if(!e.mes || e.mes.slice(0,4)!==year) return;
+      if(uoFilter && (e.unidade||'').toUpperCase()!==uoFilter) return;
+      const mi = Number(e.mes.slice(5,7))-1;
+      if(mi>=0 && mi<12) realPorMes[mi] += Number(e.valor)||0;
+    });
+    const orcadoPorMes = Array.from({length:12}, (_,mi)=>{
+      const uos = uoFilter ? [uoFilter] : UO_LIST;
+      return uos.reduce((s,u)=>s+getPBMonthTotal(year,u,mi),0);
+    });
+
+    function corReal(orc, real){ return real>orc ? 'var(--danger)' : 'var(--go)'; }
+    function fmtPct(orc, real){
+      if(!orc) return real>0 ? '—' : '0,0%';
+      const p = ((real-orc)/orc)*100;
+      return (p>=0?'+':'')+p.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+    }
+
+    let totalOrc=0, totalReal=0;
+    const meses = monthFilter!=='' ? [Number(monthFilter)] : [0,1,2,3,4,5,6,7,8,9,10,11];
+    table.innerHTML = meses.map(mi=>{
+      const orc = orcadoPorMes[mi];
+      const real = realPorMes[mi];
+      totalOrc+=orc; totalReal+=real;
+      const cor = corReal(orc, real);
+      const desvio = real-orc;
+      return `<tr>
+        <td>${MONTH_ABBR[mi]}/${year}</td>
+        <td class="mono">${fmtMoney(orc)}</td>
+        <td class="mono" style="color:${cor}; font-weight:700;">${fmtMoney(real)}</td>
+        <td class="mono" style="color:${cor}; font-weight:600;">${desvio>=0?'+':''}${fmtMoney(desvio)}</td>
+        <td class="mono" style="color:${cor}; font-weight:600;">${fmtPct(orc,real)}</td>
+      </tr>`;
+    }).join('') + (meses.length>1 ? (()=>{
+      const cor = corReal(totalOrc, totalReal);
+      const desvio = totalReal-totalOrc;
+      return `<tr>
+        <td class="lgb-total">Total FY</td>
+        <td class="lgb-total mono">${fmtMoney(totalOrc)}</td>
+        <td class="lgb-total mono" style="color:${cor};">${fmtMoney(totalReal)}</td>
+        <td class="lgb-total mono" style="color:${cor};">${desvio>=0?'+':''}${fmtMoney(desvio)}</td>
+        <td class="lgb-total mono" style="color:${cor};">${fmtPct(totalOrc,totalReal)}</td>
+      </tr>`;
+    })() : '');
+
+    const corTotal = corReal(totalOrc, totalReal);
+    const sufixo = meses.length===1 ? `(${MONTH_ABBR[meses[0]]}/${year})` : '(FY)';
+    kpiGrid.innerHTML = [
+      {label:`Orçado ${sufixo}`, val: fmtMoney(totalOrc)},
+      {label:`Real ${sufixo}`, val: fmtMoney(totalReal), color: corTotal},
+      {label:'Desvio (R$)', val: (totalReal-totalOrc>=0?'+':'')+fmtMoney(totalReal-totalOrc), color: corTotal},
+      {label:'Desvio (%)', val: fmtPct(totalOrc,totalReal), color: corTotal}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+  }
+  ['pbi-year','pbi-month','pbi-uo'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderPremiacaoBI(); });
+  });
+
+  /* ---------------- ORÇAMENTO PREMIAÇÃO (grade editável de referência, agora na aba BU) ---------------- */
   const LGB_DEFAULT = {
-    MNS: {
+    '4823-MNS': {
       locacao:   [37980,37980,37980,52223,52223,52223,52223,52223,52223,52223,52223,52223],
       manutencao:[8469,8469,8469,9469,9469,9469,9469,9469,9469,9469,9469,9469],
       lavagem:   [3376,3376,3376,5280,5280,5280,5280,5280,5280,5280,5280,5280],
       avarias:   [2110,2110,2110,3110,3110,3110,3110,3110,3110,3110,3110,3110]
     },
-    PRA: {
+    '4824-PRA': {
       locacao:   [33233,33233,33233,52223,52223,52223,52223,52223,52223,52223,52223,52223],
       manutencao:[7133,7133,7133,9469,9469,9469,9469,9469,9469,9469,9469,9469],
       lavagem:   [2954,2954,2954,5280,5280,5280,5280,5280,5280,5280,5280,5280],
@@ -3449,23 +4166,58 @@
     }
   };
   const LGB_ROWS = [
-    {key:'locacao', label:'Locação LOTS GO'},
-    {key:'manutencao', label:'Manutenção por Km, LOTS GO'},
-    {key:'lavagem', label:'Lavagem LOTS GO'},
-    {key:'avarias', label:'Avarias LOTS GO'}
+    {key:'locacao', label:'Locação'},
+    {key:'manutencao', label:'Manutenção por Km'},
+    {key:'lavagem', label:'Lavagem'},
+    {key:'avarias', label:'Avarias'}
   ];
+  /* estrutura: state.lotsGoBudgetGrid = { [ano]: { [uo]: { categoria: [12 valores] } } } */
   function getLGBGrid(){
-    if(!state.lotsGoBudgetGrid){ state.lotsGoBudgetGrid = JSON.parse(JSON.stringify(LGB_DEFAULT)); }
-    return state.lotsGoBudgetGrid;
+    if(!state.lotsGoBudgetGrid){ state.lotsGoBudgetGrid = {}; }
+    const grid = state.lotsGoBudgetGrid;
+    // migração única: formato bem antigo era { uo: {...} } direto, sem ano nenhum.
+    // se os campos de primeiro nível baterem com UOs, assume que é o ano atual.
+    const chaves = Object.keys(grid);
+    const pareceFormatoAntigo = chaves.some(k=>UO_LIST.includes(k) || k==='MNS' || k==='PRA');
+    if(pareceFormatoAntigo){
+      const anoAtual = String(new Date().getFullYear());
+      const velho = {};
+      chaves.forEach(k=>{ velho[k]=grid[k]; delete grid[k]; });
+      if(velho.MNS){ velho['4823-MNS'] = velho.MNS; delete velho.MNS; }
+      if(velho.PRA){ velho['4824-PRA'] = velho.PRA; delete velho.PRA; }
+      grid[anoAtual] = velho;
+      save.lotsGoBudgetGrid();
+    }
+    return grid;
+  }
+  function getLGBYearData(grid, year){
+    if(!grid[year]) grid[year] = {};
+    return grid[year];
   }
   function fmtInt(n){ return Math.round(n||0).toLocaleString('pt-BR'); }
   let lgbEditMode = false;
+  let lgbDirty = false; // true quando há edições ainda não salvas
+  function populateLGBYearSelect(){
+    const yearSel = document.getElementById('lgb-year');
+    if(!yearSel) return;
+    const grid = getLGBGrid();
+    const anoAtual = new Date().getFullYear();
+    const anos = new Set(Object.keys(grid));
+    for(let a=anoAtual-6; a<=anoAtual+1; a++) anos.add(String(a));
+    const anosOrdenados = [...anos].sort().reverse();
+    const keep = yearSel.value;
+    yearSel.innerHTML = anosOrdenados.map(a=>`<option value="${a}">${a}</option>`).join('');
+    yearSel.value = anosOrdenados.includes(keep) ? keep : String(anoAtual);
+  }
   function renderLGBGrid(){
     const body = document.getElementById('lgb-grid-body');
     if(!body) return;
-    const uo = document.getElementById('lgb-uo').value || 'MNS';
+    populateLGBYearSelect();
+    const year = document.getElementById('lgb-year').value;
+    const uo = document.getElementById('lgb-uo').value || UO_LIST[0];
     const grid = getLGBGrid();
-    const uoData = grid[uo] || (grid[uo] = JSON.parse(JSON.stringify(LGB_DEFAULT.MNS)));
+    const yearData = getLGBYearData(grid, year);
+    const uoData = yearData[uo] || (yearData[uo] = (LGB_DEFAULT[uo] ? JSON.parse(JSON.stringify(LGB_DEFAULT[uo])) : {}));
 
     let rowsHtml = LGB_ROWS.map(r=>{
       const vals = uoData[r.key] || (uoData[r.key] = Array(12).fill(0));
@@ -3483,28 +4235,177 @@
     body.innerHTML = rowsHtml;
 
     body.querySelectorAll('.lgb-cell-input').forEach(inp=>{
-      inp.addEventListener('change', async (e)=>{
+      inp.addEventListener('input', (e)=>{
         const cat = e.target.dataset.cat;
         const idx = Number(e.target.dataset.idx);
         const grid2 = getLGBGrid();
-        grid2[uo][cat][idx] = Number(e.target.value)||0;
-        await save.lotsGoBudgetGrid();
-        renderLGBGrid();
-        renderRankingBI();
+        const yd = getLGBYearData(grid2, year);
+        if(!yd[uo]) yd[uo] = {};
+        if(!yd[uo][cat]) yd[uo][cat] = Array(12).fill(0);
+        yd[uo][cat][idx] = Number(e.target.value)||0;
+        lgbDirty = true;
+        const btnSave = document.getElementById('btn-save-lgb');
+        if(btnSave) btnSave.textContent = '💾 Salvar orçamento do ano *';
+
+        // atualiza o FY da linha e a linha de Total sem redesenhar tudo (mantém o foco do campo)
+        const row = e.target.closest('tr');
+        const fyCell = row.querySelector('.lgb-total');
+        if(fyCell){ const vals = yd[uo][cat]; fyCell.textContent = fmtInt(vals.reduce((s,v)=>s+Number(v||0),0)); }
+        const totalRow = body.querySelector('tr:last-child');
+        if(totalRow){
+          const monthTotals = Array(12).fill(0);
+          LGB_ROWS.forEach(r=>{ (yd[uo][r.key]||[]).forEach((v,i)=>{ monthTotals[i]+=Number(v||0); }); });
+          const fyTotal = monthTotals.reduce((s,v)=>s+v,0);
+          const cells = totalRow.querySelectorAll('td');
+          monthTotals.forEach((v,i)=>{ if(cells[i+1]) cells[i+1].textContent = fmtInt(v); });
+          if(cells[13]) cells[13].textContent = fmtInt(fyTotal);
+        }
       });
     });
   }
   document.getElementById('lgb-uo')?.addEventListener('change', renderLGBGrid);
+  document.getElementById('lgb-year')?.addEventListener('change', renderLGBGrid);
   document.getElementById('btn-toggle-lgb-edit')?.addEventListener('click', (e)=>{
     lgbEditMode = !lgbEditMode;
     e.target.textContent = lgbEditMode ? '🔒 Travar edição' : '✏️ Editar';
+    document.getElementById('btn-save-lgb').style.display = lgbEditMode ? 'inline-block' : 'none';
     renderLGBGrid();
   });
+  document.getElementById('btn-save-lgb')?.addEventListener('click', async (e)=>{
+    await save.lotsGoBudgetGrid();
+    lgbDirty = false;
+    e.target.textContent = '💾 Salvar orçamento do ano';
+    toast('Orçamento salvo.');
+    renderBU();
+  });
+  window.addEventListener('beforeunload', (e)=>{
+    if(lgbDirty){ e.preventDefault(); e.returnValue = ''; }
+  });
+
+  /* soma o orçamento de referência (grade editável) para um ano/mês/UO/categoria específicos */
+  function getLGBMonthTotal(year, uoFilter, monthIndex, categoriaFilter){
+    if(monthIndex<0 || monthIndex>11) return 0;
+    const grid = getLGBGrid();
+    const yearData = grid[year] || {};
+    const uos = uoFilter ? [uoFilter] : UO_LIST;
+    const rows = categoriaFilter ? LGB_ROWS.filter(r=>r.key===categoriaFilter) : LGB_ROWS;
+    let total = 0;
+    uos.forEach(u=>{
+      const uoData = yearData[u] || {};
+      rows.forEach(r=>{ total += Number((uoData[r.key]||[])[monthIndex]||0); });
+    });
+    return total;
+  }
+
+  /* ---------------- BU: BI profissional Orçado × Real, por ano ---------------- */
+  const MONTH_ABBR = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function populateBUFilters(){
+    const uoSel = document.getElementById('bu-uo');
+    const yearSel = document.getElementById('bu-year');
+    if(!uoSel || !yearSel) return;
+    const keepUo = uoSel.value;
+    uoSel.innerHTML = '<option value="">Todas</option>' + UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('');
+    uoSel.value = UO_LIST.includes(keepUo) ? keepUo : '';
+
+    const anosDados = [...new Set(state.costs.map(c=>(c.date||'').slice(0,4)).filter(Boolean))];
+    const anoAtual = String(new Date().getFullYear());
+    if(!anosDados.includes(anoAtual)) anosDados.push(anoAtual);
+    anosDados.sort().reverse();
+    const keepYear = yearSel.value;
+    yearSel.innerHTML = anosDados.map(a=>`<option value="${a}">${a}</option>`).join('');
+    yearSel.value = anosDados.includes(keepYear) ? keepYear : anoAtual;
+  }
+  ['bu-uo','bu-year','bu-month','bu-categoria'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderBU(); });
+  });
+  function renderBU(){
+    const table = document.getElementById('bu-annual-table');
+    const kpiGrid = document.getElementById('bu-kpi-grid');
+    if(!table || !kpiGrid) return;
+    renderLGBGrid();
+    populateBUFilters();
+
+    const uoFilter = document.getElementById('bu-uo').value;
+    const year = document.getElementById('bu-year').value;
+    const monthFilter = document.getElementById('bu-month').value; // '' = todos, ou índice 0-11
+    const categoriaFilter = document.getElementById('bu-categoria').value;
+
+    // Real = Custos Extras lançados (dinheiro fora do orçamento), não a premiação do motorista
+    const realPorMes = Array(12).fill(0);
+    visibleCosts().forEach(c=>{
+      if(!c.date || c.date.slice(0,4)!==year) return;
+      if(categoriaFilter && c.category!==categoriaFilter) return;
+      if(uoFilter){
+        const v = vehicleById(c.vehicleId);
+        if(!v || v.unidade!==uoFilter) return;
+      }
+      const mi = Number(c.date.slice(5,7))-1;
+      if(mi>=0 && mi<12) realPorMes[mi] += Number(c.value)||0;
+    });
+
+    // Orçado = o que já foi orçado na grade (independe da categoria de Custos Extras, que é outra coisa)
+    const orcadoPorMes = Array.from({length:12}, (_,mi)=>getLGBMonthTotal(year, uoFilter, mi, null));
+
+    function corDesvio(v){ return v>0 ? 'var(--go)' : (v<0 ? 'var(--danger)' : ''); }
+    function fmtPct(orc, real){
+      if(!orc) return real>0 ? '—' : '0,0%';
+      const p = ((real-orc)/orc)*100;
+      return (p>=0?'+':'')+p.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+    }
+    // sem nenhum Custo Extra lançado no período ainda não é "desvio" — só mostra desvio quando existir lançamento real
+    function celulaDesvio(orc, real){
+      if(real<=0) return {texto:'—', cor:''};
+      const desvio = real-orc;
+      return {texto: (desvio>=0?'+':'')+fmtMoney(desvio), cor: corDesvio(desvio)};
+    }
+    function celulaDesvioPct(orc, real){
+      if(real<=0) return {texto:'—', cor:''};
+      return {texto: fmtPct(orc,real), cor: corDesvio(real-orc)};
+    }
+
+    let totalOrc=0, totalReal=0;
+    const mesesParaMostrar = monthFilter!=='' ? [Number(monthFilter)] : [0,1,2,3,4,5,6,7,8,9,10,11];
+    table.innerHTML = mesesParaMostrar.map(mi=>{
+      const label = MONTH_ABBR[mi];
+      const orc = orcadoPorMes[mi];
+      const real = realPorMes[mi];
+      totalOrc+=orc; totalReal+=real;
+      const dR = celulaDesvio(orc, real);
+      const dP = celulaDesvioPct(orc, real);
+      return `<tr>
+        <td>${label}/${year}</td>
+        <td class="mono">${fmtMoney(orc)}</td>
+        <td class="mono">${fmtMoney(real)}</td>
+        <td class="mono" style="color:${dR.cor}; font-weight:600;">${dR.texto}</td>
+        <td class="mono" style="color:${dP.cor}; font-weight:600;">${dP.texto}</td>
+      </tr>`;
+    }).join('') + (mesesParaMostrar.length>1 ? (()=>{
+      const dR = celulaDesvio(totalOrc, totalReal);
+      const dP = celulaDesvioPct(totalOrc, totalReal);
+      return `<tr>
+        <td class="lgb-total">Total FY</td>
+        <td class="lgb-total mono">${fmtMoney(totalOrc)}</td>
+        <td class="lgb-total mono">${fmtMoney(totalReal)}</td>
+        <td class="lgb-total mono" style="color:${dR.cor};">${dR.texto}</td>
+        <td class="lgb-total mono" style="color:${dP.cor};">${dP.texto}</td>
+      </tr>`;
+    })() : '');
+
+    const kpiDesvio = celulaDesvio(totalOrc, totalReal);
+    const kpiDesvioPct = celulaDesvioPct(totalOrc, totalReal);
+    const sufixo = mesesParaMostrar.length===1 ? `(${MONTH_ABBR[mesesParaMostrar[0]]}/${year})` : '(FY)';
+    kpiGrid.innerHTML = [
+      {label:`Orçado ${sufixo}`, val: fmtMoney(totalOrc)},
+      {label:`Real ${sufixo}`, val: fmtMoney(totalReal)},
+      {label:'Desvio (R$)', val: kpiDesvio.texto, color: kpiDesvio.cor},
+      {label:'Desvio (%)', val: kpiDesvioPct.texto, color: kpiDesvioPct.cor}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+  }
 
   /* ---------------- RANKING (LOTS GO) ---------------- */
   function renderRanking(){
     renderRankingBI();
-    renderLGBGrid();
+    renderPremiacaoBI();
     const tbl = document.getElementById('tbl-ranking');
     const drivers = state.users.filter(u=>u.role==='motorista');
     if(drivers.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">Cadastre motoristas para ver o ranking.</td></tr>'; return; }
@@ -3573,12 +4474,15 @@
     ['hcf-km','hcf-budget','hcf-value','hcf-fornecedor','hcf-motorista-nome','hcf-matricula','hcf-obs'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('hcf-date').value='';
     renderView('heavycosts'); renderView('heavydash');
+    logAudit('Custo (frota pesada) lançado', `${rec.category||''} — ${fmtMoney(rec.value)}`);
     toast('Lançamento salvo.');
   });
   LOTS.deleteHeavyCost = async (id)=>{
+    const c = state.heavyCosts.find(x=>x.id===id);
     state.heavyCosts = state.heavyCosts.filter(c=>c.id!==id);
     await save.heavyCosts();
     renderView('heavycosts'); renderView('heavydash');
+    logAudit('Custo (frota pesada) excluído', c ? `${c.category||''} — ${fmtMoney(c.value)}` : id);
   };
   function populateHeavyCostBIFilters(){
     const vSel = document.getElementById('hbicost-vehicle');
@@ -3698,9 +4602,11 @@
     toast('Sinistro salvo.');
   });
   LOTS.deleteHeavySinistro = async (id)=>{
+    const s = state.heavySinistros.find(x=>x.id===id);
     state.heavySinistros = state.heavySinistros.filter(s=>s.id!==id);
     await save.heavySinistros();
     renderView('heavysinistros'); renderView('heavydash');
+    logAudit('Acidente de trânsito (frota pesada) excluído', s ? `B.O. ${s.bo||''} — ${fmtMoney(s.value)}` : id);
   };
   function populateHeavySinBIFilters(){
     const vSel = document.getElementById('hbisin-vehicle');
@@ -3805,6 +4711,7 @@
     state.heavyFines.push(rec);
     await save.heavyFines();
     closeModal(); renderView('heavyfines'); renderView('heavydash'); renderView('heavyranking');
+    logAudit('Multa (frota pesada) registrada', `${rec.infraction||''} — ${fmtMoney(rec.value)}`);
     toast('Multa registrada.');
   };
   LOTS.markHeavyPaid = async (id)=>{
@@ -3812,9 +4719,11 @@
     if(f){ f.status='paga'; await save.heavyFines(); renderView('heavyfines'); renderView('heavyranking'); }
   };
   LOTS.deleteHeavyFine = async (id)=>{
+    const f = state.heavyFines.find(x=>x.id===id);
     state.heavyFines = state.heavyFines.filter(f=>f.id!==id);
     await save.heavyFines();
     renderView('heavyfines'); renderView('heavydash'); renderView('heavyranking');
+    logAudit('Multa (frota pesada) excluída', f ? `${f.infraction||''} — ${fmtMoney(f.value)}` : id);
   };
   function renderHeavyFines(){
     const tbl = document.getElementById('tbl-heavyfines');
@@ -3889,24 +4798,37 @@
     const okVids = state.heavyVehicles.filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
     const inRange = d => (!start||d>=start) && (!end||d<=end);
 
-    const costs = state.heavyCosts.filter(c=>okVids.includes(c.vehicleId) && inRange(c.date));
     const fines = state.heavyFines.filter(f=>okVids.includes(f.vehicleId) && inRange(f.date));
-    const sins  = state.heavySinistros.filter(s=>okVids.includes(s.vehicleId) && inRange(s.date));
-    const totalGeral = costs.reduce((s,c)=>s+c.value,0) + fines.reduce((s,f)=>s+f.value,0) + sins.reduce((s,x)=>s+x.value,0);
 
     kpiGrid.innerHTML = [
       {label:'Veículos ativos', val: state.heavyVehicles.filter(v=>(!uo||v.unidade===uo)&&v.status==='ativo').length},
-      {label:'Custos extras', val: fmtMoney(costs.reduce((s,c)=>s+c.value,0))},
+      {label:'Veículos inativos', val: state.heavyVehicles.filter(v=>(!uo||v.unidade===uo)&&v.status==='inativo').length},
       {label:'Multas', val: fmtMoney(fines.reduce((s,f)=>s+f.value,0))},
-      {label:'Sinistros', val: fmtMoney(sins.reduce((s,x)=>s+x.value,0))},
-      {label:'Custo total', val: fmtMoney(totalGeral)}
+      {label:'CRLV vencendo/vencido', val: crlvVencendoList().filter(({v})=>!uo||v.unidade===uo).length}
     ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
 
-    const recent = [
-      ...costs.map(c=>({date:c.date, vehicleId:c.vehicleId, type:'Custo Extra', value:c.value, desc:c.category})),
-      ...fines.map(f=>({date:f.date, vehicleId:f.vehicleId, type:'Multa', value:f.value, desc:f.infraction})),
-      ...sins.map(s=>({date:s.date, vehicleId:s.vehicleId, type:'Sinistro', value:s.value, desc:s.bo||s.description}))
-    ].sort((a,b)=>b.date.localeCompare(a.date));
+    const crlvTbl = document.getElementById('tbl-crlv-alert');
+    if(crlvTbl){
+      const alertas = crlvVencendoList().filter(({v})=>!uo||v.unidade===uo);
+      if(alertas.length===0){
+        crlvTbl.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum CRLV vencido ou perto do vencimento.</td></tr>';
+      } else {
+        crlvTbl.innerHTML = alertas.map(({v,diasRestantes})=>{
+          const situacao = diasRestantes<0 ? `<span class="badge badge-danger">Vencido há ${Math.abs(diasRestantes)} dia(s)</span>` : `<span class="badge badge-pending">Vence em ${diasRestantes} dia(s)</span>`;
+          return `<tr>
+            <td class="mono">${v.frota||'—'}</td>
+            <td><span class="plate">${v.plate}</span></td>
+            <td>${v.unidade||'—'}</td>
+            <td class="mono">${v.crlv||'—'}</td>
+            <td class="mono">${fmtDate(v.crlvVencimento)}</td>
+            <td>${situacao}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    const recent = fines.map(f=>({date:f.date, vehicleId:f.vehicleId, type:'Multa', value:f.value, desc:f.infraction}))
+      .sort((a,b)=>b.date.localeCompare(a.date));
     const body = document.getElementById('heavydash-recent');
     if(recent.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum lançamento no período selecionado.</td></tr>'; return; }
     body.innerHTML = recent.map(r=>{
@@ -3943,30 +4865,36 @@
     const kmAtual = Number(document.getElementById('ty-km-atual').value)||0;
     if(!kmInst){ errEl.textContent='Informe o KM de instalação.'; return; }
     errEl.textContent='';
-    state.tires.push({
+    const novoPneu = {
       id: uid(), vehicleId,
       posicao: document.getElementById('ty-posicao').value,
       marca: document.getElementById('ty-marca').value.trim(),
       modelo: document.getElementById('ty-modelo').value.trim(),
       fogo: document.getElementById('ty-fogo').value.trim(),
+      dot: document.getElementById('ty-dot').value.trim(),
       kmInstalacao: kmInst,
       kmAtual: kmAtual,
       status: document.getElementById('ty-status').value,
       dataCadastro: todayISO()
-    });
+    };
+    state.tires.push(novoPneu);
     await save.tires();
     document.getElementById('ty-marca').value='';
     document.getElementById('ty-modelo').value='';
     document.getElementById('ty-fogo').value='';
+    document.getElementById('ty-dot').value='';
     document.getElementById('ty-km-instalacao').value='';
     document.getElementById('ty-km-atual').value='';
     renderView('tires');
+    logAudit('Pneu cadastrado', `${novoPneu.marca} — fogo ${novoPneu.fogo}`.trim());
     toast('Pneu cadastrado.');
   });
   LOTS.deleteTire = async (id)=>{
+    const t = state.tires.find(x=>x.id===id);
     state.tires = state.tires.filter(t=>t.id!==id);
     await save.tires();
     renderView('tires');
+    logAudit('Pneu excluído', t ? `${t.marca||''} — fogo ${t.fogo||''}` : id);
   };
   LOTS.updateTireKm = async (id)=>{
     const t = state.tires.find(x=>x.id===id);
@@ -3992,12 +4920,23 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(t=>{
       const v = vehicleById(t.vehicleId);
-      return {Frota:v?.frota||'', Placa:v?.plate||'', Posição:t.posicao, Marca:t.marca, Modelo:t.modelo, 'Nº fogo':t.fogo, 'KM instalação':t.kmInstalacao, 'KM atual':t.kmAtual, 'KM rodado':t.kmAtual-t.kmInstalacao, Status:t.status};
+      return {Frota:v?.frota||'', Placa:v?.plate||'', Posição:t.posicao, Marca:t.marca, Modelo:t.modelo, 'Nº fogo':t.fogo, DOT:t.dot||'', 'KM instalação':t.kmInstalacao, 'KM atual':t.kmAtual, 'KM rodado':t.kmAtual-t.kmInstalacao, Status:t.status};
     })), 'Pneus');
     XLSX.writeFile(wb, 'controle-pneus-gestao-frota-lots.xlsx');
     toast('Exportação gerada.');
   });
 
+  // idade do pneu a partir do código DOT (formato semana+ano, ex: "2223" = semana 22 de 2023)
+  function dotAgeYears(dot){
+    const s = String(dot||'').replace(/\D/g,'');
+    if(s.length!==4) return null;
+    const semana = Number(s.slice(0,2));
+    const anoFab = 2000 + Number(s.slice(2,4));
+    if(semana<1 || semana>53) return null;
+    const anoAtual = new Date().getFullYear();
+    if(anoFab>anoAtual || anoFab<2000) return null;
+    return anoAtual - anoFab;
+  }
   function renderTires(){
     populateTireVehicleSelects();
     const vf = document.getElementById('tyfilter-vehicle')?.value || '';
@@ -4011,29 +4950,34 @@
     if(kpiGrid){
       const rodados = list.map(t=>t.kmAtual-t.kmInstalacao).filter(k=>k>=0);
       const mediaRodado = rodados.length ? rodados.reduce((s,k)=>s+k,0)/rodados.length : 0;
+      const dotAntigo = list.filter(t=>{ const a=dotAgeYears(t.dot); return a!==null && a>=5 && t.status!=='sucateado'; }).length;
       kpiGrid.innerHTML = [
         {label:'Pneus cadastrados', val: list.length},
-        {label:'Em uso', val: list.filter(t=>t.status==='em-uso'||t.status==='novo').length},
+        {label:'Ativos', val: list.filter(t=>t.status!=='sucateado').length},
         {label:'Sucateados', val: list.filter(t=>t.status==='sucateado').length},
+        {label:'DOT com 5+ anos', val: dotAntigo, color: dotAntigo>0?'var(--danger)':''},
         {label:'KM médio rodado', val: fmtInt(mediaRodado)+' km'}
-      ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
     }
 
     const tbl = document.getElementById('tbl-tires');
     if(!tbl) return;
     LOTS._tiresSnapshot = list;
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="9">Nenhum pneu cadastrado ainda.</td></tr>'; return; }
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="10">Nenhum pneu cadastrado ainda.</td></tr>'; return; }
     const statusBadge = s => s==='sucateado' ? '<span class="badge badge-danger">Sucateado</span>' :
                               s==='recapado' ? '<span class="badge badge-pending">Recapado</span>' :
-                              '<span class="badge badge-ok">'+(s==='novo'?'Novo':'Em uso')+'</span>';
+                              '<span class="badge badge-ok">Novo</span>';
     tbl.innerHTML = list.map(t=>{
       const v = vehicleById(t.vehicleId);
       const rodado = t.kmAtual - t.kmInstalacao;
+      const idade = dotAgeYears(t.dot);
+      const dotHtml = t.dot ? `${t.dot}${idade!==null && idade>=5 ? ` <span class="badge badge-danger" title="Pneu com ${idade} anos de fabricação">${idade}a</span>` : ''}` : '—';
       return `<tr>
         <td>${v?(v.frota?v.frota+' — ':'')+`<span class="plate">${v.plate}</span>`:'—'}</td>
         <td>${t.posicao||'—'}</td>
         <td>${t.marca||'—'} ${t.modelo||''}</td>
         <td class="mono">${t.fogo||'—'}</td>
+        <td class="mono">${dotHtml}</td>
         <td class="mono">${Number(t.kmInstalacao).toLocaleString('pt-BR')} km</td>
         <td class="mono">${Number(t.kmAtual).toLocaleString('pt-BR')} km <button class="icon-btn" onclick="LOTS.updateTireKm('${t.id}')">atualizar</button></td>
         <td class="mono ${rodado>60000?'rank-bad':''}">${rodado.toLocaleString('pt-BR')} km</td>
@@ -4045,6 +4989,7 @@
 
   /* ---------------- USERS ---------------- */
   function renderUsers(){
+    renderAuditLog();
     const tbl = document.getElementById('tbl-users');
     if(state.users.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">—</td></tr>'; return; }
     tbl.innerHTML = state.users.map(u=>{
@@ -4052,7 +4997,7 @@
       return `<tr>
         <td>${u.name}</td>
         <td class="mono">${u.username}</td>
-        <td style="text-transform:capitalize;">${u.role}</td>
+        <td style="text-transform:capitalize;">${({admin:'Administrador', gestor:'Gestor de UO', auxiliar_adm:'Auxiliar ADM', motorista:'Motorista'})[u.role] || u.role}</td>
         <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
         <td><div class="action-links">
           ${u.id!==currentUser().id?`<button class="icon-btn danger" onclick="LOTS.deleteUser('${u.id}')">excluir</button>`:'<span style="color:var(--text-faint); font-size:12px;">você</span>'}
@@ -4070,12 +5015,13 @@
       </div>
       <div class="field"><label>Perfil</label>
         <select id="f-role">
-          <option value="motorista">Motorista</option>
-          <option value="gestor">Gestor</option>
+          <option value="auxiliar_adm">Auxiliar ADM</option>
+          <option value="gestor">Gestor de UO</option>
           <option value="admin">Administrador</option>
         </select>
       </div>
-      <div class="field"><label>Veículo vinculado (se motorista)</label><select id="f-vehicle"><option value="">— Nenhum —</option>${vehicleOptions(null)}</select></div>
+      <div class="field" id="f-vehicle-wrap" style="display:none;"><label>Veículo vinculado (se motorista)</label><select id="f-vehicle"><option value="">— Nenhum —</option>${vehicleOptions(null)}</select></div>
+      <div class="field" id="f-uo-wrap" style="display:none;"><label>UO responsável (se gestor)</label><select id="f-uo">${UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('')}</select></div>
       <div class="modal-actions">
         <button class="btn-primary" id="btn-save-user">Salvar</button>
         <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
@@ -4084,6 +5030,10 @@
   document.getElementById('btn-new-user').addEventListener('click', ()=>{
     openModal(userForm());
     document.getElementById('btn-save-user').addEventListener('click', LOTS.saveUser);
+    document.getElementById('f-role').addEventListener('change', (e)=>{
+      document.getElementById('f-vehicle-wrap').style.display = e.target.value==='motorista' ? 'block' : 'none';
+      document.getElementById('f-uo-wrap').style.display = e.target.value==='gestor' ? 'block' : 'none';
+    });
   });
   LOTS.saveUser = async ()=>{
     const name = document.getElementById('f-name').value.trim();
@@ -4091,26 +5041,43 @@
     const password = document.getElementById('f-password').value;
     const role = document.getElementById('f-role').value;
     const vehicleId = document.getElementById('f-vehicle').value || null;
+    const uoResponsavel = document.getElementById('f-uo').value || null;
     if(!name || !username || password.length<6){ toast('Preencha nome, login e senha (mín. 6 caracteres).'); return; }
     if(state.users.some(u=>u.username===username)){ toast('Este login já existe.'); return; }
     try{
       // cria no app "secundário" pra não trocar a sessão do admin logado
-      const cred = await secondaryAuth.createUserWithEmailAndPassword(usernameToEmail(username), password);
-      await saveProfile({id:cred.user.uid, name, username, role, vehicleId: role==='motorista'?vehicleId:null});
+      // tenta primeiro o e-mail padrão; só usa um alternativo se esse login já foi
+      // usado antes por uma conta excluída (o Firebase não deixa reaproveitar o e-mail)
+      let authEmail = usernameToEmail(username);
+      let cred;
+      try{
+        cred = await secondaryAuth.createUserWithEmailAndPassword(authEmail, password);
+      }catch(e1){
+        if(e1 && e1.code && e1.code.includes('email-already-in-use')){
+          authEmail = generateAuthEmail(username);
+          cred = await secondaryAuth.createUserWithEmailAndPassword(authEmail, password);
+        } else {
+          throw e1;
+        }
+      }
+      await saveProfile({id:cred.user.uid, name, username, authEmail, role, vehicleId: role==='motorista'?vehicleId:null, uoResponsavel: role==='gestor'?uoResponsavel:null});
       await secondaryAuth.signOut();
       state.users = await loadAllProfiles();
       closeModal(); renderView('users'); renderView('ranking');
+      logAudit('Usuário criado', `${name} (${username}) — perfil ${role}`);
       toast('Usuário criado.');
     }catch(e){
       toast(firebaseErrorMsg(e));
     }
   };
   LOTS.deleteUser = async (id)=>{
+    const u = userById(id);
     // remove o acesso ao sistema (perfil). A conta de login em si só pode
     // ser apagada por quem é dono dela ou via painel do Firebase.
     await db.collection(PROFILES).doc(id).delete();
     state.users = await loadAllProfiles();
     renderView('users'); renderView('ranking');
+    logAudit('Acesso removido', u ? `${u.name} (${u.username})` : id);
     toast('Acesso removido.');
   };
 
@@ -4182,17 +5149,6 @@
     const consumoMedio = totalLiters>0 && kmPercorridos>0 ? (kmPercorridos/totalLiters) : 0;
     const custoPorKm = kmPercorridos>0 ? (totalGeral/kmPercorridos) : 0;
 
-    // ranking / premiação lots go (mesmo cálculo da aba LOTS GO), somado
-    const drivers = state.users.filter(u=>u.role==='motorista');
-    let premiacaoTotal = 0;
-    drivers.forEach(d=>{
-      const dFines = finesList.filter(x=>x.driverId===d.id);
-      const pending = dFines.filter(x=>x.status!=='paga').length;
-      const paid = dFines.filter(x=>x.status==='paga').length;
-      const vCosts = clist.filter(x=>x.vehicleId===d.vehicleId).reduce((s,x)=>s+x.value,0);
-      premiacaoTotal += Math.max(0, 1000 - pending*100 - paid*30 - Math.round(vCosts/50));
-    });
-
     document.getElementById('kpi-custo-km').textContent = fmtMoney(custoPorKm);
 
     const kpis = [
@@ -4200,8 +5156,7 @@
       {label:'KM percorridos', val: kmPercorridos.toLocaleString('pt-BR')+' km'},
       {label:'Consumo médio', val: consumoMedio.toFixed(2)+' km/L'},
       {label:'Custo total', val: fmtMoney(totalGeral)},
-      {label:'Multas', val: fmtMoney(totalFines)},
-      {label:'Premiação', val: premiacaoTotal.toLocaleString('pt-BR')+' pts'}
+      {label:'Multas', val: fmtMoney(totalFines)}
     ];
     document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
       <div class="kpi">
@@ -4211,29 +5166,81 @@
     // ---- Controle de Revisão: revisão a cada 10.000 km, alerta a 1.000 km ----
     // KM usado é o maior km já registrado na planilha de abastecimento (atualizada semanalmente), não o km do cadastro.
     const revisaoBody = document.getElementById('dash-revisao');
+    const revisaoKpiGrid = document.getElementById('revisao-kpi-grid');
     if(revisaoBody){
-      const revisaoList = vlist
+      // avalia a frota ativa inteira (não só quem está perto) pra calcular os % gerais
+      const frotaAvaliada = vlist
         .filter(v=>v.status==='ativo')
         .map(v=>{
           const km0 = kmAtualDaFrota(v.id);
           if(km0<=0) return null; // sem abastecimento registrado ainda pra esse veículo: não dá pra avaliar
           const resto = km0 % REVISAO_INTERVALO_KM;
           const faltam = resto===0 ? 0 : (REVISAO_INTERVALO_KM - resto);
-          const proxima = km0 + faltam;
-          return {v, km0, proxima, faltam};
+          return {v, km0, faltam};
         })
-        .filter(r=>r && r.faltam<=REVISAO_ALERTA_KM)
+        .filter(Boolean);
+
+      if(revisaoKpiGrid){
+        const total = frotaAvaliada.length;
+        const atrasadas = frotaAvaliada.filter(r=>r.faltam===0).length;
+        const emDia = total - atrasadas;
+        const pctEmDia = total>0 ? (emDia/total*100) : 0;
+        const pctAtrasadas = total>0 ? (atrasadas/total*100) : 0;
+        revisaoKpiGrid.innerHTML = [
+          {label:'Revisão em dia', val: pctEmDia.toFixed(1)+'%', color: 'var(--go)'},
+          {label:'Revisões atrasadas', val: pctAtrasadas.toFixed(1)+'%', color: atrasadas>0?'var(--danger)':''}
+        ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+      }
+
+      const revisaoList = frotaAvaliada
+        .filter(r=>r.faltam<=REVISAO_ALERTA_KM)
         .sort((a,b)=>a.faltam-b.faltam);
       if(revisaoList.length===0){
-        revisaoBody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum veículo próximo da revisão no momento.</td></tr>';
+        revisaoBody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhum veículo próximo da revisão no momento.</td></tr>';
       } else {
         revisaoBody.innerHTML = revisaoList.map(r=>`<tr>
           <td class="mono">${r.v.frota||'—'}</td>
           <td><span class="plate">${r.v.plate}</span></td>
           <td>${r.v.unidade||'—'}</td>
           <td class="mono">${r.km0.toLocaleString('pt-BR')} km</td>
-          <td class="mono">${r.proxima.toLocaleString('pt-BR')} km</td>
           <td class="mono">${r.faltam===0 ? '<span class="badge badge-danger">Vencida</span>' : r.faltam.toLocaleString('pt-BR')+' km'}</td>
+        </tr>`).join('');
+      }
+    }
+
+    // ---- Controle de KM: km atual x limite do contrato (regime "Limite de KM mensal") ----
+    const kmCtrlBody = document.getElementById('dash-controle-km');
+    if(kmCtrlBody){
+      const custoExcedidoPorModelo = (model)=>{
+        const m = String(model||'').toLowerCase();
+        if(m.includes('strada')) return 0.95;
+        if(m.includes('polo') || m.includes('saveiro')) return 0.75;
+        return null;
+      };
+      const linhas = vlist
+        .filter(v=>v.status==='ativo' && v.regime==='Limite de KM mensal' && v.franquiaKm && v.franquiaKm!=='sem-limite')
+        .map(v=>{
+          const kmAtual = kmAtualDaFrota(v.id);
+          const limiteAnual = Number(v.franquiaKm)*12;
+          const kmRodado = Math.max(0, kmAtual - (Number(v.km)||0));
+          const kmRestante = limiteAnual - kmRodado;
+          const excedente = kmRestante<0 ? Math.abs(kmRestante) : 0;
+          const custoKm = custoExcedidoPorModelo(v.model);
+          const custoTotal = (excedente>0 && custoKm!==null) ? excedente*custoKm : 0;
+          return {v, kmAtual, limiteAnual, kmRestante, excedente, custoKm, custoTotal};
+        });
+      if(linhas.length===0){
+        kmCtrlBody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum veículo ativo no regime de Limite de KM mensal.</td></tr>';
+      } else {
+        kmCtrlBody.innerHTML = linhas.map(r=>`<tr>
+          <td class="mono">${r.v.frota||'—'}</td>
+          <td><span class="plate">${r.v.plate}</span></td>
+          <td>${r.v.unidade||'—'}</td>
+          <td class="mono">${r.kmAtual.toLocaleString('pt-BR')} km</td>
+          <td class="mono">${r.limiteAnual.toLocaleString('pt-BR')} km</td>
+          <td class="mono" style="color:${r.kmRestante<0?'var(--danger)':'var(--go)'}; font-weight:600;">${r.kmRestante.toLocaleString('pt-BR')} km</td>
+          <td class="mono" style="color:${r.custoTotal>0?'var(--danger)':''};">${r.custoTotal>0 ? fmtMoney(r.custoTotal) : (r.excedente>0 ? 'modelo sem tarifa cadastrada' : '—')}</td>
+          <td>${r.custoTotal>0 ? `<button class="icon-btn danger" onclick="LOTS.lancarCustoExcedente('${r.v.id}', ${r.custoTotal.toFixed(2)}, ${r.excedente})">lançar como custo extra</button>` : ''}</td>
         </tr>`).join('');
       }
     }
@@ -4307,6 +5314,7 @@
     else if(name==='sinistros') renderSinistros();
     else if(name==='fines') renderFines();
     else if(name==='ranking') renderRanking();
+    else if(name==='bu') renderBU();
     else if(name==='tires') renderTires();
     else if(name==='users') renderUsers();
     else if(name==='heavyfleet') renderHeavyFleet();
@@ -4317,8 +5325,23 @@
     else if(name==='heavyranking') renderHeavyRanking();
   }
   function renderAll(){
-    ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','tires','users',
+    ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','bu','tires','users',
      'heavyfleet','heavydash','heavycosts','heavysinistros','heavyfines','heavyranking'].forEach(renderView);
+    wrapTablesForScroll();
+  }
+
+  /* envolve toda tabela do sistema numa faixa com rolagem horizontal própria,
+     assim nenhuma tabela "estica"/quebra o layout da página em celular, tablet ou PC —
+     só a tabela rola de lado, o resto da tela fica parado. Roda de novo sempre que
+     alguma view é re-renderizada, então cobre tabelas novas automaticamente. */
+  function wrapTablesForScroll(){
+    document.querySelectorAll('#app-screen table').forEach(t=>{
+      if(t.parentElement && t.parentElement.classList.contains('table-scroll')) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'table-scroll';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    });
   }
 
   window.closeModalGlobal = closeModal;
@@ -4351,6 +5374,8 @@
   listenShared('lots-go-entries', d => state.lotsGoEntries = d);
   listenShared('lots-go-budget', d => state.lotsGoBudget = d);
   listenShared('lots-go-budget-grid', d => state.lotsGoBudgetGrid = d);
+  listenShared('lots-premiacao-budget', d => state.premiacaoBudget = d);
+  listenShared('lots-audit-log', d => state.auditLog = d);
   updateOnlineStatus();
   setTimeout(hideLoadingSplash, 8000); // segurança: nunca trava na tela de carregamento
 
