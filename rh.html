@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-18T00-00-00Z -->
+<!-- APP_BUILD:2026-08-18T18-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -680,7 +680,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-18T00-00-00Z';
+  const APP_VERSION = '2026-08-18T18-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -974,26 +974,41 @@
     return 'Não foi possível concluir. Tente novamente.';
   }
 
+  // nunca deixa a tela de carregamento travada pra sempre: se o Firebase não
+  // responder em 15s (conexão ruim, bloqueio de rede, etc.), cai pro login
+  // com uma mensagem clara em vez de ficar girando pra sempre.
+  function withTimeout(promise, ms, msg){
+    return Promise.race([
+      promise,
+      new Promise((_, reject)=>setTimeout(()=>reject(new Error(msg||'timeout')), ms))
+    ]);
+  }
   auth.onAuthStateChanged(async (user)=>{
     setLoadingProgress(5, 'Verificando acesso…');
-    if(user){
-      const doc = await db.collection(PROFILES).doc(user.uid).get();
-      if(!doc.exists){
-        await auth.signOut();
-        if(!loginSubmitInProgress){
-          showLoginOrSetup();
-          document.getElementById('login-err').textContent = 'Este acesso foi removido. Fale com o administrador.';
+    try{
+      if(user){
+        const doc = await withTimeout(db.collection(PROFILES).doc(user.uid).get(), 15000, 'perfil-timeout');
+        if(!doc.exists){
+          await auth.signOut();
+          if(!loginSubmitInProgress){
+            showLoginOrSetup();
+            document.getElementById('login-err').textContent = 'Este acesso foi removido. Fale com o administrador.';
+          }
+          return;
         }
-        return;
+        state.currentProfile = {id:user.uid, ...doc.data()};
+        setLoadingProgress(10, 'Carregando usuários…');
+        state.users = await withTimeout(loadAllProfiles(), 15000, 'usuarios-timeout');
+        await withTimeout(loadAll(), 20000, 'dados-timeout');
+        enterApp();
+      } else {
+        state.currentProfile = null;
+        showLoginOrSetup();
       }
-      state.currentProfile = {id:user.uid, ...doc.data()};
-      setLoadingProgress(10, 'Carregando usuários…');
-      state.users = await loadAllProfiles();
-      await loadAll();
-      enterApp();
-    } else {
-      state.currentProfile = null;
+    }catch(e){
+      console.error('Falha ao verificar acesso:', e);
       showLoginOrSetup();
+      document.getElementById('login-err').textContent = 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.';
     }
   });
 
@@ -1869,6 +1884,7 @@
   }
 
   updateOnlineStatus();
+  setTimeout(hideLoadingSplash, 20000); // segurança: nunca trava na tela de carregamento
 </script>
 </body>
 </html>
