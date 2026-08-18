@@ -638,17 +638,17 @@
 
 <script>
   /* ---------------------------------------------------------
-     CONFIGURAÇÃO DO FIREBASE — mesmo projeto do Gestão de Frota,
-     porém com coleções próprias (lots-rh / lots-rh-profiles),
-     então os logins e os dados NÃO se misturam com o app de frota.
+     CONFIGURAÇÃO DO FIREBASE — projeto PRÓPRIO do Gestão de RH
+     (lots-gestao-rh), totalmente separado do projeto usado pelo
+     Gestão de Frota. Nenhum dado ou login é compartilhado entre os dois.
   --------------------------------------------------------- */
   const firebaseConfig = {
-    apiKey: "AIzaSyCxskjcs3PeGTWm4yIQ9B4aaBo_iI7GjPI",
-    authDomain: "lots-gestao-frota.firebaseapp.com",
-    projectId: "lots-gestao-frota",
-    storageBucket: "lots-gestao-frota.firebasestorage.app",
-    messagingSenderId: "735618273131",
-    appId: "1:735618273131:web:9adaf2dadb5fb1ab53c62e"
+    apiKey: "AIzaSyBN-XcoOBYRPewMqUKKivnLW77zU3zgSAo",
+    authDomain: "lots-gestao-rh.firebaseapp.com",
+    projectId: "lots-gestao-rh",
+    storageBucket: "lots-gestao-rh.firebasestorage.app",
+    messagingSenderId: "873495519261",
+    appId: "1:873495519261:web:0fa3f3a6eebecfbacae6f4"
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
