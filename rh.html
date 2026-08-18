@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<!-- APP_BUILD:2026-08-18T00-00-00Z -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de RH LOTS</title>
+<link rel="manifest" href="rh-manifest.webmanifest">
+<meta name="theme-color" content="#16794a">
+<link rel="icon" href="assets/lots-logo-192.png">
+<link rel="apple-touch-icon" href="assets/lots-logo-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#eef4f0;
+    --surface:#ffffff;
+    --surface-2:#f3f7f4;
+    --line:#e0e6e2;
+    --line-soft:#eaeeec;
+    --accent:#16794a;
+    --accent-dim:#a9d1bd;
+    --accent-ink:#ffffff;
+    --go:#16794a;
+    --go-dim:#c9e6d7;
+    --danger:#d8383f;
+    --danger-dim:#f6dcdd;
+    --text:#161a18;
+    --text-muted:#5c6b63;
+    --text-faint:#8a978f;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    background-image: radial-gradient(circle at 15% 0%, rgba(22,121,74,0.06), transparent 45%), radial-gradient(circle at 100% 100%, rgba(22,121,74,0.05), transparent 45%);
+  }
+  .mono{font-family:'Roboto Mono',monospace;}
+  .display{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.03em;}
+  ::selection{background:var(--accent); color:#ffffff;}
+  a{color:inherit;}
+
+  .lane{height:0; border-top:2px dashed var(--line); margin:18px 0;}
+  .lane.accent{border-top-color:var(--accent-dim);}
+
+  button{
+    font-family:'Inter',sans-serif; cursor:pointer; border:none; border-radius:8px;
+    padding:10px 16px; font-weight:600; font-size:13px; letter-spacing:0.02em;
+    transition:transform .08s ease, filter .15s ease;
+  }
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:var(--accent); color:#ffffff;}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-ghost{background:transparent; color:var(--text-muted); border:1px solid var(--line);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--text-muted);}
+  .btn-danger{background:var(--danger); color:#ffffff;}
+  .btn-danger:hover{filter:brightness(1.1);}
+  .btn-sm{padding:6px 10px; font-size:12px; border-radius:6px;}
+
+  input,select{
+    font-family:'Inter',sans-serif; background:var(--surface-2); border:1px solid var(--line);
+    color:var(--text); padding:10px 12px; border-radius:8px; font-size:13.5px; width:100%; outline:none;
+  }
+  input:focus,select:focus{border-color:var(--accent);}
+  input[readonly]{background:var(--surface); color:var(--text-muted); cursor:not-allowed;}
+  input:disabled,select:disabled{background:var(--surface); color:var(--text-muted); cursor:not-allowed; opacity:0.7;}
+  label{font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:6px;}
+  .field{margin-bottom:14px;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+
+  /* ================= LOGIN SCREEN ================= */
+  #login-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; position:relative;
+    background-image: radial-gradient(circle at 20% 10%, rgba(22,121,74,0.10), transparent 45%), radial-gradient(circle at 90% 90%, rgba(22,121,74,0.08), transparent 45%);
+  }
+  .login-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:38px 34px; width:100%; max-width:380px; position:relative; overflow:hidden;
+  }
+  .login-card::before{content:''; position:absolute; top:0; left:0; right:0; height:6px; background:var(--accent);}
+  .login-logo{display:flex; flex-direction:column; align-items:center; margin-bottom:8px; margin-top:4px;}
+  .login-logo-img{width:auto; height:76px; object-fit:contain;}
+  .login-title{font-family:'Inter',sans-serif; font-size:30px; text-transform:none; text-align:center; margin:20px 0 4px 0; font-weight:600; color:var(--text);}
+  .login-sub{color:var(--text-muted); font-size:14px; margin-bottom:28px; text-align:center;}
+  .login-card label{color:var(--text); font-weight:700; font-size:13px; letter-spacing:0.04em;}
+  .login-card select{text-transform:uppercase; font-weight:700; font-size:13.5px; color:var(--text); border-radius:10px; padding:14px 14px; border-color:#e4e8e5;}
+  .login-card input[type=password]{border-radius:10px; padding:14px 14px; letter-spacing:0.15em; border-color:#e4e8e5;}
+  .login-card .btn-primary{border-radius:12px; padding:15px 16px; font-size:15px; margin-top:6px;}
+  .login-footnote{color:var(--text-muted); font-size:13px; text-align:center; margin-top:22px;}
+  .err-msg{color:var(--danger); font-size:12.5px; margin-top:10px; min-height:16px;}
+  .toggle-row{margin-top:18px; text-align:center; font-size:12.5px; color:var(--text-muted);}
+  .toggle-row button{background:none; border:none; color:var(--accent); font-weight:600; padding:0; font-size:12.5px;}
+
+  /* ================= APP SHELL ================= */
+  #app-screen{display:none; min-height:100vh;}
+  .shell{display:flex; min-height:100vh;}
+  .sidebar{width:220px; background:var(--surface); border-right:1px dashed var(--line); padding:22px 14px; display:flex; flex-direction:column; flex-shrink:0;}
+  .brand{font-family:'Oswald',sans-serif; font-size:15px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:0 8px 20px 8px; display:flex; align-items:center; gap:8px;}
+  .brand-logo-img{height:30px; width:auto; object-fit:contain;}
+  .brand-sub-only small{display:block; font-size:8px; color:var(--text-muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase;}
+  .nav-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; color:var(--accent); background:var(--surface-2); font-size:13.5px; font-weight:600; border-left:2px solid var(--accent); margin-bottom:2px;}
+  .nav-ico{width:16px; text-align:center; font-family:'Roboto Mono',monospace; font-size:12px;}
+  .subtab-bar{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:22px; border-bottom:1px solid var(--line); padding-bottom:2px;}
+  .subtab{padding:9px 14px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; border-radius:6px 6px 0 0;}
+  .subtab:hover{color:var(--text); background:var(--surface-2);}
+  .subtab.active{color:var(--accent); border-bottom-color:var(--accent);}
+  .sidebar-footer{margin-top:auto; padding-top:14px; border-top:1px dashed var(--line);}
+  .status-pill{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-muted); padding:0 8px 10px 8px; font-weight:600;}
+  .status-dot{width:8px; height:8px; border-radius:50%; background:var(--go); box-shadow:0 0 0 3px rgba(22,121,74,0.15);}
+  .status-pill.offline .status-dot{background:var(--danger); box-shadow:0 0 0 3px rgba(216,56,63,0.15);}
+  .status-pill.offline{color:var(--danger);}
+
+  #loading-splash{position:fixed; inset:0; z-index:999; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;}
+  #loading-splash img{height:56px;}
+  .loading-bar-track{width:220px; height:6px; background:var(--surface-2); border-radius:4px; overflow:hidden; border:1px solid var(--line);}
+  .loading-bar-fill{height:100%; width:0%; background:var(--accent); transition:width .2s ease;}
+  .loading-pct{font-family:'Roboto Mono',monospace; font-size:13px; color:var(--text-muted);}
+  .who{padding:8px; font-size:12px;}
+  .who-name{color:var(--text); font-weight:600;}
+  .who-role{color:var(--text-faint); text-transform:uppercase; font-size:10px; letter-spacing:0.06em;}
+
+  .main{flex:1; padding:28px 34px; overflow-x:auto;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:10px;}
+  .page-title{font-family:'Oswald',sans-serif; font-size:24px; text-transform:uppercase; letter-spacing:0.03em;}
+  .page-sub{color:var(--text-muted); font-size:12.5px; margin-top:2px;}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:26px;}
+
+  .filter-bar{display:flex; align-items:end; gap:14px; flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; margin-bottom:20px;}
+  .filter-field{display:flex; flex-direction:column; gap:6px; min-width:150px;}
+  .filter-field label{font-size:10.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;}
+  .filter-field input, .filter-field select{padding:9px 10px; font-size:13px;}
+  .filter-bar .btn-primary, .filter-bar .btn-ghost{white-space:nowrap;}
+
+  .reg-card{padding:24px 26px;}
+  .field-grid-4{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:16px;}
+  .reg-submit{margin-top:4px;}
+
+  .ops-banner{background:linear-gradient(135deg,#123c28,#0f2e1e); border-radius:var(--radius); padding:26px 30px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px; margin-bottom:20px; color:#fff;}
+  .ops-eyebrow{color:#8fd6ac; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; margin-bottom:6px;}
+  .ops-title{font-family:'Oswald',sans-serif; font-size:26px; text-transform:none; font-weight:600;}
+  .ops-sub{color:#c7ddd0; font-size:13px; margin-top:4px;}
+
+  .kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; display:flex; align-items:center; gap:14px;}
+  .kpi-val{font-family:'Roboto Mono',monospace; font-size:20px; font-weight:700;}
+  .kpi-label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
+
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:18px;}
+  .card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; flex-wrap:wrap; gap:8px;}
+  .card-title{font-family:'Oswald',sans-serif; font-size:15px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text);}
+
+  table{width:100%; border-collapse:collapse; margin-top:0; font-size:13px;}
+  th{text-align:left; color:var(--text-faint); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px; border-bottom:1px dashed var(--line); white-space:nowrap;}
+  td{padding:10px 10px; border-bottom:1px solid var(--line-soft); color:var(--text);}
+  tr:last-child td{border-bottom:none;}
+  .empty-row td{color:var(--text-faint); text-align:center; padding:24px; font-style:italic;}
+
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:12px; border-radius:8px;}
+  .table-scroll table{margin-top:0;}
+  .table-scroll table td, .table-scroll table th{white-space:nowrap;}
+
+  .badge{display:inline-block; padding:3px 9px; border-radius:5px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;}
+  .badge-ok{background:rgba(22,121,74,0.12); color:var(--go);}
+  .badge-pending{background:rgba(201,138,17,0.14); color:#a5710f;}
+  .badge-danger{background:rgba(216,56,63,0.12); color:var(--danger);}
+  .badge-neutral{background:var(--surface-2); color:var(--text-muted);}
+
+  .modal-bg{display:none; position:fixed; inset:0; background:rgba(10,11,12,0.7); align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .modal{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:26px; width:100%; max-width:460px; max-height:90vh; overflow-y:auto;}
+  .modal-title{font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:17px; letter-spacing:0.03em; margin-bottom:18px;}
+  .modal-actions{display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;}
+
+  .action-links{display:flex; gap:8px; flex-wrap:wrap;}
+  .icon-btn{background:none; border:none; color:var(--text-faint); font-size:12px; padding:4px 6px;}
+  .icon-btn:hover{color:var(--accent);}
+  .icon-btn.danger:hover{color:var(--danger);}
+
+  /* ---------- organograma ---------- */
+  .org-unit-title{font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:14px; letter-spacing:0.03em; margin:18px 0 10px 0; color:var(--accent);}
+  .org-unit-title:first-child{margin-top:0;}
+  .org-tree, .org-tree ul{list-style:none; margin:0; padding-left:0;}
+  .org-tree ul{margin:6px 0 6px 12px; padding-left:18px; border-left:2px dashed var(--line);}
+  .org-node{background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin:5px 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .org-node-name{font-weight:700; font-size:13px;}
+  .org-node-role{color:var(--text-muted); font-size:11.5px;}
+
+  /* ---------- checklist de processos ---------- */
+  .checklist-progress{height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden; margin:12px 0 16px 0;}
+  .checklist-progress-fill{height:100%; background:var(--accent);}
+  .checklist-item{display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--line-soft); font-size:13px; cursor:pointer;}
+  .checklist-item:last-child{border-bottom:none;}
+  .checklist-item input[type=checkbox]{width:auto; accent-color:var(--accent); cursor:pointer;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+
+  .toast{position:fixed; bottom:20px; right:20px; background:var(--surface-2); border:1px solid var(--accent-dim); color:var(--text); padding:12px 18px; border-radius:8px; font-size:13px; z-index:100; opacity:0; transform:translateY(10px); transition:all .25s ease;}
+  .toast.show{opacity:1; transform:translateY(0);}
+
+  @media (max-width:1024px){
+    .main{padding:22px 20px;} .card{padding:16px;} .reg-card{padding:18px 20px;}
+  }
+  @media (max-width:760px){
+    .shell{flex-direction:column;}
+    .sidebar{width:100%; flex-direction:row; align-items:center; overflow-x:auto; padding:12px;}
+    .sidebar-footer{display:none;}
+    .main{padding:14px;}
+    .field-row{grid-template-columns:1fr;}
+    .card{padding:14px; border-radius:12px;}
+    .reg-card{padding:16px;}
+    .filter-bar{padding:12px 14px; gap:10px;}
+    .filter-field{min-width:130px;}
+    .kpi-grid{gap:10px;}
+    .field-grid-4{gap:12px;}
+  }
+
+  body{font-size:13px;}
+  button{font-size:12px;}
+  .btn-sm{font-size:11px;}
+  input,select{font-size:12.5px;}
+  label{font-size:11px;}
+  .page-title{font-size:20px;}
+  .page-sub{font-size:12px;}
+  .card-title{font-size:13.5px;}
+  .modal-title{font-size:15px;}
+  .subtab{font-size:12px; padding:8px 12px;}
+  table{font-size:12px;}
+  th{font-size:10px;}
+  .badge{font-size:10px;}
+  .kpi-val{font-size:18px;}
+  .kpi-label{font-size:10.5px;}
+  .ops-title{font-size:22px;}
+  .ops-sub{font-size:12px;}
+  .filter-field label{font-size:10px;}
+  .filter-field input, .filter-field select{font-size:12px;}
+  .login-title{font-size:26px;}
+  .login-sub{font-size:13px;}
+  .login-card label{font-size:12px;}
+  .login-card select{font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<div id="loading-splash">
+  <img src="assets/lots-logo.png" alt="LOTS Group">
+  <div class="loading-bar-track"><div class="loading-bar-fill" id="loading-bar-fill"></div></div>
+  <div class="loading-pct" id="loading-pct">Carregando… 0%</div>
+</div>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo"><img src="assets/lots-logo.png" alt="LOTS Group" class="login-logo-img"></div>
+    <div class="login-title">Gestão de RH LOTS</div>
+    <div class="login-sub">Acesso seguro ao sistema de Recursos Humanos</div>
+
+    <div id="login-mode">
+      <form id="form-login">
+        <div class="field"><label>Usuário</label><input id="login-user" placeholder="seu.usuario" autocomplete="username"></div>
+        <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••" autocomplete="current-password"></div>
+        <button type="submit" class="btn-primary" style="width:100%;">Entrar no sistema</button>
+        <div class="err-msg" id="login-err"></div>
+      </form>
+      <div class="toggle-row">Primeiro acesso? <button id="btn-show-setup">Criar administrador</button></div>
+    </div>
+
+    <div id="setup-mode" style="display:none;">
+      <div class="field"><label>Nome do administrador</label><input id="setup-name" placeholder="Ex: Walisson"></div>
+      <div class="field"><label>Usuário (login)</label><input id="setup-username" placeholder="Ex: admin" autocomplete="username"></div>
+      <div class="field"><label>Criar senha</label><input type="password" id="setup-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <button id="btn-setup" class="btn-primary" style="width:100%;">Criar acesso e iniciar</button>
+      <div class="err-msg" id="setup-err"></div>
+      <div class="toggle-row">Já tem acesso? <button id="btn-show-login">Entrar</button></div>
+    </div>
+
+    <div class="login-footnote">Administrador principal: utilize seu acesso autorizado.</div>
+    <button id="btn-download-app" class="btn-ghost btn-sm" style="width:100%; margin-top:16px;">📲 Instalar aplicativo</button>
+  </div>
+</div>
+
+<!-- ================= APP SCREEN ================= -->
+<div id="app-screen">
+  <div class="shell">
+    <div class="sidebar">
+      <div class="brand">
+        <img src="assets/lots-logo.png" alt="LOTS Group" class="brand-logo-img">
+        <span class="brand-sub-only"><small>GESTÃO DE RH LOTS</small></span>
+      </div>
+      <div class="nav-item"><span class="nav-ico">▤</span> Recursos Humanos</div>
+      <div class="sidebar-footer">
+        <div class="status-pill" id="online-status"><span class="status-dot"></span><span id="online-status-text">Online</span></div>
+        <div class="who">
+          <div class="who-name" id="who-name">—</div>
+          <div class="who-role" id="who-role">—</div>
+        </div>
+        <button class="btn-ghost btn-sm" style="width:100%; margin-top:8px;" id="btn-logout">Sair</button>
+        <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-update-app">↻ Atualizar aplicativo</button>
+        <button class="btn-ghost btn-sm" style="width:100%; margin-top:6px;" id="btn-download-app-2">📲 Instalar app</button>
+      </div>
+    </div>
+
+    <div class="main">
+
+      <div class="subtab-bar" id="subtabs-rh">
+        <div class="subtab active" data-view="rhdash">Painel</div>
+        <div class="subtab" data-view="rhcolab">Colaboradores</div>
+        <div class="subtab" data-view="rhorg">Organograma</div>
+        <div class="subtab" data-view="rhvagas">Vagas</div>
+        <div class="subtab" data-view="rhferias">Férias e Afastamentos</div>
+        <div class="subtab" data-view="rhprocessos">Admissão/Desligamento</div>
+        <div class="subtab" data-view="users" id="nav-users">Usuários</div>
+      </div>
+
+      <!-- PAINEL RH -->
+      <div class="view active" id="view-rhdash">
+        <div class="topbar">
+          <div><div class="page-title">Painel</div><div class="page-sub">Indicadores de pessoas e processos de RH</div></div>
+        </div>
+
+        <div class="ops-banner">
+          <div>
+            <div class="ops-eyebrow">Visão geral de pessoas</div>
+            <div class="ops-title">Gestão de RH</div>
+            <div class="ops-sub">Quadro, admissões, desligamentos e processos consolidados.</div>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="rh-kpi-grid"></div>
+
+        <div class="card" id="card-rh-vencimentos">
+          <div class="card-head"><div class="card-title">Vencimentos de férias próximos (60 dias)</div></div>
+          <div class="page-sub" style="margin:-6px 0 10px 2px;">Estimativa do fim do período concessivo de férias, calculada a partir da data de admissão. Confira sempre o cálculo oficial da folha antes de tomar ação.</div>
+          <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Unidade</th><th>Vence em</th><th>Dias restantes</th></tr></thead>
+          <tbody id="rh-dash-vencimentos"></tbody></table>
+        </div>
+
+        <div class="card" id="card-rh-headcount">
+          <div class="card-head"><div class="card-title">Quadro por unidade</div></div>
+          <table><thead><tr><th>Unidade</th><th>Ativos</th><th>Em férias</th><th>Afastados</th><th>Total</th></tr></thead>
+          <tbody id="rh-dash-headcount"></tbody></table>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Processos de admissão/desligamento em andamento</div></div>
+          <table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Progresso</th><th></th></tr></thead>
+          <tbody id="rh-dash-processos"></tbody></table>
+        </div>
+      </div>
+
+      <!-- COLABORADORES -->
+      <div class="view" id="view-rhcolab">
+        <div class="topbar">
+          <div><div class="page-title">Colaboradores</div><div class="page-sub">Cadastro geral de pessoal</div></div>
+          <button class="btn-primary" id="btn-export-colab">⬇ Exportar</button>
+        </div>
+
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title" id="rc-form-title">Novo colaborador</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Matrícula</label><input id="rc-matricula" placeholder="Ex: 1024"></div>
+            <div class="field"><label>Nome completo</label><input id="rc-nome" placeholder="Nome completo"></div>
+            <div class="field"><label>CPF</label><input id="rc-cpf" placeholder="000.000.000-00"></div>
+            <div class="field"><label>Data de nascimento</label><input type="date" id="rc-nascimento"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Telefone</label><input id="rc-telefone" placeholder="(00) 00000-0000"></div>
+            <div class="field"><label>E-mail</label><input id="rc-email" placeholder="nome@empresa.com"></div>
+            <div class="field"><label>Cargo</label><input id="rc-cargo" placeholder="Ex: Motorista, Analista..."></div>
+            <div class="field"><label>Departamento/Setor</label><input id="rc-depto" placeholder="Ex: Operações"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Unidade</label>
+              <select id="rc-unidade">
+                <option value="4823-MNS">4823-MNS</option>
+                <option value="4824-PRA">4824-PRA</option>
+                <option value="4818-NRAV">4818-NRAV</option>
+                <option value="4813-NRA">4813-NRA</option>
+                <option value="4830-PPAV">4830-PPAV</option>
+                <option value="4812-PPA">4812-PPA</option>
+              </select>
+            </div>
+            <div class="field"><label>Reporta para (supervisor)</label><select id="rc-supervisor"><option value="">— Nenhum —</option></select></div>
+            <div class="field"><label>Data de admissão</label><input type="date" id="rc-admissao"></div>
+            <div class="field"><label>Tipo de contrato</label>
+              <select id="rc-tipocontrato">
+                <option value="CLT">CLT</option>
+                <option value="PJ">PJ</option>
+                <option value="Estágio">Estágio</option>
+                <option value="Temporário">Temporário</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label>Observações</label><input id="rc-obs" placeholder="Opcional"></div>
+          <button class="btn-primary reg-submit" id="btn-save-colab">Cadastrar colaborador</button>
+          <button class="btn-ghost reg-submit" id="btn-cancel-edit-colab" style="display:none; margin-left:8px;">Cancelar edição</button>
+          <div class="err-msg" id="rc-err"></div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">Quadro de colaboradores</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Busca</label><input id="rcfilter-busca" placeholder="Nome, cargo, matrícula…"></div>
+          <div class="filter-field"><label>Unidade</label>
+            <select id="rcfilter-unidade"><option value="">Todas</option>
+              <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+              <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+              <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>Status</label>
+            <select id="rcfilter-status">
+              <option value="">Todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="ferias">Em férias</option>
+              <option value="afastado">Afastado</option>
+              <option value="desligado">Desligado</option>
+            </select>
+          </div>
+          <button class="btn-ghost" id="btn-clear-rcfilter">Limpar</button>
+        </div>
+        <div class="kpi-grid" id="rc-kpi-grid"></div>
+        <div class="card">
+          <table><thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Unidade</th><th>Admissão</th><th>Supervisor</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-colab"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ORGANOGRAMA -->
+      <div class="view" id="view-rhorg">
+        <div class="topbar">
+          <div><div class="page-title">Organograma</div><div class="page-sub">Hierarquia de colaboradores por unidade</div></div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Unidade</label>
+            <select id="rgfilter-unidade"><option value="">Todas</option>
+              <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+              <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+              <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+            </select>
+          </div>
+          <button class="btn-ghost" id="btn-clear-rgfilter">Limpar</button>
+        </div>
+        <div id="rh-org-container"></div>
+      </div>
+
+      <!-- VAGAS -->
+      <div class="view" id="view-rhvagas">
+        <div class="topbar">
+          <div><div class="page-title">Controle de Vagas</div><div class="page-sub">Vagas abertas, em seleção e encerradas</div></div>
+        </div>
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title" id="rv-form-title">Nova vaga</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Cargo/título da vaga</label><input id="rv-titulo" placeholder="Ex: Motorista Categoria D"></div>
+            <div class="field"><label>Departamento/Setor</label><input id="rv-depto" placeholder="Ex: Operações"></div>
+            <div class="field"><label>Unidade</label>
+              <select id="rv-unidade">
+                <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+                <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+                <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+              </select>
+            </div>
+            <div class="field"><label>Tipo de contrato</label>
+              <select id="rv-tipocontrato">
+                <option value="CLT">CLT</option><option value="PJ">PJ</option>
+                <option value="Estágio">Estágio</option><option value="Temporário">Temporário</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Quantidade de vagas</label><input id="rv-qtd" placeholder="1"></div>
+            <div class="field"><label>Motivo da abertura</label>
+              <select id="rv-motivo">
+                <option value="aumento_quadro">Aumento de quadro</option>
+                <option value="substituicao">Substituição</option>
+                <option value="novo_projeto">Novo projeto</option>
+              </select>
+            </div>
+            <div class="field"><label>Data de abertura</label><input type="date" id="rv-abertura"></div>
+            <div class="field"><label>Prazo previsto</label><input type="date" id="rv-prazo"></div>
+          </div>
+          <div class="field"><label>Responsável pela seleção</label><input id="rv-responsavel" placeholder="Ex: nome do recrutador"></div>
+          <div class="field"><label>Observações</label><input id="rv-obs" placeholder="Opcional"></div>
+          <button class="btn-primary reg-submit" id="btn-save-vaga">Abrir vaga</button>
+          <button class="btn-ghost reg-submit" id="btn-cancel-edit-vaga" style="display:none; margin-left:8px;">Cancelar edição</button>
+          <div class="err-msg" id="rv-err"></div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">Vagas cadastradas</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Unidade</label>
+            <select id="rvfilter-unidade"><option value="">Todas</option>
+              <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+              <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+              <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>Status</label>
+            <select id="rvfilter-status">
+              <option value="">Todos</option>
+              <option value="aberta">Aberta</option>
+              <option value="em_selecao">Em seleção</option>
+              <option value="encerrada">Encerrada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+          <button class="btn-ghost" id="btn-clear-rvfilter">Limpar</button>
+        </div>
+        <div class="kpi-grid" id="rv-kpi-grid"></div>
+        <div class="card">
+          <table><thead><tr><th>Vaga</th><th>Unidade</th><th>Contrato</th><th>Qtd</th><th>Motivo</th><th>Aberta em</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-vagas"></tbody></table>
+        </div>
+      </div>
+
+      <!-- FÉRIAS E AFASTAMENTOS -->
+      <div class="view" id="view-rhferias">
+        <div class="topbar">
+          <div><div class="page-title">Férias e Afastamentos</div><div class="page-sub">Agendamento e histórico de férias, licenças e afastamentos</div></div>
+        </div>
+        <div class="card reg-card">
+          <div class="card-head"><div class="card-title">Novo registro</div></div>
+          <div class="field-grid-4">
+            <div class="field"><label>Colaborador</label><select id="rf2-colab"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Tipo</label>
+              <select id="rf2-tipo">
+                <option value="ferias">Férias</option>
+                <option value="atestado">Atestado médico</option>
+                <option value="licenca_maternidade">Licença maternidade</option>
+                <option value="licenca_paternidade">Licença paternidade</option>
+                <option value="afastamento_inss">Afastamento INSS</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            <div class="field"><label>Data início</label><input type="date" id="rf2-inicio"></div>
+            <div class="field"><label>Data fim</label><input type="date" id="rf2-fim"></div>
+          </div>
+          <div class="field"><label>Observações</label><input id="rf2-obs" placeholder="Opcional"></div>
+          <button class="btn-primary reg-submit" id="btn-save-ferias">Registrar</button>
+          <div class="err-msg" id="rf2-err"></div>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">Histórico</div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Colaborador</label><select id="rffilter-colab"><option value="">Todos</option></select></div>
+          <div class="filter-field"><label>Tipo</label>
+            <select id="rffilter-tipo">
+              <option value="">Todos</option>
+              <option value="ferias">Férias</option>
+              <option value="atestado">Atestado médico</option>
+              <option value="licenca_maternidade">Licença maternidade</option>
+              <option value="licenca_paternidade">Licença paternidade</option>
+              <option value="afastamento_inss">Afastamento INSS</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>Status</label>
+            <select id="rffilter-status">
+              <option value="">Todos</option>
+              <option value="agendado">Agendado</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="concluido">Concluído</option>
+            </select>
+          </div>
+          <button class="btn-ghost" id="btn-clear-rffilter">Limpar</button>
+        </div>
+        <div class="kpi-grid" id="rf2-kpi-grid"></div>
+        <div class="card">
+          <table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Fim</th><th>Dias</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-ferias"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ADMISSÃO/DESLIGAMENTO -->
+      <div class="view" id="view-rhprocessos">
+        <div class="topbar">
+          <div><div class="page-title">Admissão / Desligamento</div><div class="page-sub">Checklist e acompanhamento dos processos de entrada e saída</div></div>
+          <div class="action-links">
+            <button class="btn-primary" id="btn-new-admissao">+ Processo de admissão</button>
+            <button class="btn-danger" id="btn-new-desligamento">+ Processo de desligamento</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Tipo</label>
+            <select id="rpfilter-tipo"><option value="">Todos</option><option value="admissao">Admissão</option><option value="desligamento">Desligamento</option></select>
+          </div>
+          <div class="filter-field"><label>Status</label>
+            <select id="rpfilter-status"><option value="">Todos</option><option value="em_andamento">Em andamento</option><option value="concluido">Concluído</option></select>
+          </div>
+          <button class="btn-ghost" id="btn-clear-rpfilter">Limpar</button>
+        </div>
+        <div class="kpi-grid" id="rp-kpi-grid"></div>
+        <div class="card">
+          <table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Progresso</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbl-processos"></tbody></table>
+        </div>
+      </div>
+
+      <!-- USUÁRIOS -->
+      <div class="view" id="view-users">
+        <div class="topbar">
+          <div><div class="page-title">Usuários</div><div class="page-sub">Acessos ao sistema de RH</div></div>
+          <button class="btn-primary" id="btn-new-user">+ Novo usuário</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Unidade</th><th></th></tr></thead>
+          <tbody id="tbl-users"></tbody></table>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Auditoria (últimas alterações)</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Registro de quem cadastrou, editou ou excluiu algo no sistema. Guarda as últimas 300 ações.</div>
+          <table><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Detalhe</th></tr></thead>
+          <tbody id="tbl-audit"></tbody></table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg"><div class="modal" id="modal-body"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ---------------------------------------------------------
+     CONFIGURAÇÃO DO FIREBASE — mesmo projeto do Gestão de Frota,
+     porém com coleções próprias (lots-rh / lots-rh-profiles),
+     então os logins e os dados NÃO se misturam com o app de frota.
+  --------------------------------------------------------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyCxskjcs3PeGTWm4yIQ9B4aaBo_iI7GjPI",
+    authDomain: "lots-gestao-frota.firebaseapp.com",
+    projectId: "lots-gestao-frota",
+    storageBucket: "lots-gestao-frota.firebasestorage.app",
+    messagingSenderId: "735618273131",
+    appId: "1:735618273131:web:9adaf2dadb5fb1ab53c62e"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+  db.enablePersistence({synchronizeTabs:true}).catch(err=>{
+    console.warn('Persistência offline não ativada:', err.code);
+  });
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('rh-sw.js').then(reg=>{
+        if(reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+        reg.addEventListener('updatefound', ()=>{
+          const novo = reg.installing;
+          if(!novo) return;
+          novo.addEventListener('statechange', ()=>{
+            if(novo.state==='installed' && navigator.serviceWorker.controller){
+              novo.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      }).catch(err=>console.warn('SW falhou:', err));
+    });
+    let jaRecarregando = false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(jaRecarregando) return;
+      jaRecarregando = true;
+      toast('Atualizando para a nova versão…');
+      setTimeout(()=>location.reload(), 1200);
+    });
+  }
+
+  const APP_VERSION = '2026-08-18T00-00-00Z';
+  let atualizandoApp = false;
+  async function checkForAppUpdate(){
+    if(atualizandoApp) return;
+    try{
+      const resp = await fetch(location.pathname + '?v=' + Date.now(), {cache:'no-store'});
+      const html = await resp.text();
+      const m = html.match(/APP_BUILD:([^\s>-]+(?:-[^\s>-]+)*)/);
+      const versaoServidor = m ? m[1] : null;
+      if(versaoServidor && versaoServidor !== APP_VERSION){
+        atualizandoApp = true;
+        toast('Nova versão disponível — atualizando…');
+        if('caches' in window){ try{ const keys = await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){} }
+        if('serviceWorker' in navigator){ try{ const regs = await navigator.serviceWorker.getRegistrations(); for(const r of regs){ await r.update(); } }catch(e){} }
+        setTimeout(()=>location.reload(true), 1200);
+      }
+    }catch(e){ /* offline: ignora, tenta de novo depois */ }
+  }
+  setTimeout(checkForAppUpdate, 4000);
+  setInterval(checkForAppUpdate, 3*60*1000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForAppUpdate(); });
+  window.addEventListener('focus', checkForAppUpdate);
+
+  const COLLECTION = 'lots-rh';
+  const PROFILES = 'lots-rh-profiles';
+  const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
+  const secondaryAuth = secondaryApp.auth();
+
+  function usernameToEmail(username){
+    return username.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'') + '@lotsrh.internal';
+  }
+  function generateAuthEmail(username){
+    const base = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'');
+    return base + '.' + uid() + '@lotsrh.internal';
+  }
+
+  /* ---------------- storage helpers (Firebase Firestore) ---------------- */
+  async function saveShared(key, data){
+    try{ await db.collection(COLLECTION).doc(key).set({value: JSON.stringify(data), updatedAt: Date.now()}); }
+    catch(e){ console.error('save fail',key,e); toast('Erro ao salvar. Verifique sua conexão / config do Firebase.'); }
+  }
+  async function loadShared(key, fallback){
+    try{ const doc = await db.collection(COLLECTION).doc(key).get(); return doc.exists ? JSON.parse(doc.data().value) : fallback; }
+    catch(e){ console.error('load fail',key,e); return fallback; }
+  }
+  function listenShared(key, applyFn){
+    db.collection(COLLECTION).doc(key).onSnapshot(doc=>{
+      if(doc.exists){ applyFn(JSON.parse(doc.data().value)); if(currentUser()) renderAll(); }
+    }, err=>console.error('listen fail', key, err));
+  }
+  async function saveProfile(u){
+    await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, authEmail:u.authEmail||null, role:u.role, uoResponsavel:u.uoResponsavel||null});
+  }
+  async function loadAllProfiles(){
+    const snap = await db.collection(PROFILES).get();
+    return snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }
+
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const fmtDate = d => { if(!d) return '—'; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
+  const todayISO = () => new Date().toISOString().slice(0,10);
+
+  function toast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  /* ---------------- instalar aplicativo (PWA) ---------------- */
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    updateInstallButtonsLabel();
+  });
+  window.addEventListener('appinstalled', ()=>{
+    deferredInstallPrompt = null;
+    toast('Aplicativo instalado!');
+    updateInstallButtonsLabel();
+  });
+  const btnDl1 = document.getElementById('btn-download-app');
+  const btnDl2 = document.getElementById('btn-download-app-2');
+  function updateInstallButtonsLabel(){
+    const label = deferredInstallPrompt ? '📲 Instalar aplicativo' : '⬇ Baixar aplicativo (.html)';
+    const label2 = deferredInstallPrompt ? '📲 Instalar app' : '⬇ Baixar app';
+    if(btnDl1) btnDl1.textContent = label;
+    if(btnDl2) btnDl2.textContent = label2;
+  }
+  async function installOrDownload(){
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      updateInstallButtonsLabel();
+      return;
+    }
+    try{
+      toast('Baixando…');
+      const resp = await fetch(location.href, {cache:'no-store'});
+      const html = await resp.text();
+      const blob = new Blob([html], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'gestao-rh-lots.html';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      toast('Download iniciado.');
+    }catch(e){ console.error(e); toast('Não foi possível baixar automaticamente.'); }
+  }
+  btnDl1?.addEventListener('click', installOrDownload);
+  btnDl2?.addEventListener('click', installOrDownload);
+  updateInstallButtonsLabel();
+
+  /* ---------------- loading splash ---------------- */
+  function setLoadingProgress(pct, label){
+    const fill = document.getElementById('loading-bar-fill');
+    const pctEl = document.getElementById('loading-pct');
+    if(fill) fill.style.width = pct+'%';
+    if(pctEl) pctEl.textContent = (label||'Carregando…')+' '+pct+'%';
+  }
+  function hideLoadingSplash(){
+    const el = document.getElementById('loading-splash');
+    if(el){ el.style.opacity='0'; el.style.transition='opacity .25s ease'; setTimeout(()=>el.remove(), 260); }
+  }
+
+  /* ---------------- online / offline status ---------------- */
+  function updateOnlineStatus(){
+    const pill = document.getElementById('online-status');
+    const text = document.getElementById('online-status-text');
+    if(!pill) return;
+    if(navigator.onLine){ pill.classList.remove('offline'); text.textContent='Online'; }
+    else { pill.classList.add('offline'); text.textContent='Offline'; }
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+
+  document.getElementById('btn-update-app')?.addEventListener('click', async ()=>{
+    toast('Buscando atualização…');
+    try{
+      if('serviceWorker' in navigator){ const regs = await navigator.serviceWorker.getRegistrations(); for(const r of regs){ await r.update(); } }
+      if('caches' in window){ const keys = await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }
+    }catch(e){ console.warn('update app', e); }
+    location.reload();
+  });
+
+  /* ---------------- estado ---------------- */
+  let state = {
+    users:[], colaboradores:[], ferias:[], vagas:[], processos:[], auditLog:[],
+    currentProfile:null
+  };
+
+  async function loadAll(){
+    setLoadingProgress(20, 'Carregando colaboradores…');
+    state.colaboradores = await loadShared('colaboradores', []);
+    setLoadingProgress(45, 'Carregando férias e afastamentos…');
+    state.ferias = await loadShared('ferias', []);
+    setLoadingProgress(65, 'Carregando vagas…');
+    state.vagas = await loadShared('vagas', []);
+    setLoadingProgress(85, 'Carregando processos…');
+    state.processos = await loadShared('processos', []);
+    state.auditLog = await loadShared('audit-log', []);
+    setLoadingProgress(100, 'Pronto');
+  }
+
+  const save = {
+    users: async () => {},
+    colaboradores: () => saveShared('colaboradores', state.colaboradores),
+    ferias: () => saveShared('ferias', state.ferias),
+    vagas: () => saveShared('vagas', state.vagas),
+    processos: () => saveShared('processos', state.processos),
+    auditLog: () => saveShared('audit-log', state.auditLog)
+  };
+
+  function currentUser(){ return state.currentProfile; }
+  function colaboradorById(id){ return state.colaboradores.find(c=>c.id===id); }
+  // gestor só enxerga/gerencia colaboradores da própria unidade; admin vê tudo
+  function visibleColaboradores(){
+    const u = currentUser();
+    if(!u) return [];
+    if(u.role==='gestor') return state.colaboradores.filter(c=>c.unidade===u.uoResponsavel);
+    return state.colaboradores;
+  }
+  function canManageColaborador(unidade){
+    const u = currentUser();
+    if(!u) return false;
+    if(u.role==='admin') return true;
+    if(u.role==='gestor') return unidade===u.uoResponsavel;
+    return false;
+  }
+  function visibleVagas(){
+    const u = currentUser();
+    if(!u) return [];
+    if(u.role==='gestor') return state.vagas.filter(v=>v.unidade===u.uoResponsavel);
+    return state.vagas;
+  }
+
+  /* ---------------- AUDITORIA ---------------- */
+  function logAudit(acao, detalhe){
+    if(!state.auditLog) state.auditLog = [];
+    state.auditLog.unshift({ id: uid(), data: new Date().toISOString(), usuario: currentUser()?.name || 'Sistema', acao, detalhe: detalhe || '' });
+    if(state.auditLog.length>300) state.auditLog.length = 300;
+    save.auditLog();
+  }
+  function renderAuditLog(){
+    const tbl = document.getElementById('tbl-audit');
+    if(!tbl) return;
+    const list = (state.auditLog||[]).slice(0,80);
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="4">Nenhuma ação registrada ainda.</td></tr>'; return; }
+    tbl.innerHTML = list.map(a=>{
+      const dt = new Date(a.data);
+      return `<tr><td class="mono">${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td><td>${a.usuario}</td><td>${a.acao}</td><td>${a.detalhe||'—'}</td></tr>`;
+    }).join('');
+  }
+
+  /* ---------------- LOGIN / AUTH ---------------- */
+  document.getElementById('btn-show-setup').addEventListener('click', ()=>{
+    document.getElementById('login-mode').style.display='none';
+    document.getElementById('setup-mode').style.display='block';
+  });
+  document.getElementById('btn-show-login').addEventListener('click', ()=>{
+    document.getElementById('setup-mode').style.display='none';
+    document.getElementById('login-mode').style.display='block';
+  });
+  function showLoginOrSetup(){
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app-screen').style.display='none';
+    document.getElementById('login-mode').style.display='block';
+    document.getElementById('setup-mode').style.display='none';
+    hideLoadingSplash();
+  }
+  document.getElementById('btn-setup').addEventListener('click', async ()=>{
+    const name = document.getElementById('setup-name').value.trim();
+    const username = document.getElementById('setup-username').value.trim();
+    const pass = document.getElementById('setup-pass').value;
+    const errEl = document.getElementById('setup-err');
+    if(!name || !username || pass.length<6){ errEl.textContent='Preencha nome, usuário e uma senha com pelo menos 6 caracteres.'; return; }
+    errEl.textContent='';
+    try{
+      const authEmail = usernameToEmail(username);
+      const cred = await auth.createUserWithEmailAndPassword(authEmail, pass);
+      await saveProfile({id:cred.user.uid, name, username, authEmail, role:'admin'});
+    }catch(e){ errEl.textContent = firebaseErrorMsg(e); }
+  });
+
+  let loginSubmitInProgress = false;
+  document.getElementById('form-login').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const username = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-err');
+    if(!username || !pass){ errEl.textContent='Preencha usuário e senha.'; return; }
+    errEl.textContent='';
+    loginSubmitInProgress = true;
+    try{
+      async function tentarEntrar(email){
+        await auth.signInWithEmailAndPassword(email, pass);
+        const doc = await db.collection(PROFILES).doc(auth.currentUser.uid).get();
+        if(!doc.exists){ await auth.signOut(); return false; }
+        return true;
+      }
+      let entrou = false;
+      try{ entrou = await tentarEntrar(usernameToEmail(username)); }
+      catch(e1){ /* tenta o caminho alternativo abaixo */ }
+      if(entrou) return;
+      try{
+        const snap = await db.collection(PROFILES).where('username','==',username).limit(1).get();
+        if(!snap.empty){
+          const authEmail = snap.docs[0].data().authEmail;
+          if(authEmail && authEmail!==usernameToEmail(username)){
+            entrou = await tentarEntrar(authEmail);
+            if(entrou) return;
+          }
+        }
+      }catch(e2){ /* cai no erro genérico abaixo */ }
+      errEl.textContent = 'Usuário ou senha incorretos.';
+    } finally { loginSubmitInProgress = false; }
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async ()=>{
+    await auth.signOut();
+    document.getElementById('login-pass').value='';
+  });
+
+  function firebaseErrorMsg(e){
+    const code = e && e.code || '';
+    if(code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Usuário ou senha incorretos.';
+    if(code.includes('email-already-in-use')) return 'Esse usuário já existe.';
+    if(code.includes('weak-password')) return 'Senha muito curta (mínimo 6 caracteres).';
+    if(code.includes('network')) return 'Falha de conexão. Verifique sua internet.';
+    if(code.includes('api-key') || code.includes('invalid-api-key')) return 'Configuração do Firebase incompleta.';
+    console.error(e);
+    return 'Não foi possível concluir. Tente novamente.';
+  }
+
+  auth.onAuthStateChanged(async (user)=>{
+    setLoadingProgress(5, 'Verificando acesso…');
+    if(user){
+      const doc = await db.collection(PROFILES).doc(user.uid).get();
+      if(!doc.exists){
+        await auth.signOut();
+        if(!loginSubmitInProgress){
+          showLoginOrSetup();
+          document.getElementById('login-err').textContent = 'Este acesso foi removido. Fale com o administrador.';
+        }
+        return;
+      }
+      state.currentProfile = {id:user.uid, ...doc.data()};
+      setLoadingProgress(10, 'Carregando usuários…');
+      state.users = await loadAllProfiles();
+      await loadAll();
+      enterApp();
+    } else {
+      state.currentProfile = null;
+      showLoginOrSetup();
+    }
+  });
+
+  /* ---------------- NAV ---------------- */
+  document.querySelectorAll('.subtab[data-view]').forEach(el=>{
+    el.addEventListener('click', ()=>switchView(el.dataset.view));
+  });
+  function switchView(name){
+    document.querySelectorAll('.subtab[data-view]').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+name).classList.add('active');
+    renderView(name);
+  }
+
+  function enterApp(){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-screen').style.display='block';
+    const u = currentUser();
+    document.getElementById('who-name').textContent = u.name;
+    document.getElementById('who-role').textContent = ({admin:'Administrador', gestor:'Gestor de UO'})[u.role] || u.role;
+    document.getElementById('nav-users').style.display = (u.role==='admin') ? 'block' : 'none';
+    updateOnlineStatus();
+    hideLoadingSplash();
+    renderAll();
+  }
+
+  /* ---------------- MODAL helper ---------------- */
+  function openModal(html){
+    document.getElementById('modal-body').innerHTML = html;
+    document.getElementById('modal-bg').style.display='flex';
+  }
+  function closeModal(){ document.getElementById('modal-bg').style.display='none'; }
+  document.getElementById('modal-bg').addEventListener('click', (e)=>{ if(e.target.id==='modal-bg') closeModal(); });
+  window.closeModalGlobal = closeModal;
+
+  /* ================= RECURSOS HUMANOS ================= */
+
+  const RH_TIPO_LABEL = {
+    ferias:'Férias', atestado:'Atestado médico', licenca_maternidade:'Licença maternidade',
+    licenca_paternidade:'Licença paternidade', afastamento_inss:'Afastamento INSS', outro:'Outro'
+  };
+  const RH_MOTIVO_VAGA_LABEL = { aumento_quadro:'Aumento de quadro', substituicao:'Substituição', novo_projeto:'Novo projeto' };
+  const RH_MOTIVO_DESLIGAMENTO_LABEL = {
+    pedido_demissao:'Pedido de demissão', demissao_sem_justa_causa:'Demissão sem justa causa',
+    demissao_justa_causa:'Demissão por justa causa', termino_contrato:'Término de contrato', acordo:'Acordo entre as partes'
+  };
+  const RH_ETAPAS_ADMISSAO = ['Documentação recebida','Exame admissional (ASO)','Contrato assinado','Cadastro em folha/eSocial','Uniformes/equipamentos entregues','Integração e treinamento inicial'];
+  const RH_ETAPAS_DESLIGAMENTO = ['Aviso comunicado ao colaborador','Exame demissional (ASO)','Devolução de uniformes/equipamentos','Cálculo da rescisão','Homologação/eSocial','Baixa em folha de pagamento'];
+
+  function rhStatusBadge(status){
+    if(status==='ativo') return '<span class="badge badge-ok">Ativo</span>';
+    if(status==='ferias') return '<span class="badge badge-pending">Em férias</span>';
+    if(status==='afastado') return '<span class="badge badge-pending">Afastado</span>';
+    if(status==='desligado') return '<span class="badge badge-danger">Desligado</span>';
+    return '—';
+  }
+  function syncColaboradoresStatus(){
+    const hoje = todayISO();
+    state.colaboradores.forEach(c=>{
+      if(c.status==='desligado') return;
+      const ativo = state.ferias.find(f=>f.colaboradorId===c.id && f.dataInicio<=hoje && (f.dataFim||f.dataInicio)>=hoje);
+      c.status = ativo ? (ativo.tipo==='ferias' ? 'ferias' : 'afastado') : 'ativo';
+    });
+  }
+  function monthsBetween(d1, d2){
+    const a=new Date(d1+'T00:00:00'), b=new Date(d2+'T00:00:00');
+    return (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth()) - (b.getDate()<a.getDate()?1:0);
+  }
+  function addMonths(dateStr, months){
+    const d = new Date(dateStr+'T00:00:00');
+    d.setMonth(d.getMonth()+months);
+    return d.toISOString().slice(0,10);
+  }
+  function diasEntre(d1, d2){
+    return Math.round((new Date(d2+'T00:00:00') - new Date(d1+'T00:00:00'))/86400000);
+  }
+
+  /* ---------------- COLABORADORES ---------------- */
+  window.LOTS = window.LOTS || {};
+  LOTS._editingColabId = null;
+
+  function populateColabSelects(){
+    const supSel = document.getElementById('rc-supervisor');
+    if(supSel){
+      const keep = supSel.value;
+      const opts = visibleColaboradores().filter(c=>c.id!==LOTS._editingColabId && c.status!=='desligado')
+        .map(c=>`<option value="${c.id}">${c.nome}${c.cargo?' — '+c.cargo:''}</option>`).join('');
+      supSel.innerHTML = '<option value="">— Nenhum —</option>' + opts;
+      supSel.value = keep;
+    }
+    const colabSel = document.getElementById('rf2-colab');
+    if(colabSel){
+      const keep = colabSel.value;
+      colabSel.innerHTML = '<option value="">Selecione</option>' + visibleColaboradores().filter(c=>c.status!=='desligado').map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+      colabSel.value = visibleColaboradores().some(c=>c.id===keep) ? keep : '';
+    }
+    const filtroSel = document.getElementById('rffilter-colab');
+    if(filtroSel){
+      const keep = filtroSel.value;
+      filtroSel.innerHTML = '<option value="">Todos</option>' + visibleColaboradores().map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+      filtroSel.value = keep;
+    }
+  }
+  function applyColabFormPermissions(){
+    const u = currentUser();
+    if(u.role==='gestor' && !LOTS._editingColabId){
+      const uoSel = document.getElementById('rc-unidade');
+      if(uoSel) uoSel.value = u.uoResponsavel;
+    }
+  }
+  function fillColabForm(c){
+    LOTS._editingColabId = c ? c.id : null;
+    document.getElementById('rc-form-title').textContent = c ? 'Editar colaborador' : 'Novo colaborador';
+    document.getElementById('rc-matricula').value = c?.matricula || '';
+    document.getElementById('rc-nome').value = c?.nome || '';
+    document.getElementById('rc-cpf').value = c?.cpf || '';
+    document.getElementById('rc-nascimento').value = c?.dataNascimento || '';
+    document.getElementById('rc-telefone').value = c?.telefone || '';
+    document.getElementById('rc-email').value = c?.email || '';
+    document.getElementById('rc-cargo').value = c?.cargo || '';
+    document.getElementById('rc-depto').value = c?.departamento || '';
+    document.getElementById('rc-unidade').value = c?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4823-MNS');
+    document.getElementById('rc-admissao').value = c?.dataAdmissao || todayISO();
+    document.getElementById('rc-tipocontrato').value = c?.tipoContrato || 'CLT';
+    document.getElementById('rc-obs').value = c?.observacoes || '';
+    populateColabSelects();
+    document.getElementById('rc-supervisor').value = c?.supervisorId || '';
+    document.getElementById('btn-save-colab').textContent = c ? 'Salvar alterações' : 'Cadastrar colaborador';
+    document.getElementById('btn-cancel-edit-colab').style.display = c ? 'inline-block' : 'none';
+    document.getElementById('rc-err').textContent = '';
+  }
+  LOTS.editColaborador = (id)=>{
+    const c = colaboradorById(id);
+    if(!c) return;
+    fillColabForm(c);
+    document.querySelector('#view-rhcolab .reg-card').scrollIntoView({behavior:'smooth'});
+  };
+  document.getElementById('btn-cancel-edit-colab')?.addEventListener('click', ()=> fillColabForm(null));
+  document.getElementById('btn-save-colab')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('rc-err');
+    const nome = document.getElementById('rc-nome').value.trim();
+    const unidade = document.getElementById('rc-unidade').value;
+    if(!nome){ errEl.textContent='Informe o nome do colaborador.'; return; }
+    if(!canManageColaborador(unidade)){ errEl.textContent='Você não tem permissão para cadastrar nesta unidade.'; return; }
+    const supervisorId = document.getElementById('rc-supervisor').value || null;
+    if(supervisorId && LOTS._editingColabId && supervisorId===LOTS._editingColabId){ errEl.textContent='Um colaborador não pode ser supervisor de si mesmo.'; return; }
+    errEl.textContent='';
+    const dados = {
+      matricula: document.getElementById('rc-matricula').value.trim(),
+      nome,
+      cpf: document.getElementById('rc-cpf').value.trim(),
+      dataNascimento: document.getElementById('rc-nascimento').value || '',
+      telefone: document.getElementById('rc-telefone').value.trim(),
+      email: document.getElementById('rc-email').value.trim(),
+      cargo: document.getElementById('rc-cargo').value.trim(),
+      departamento: document.getElementById('rc-depto').value.trim(),
+      unidade, supervisorId,
+      dataAdmissao: document.getElementById('rc-admissao').value || todayISO(),
+      tipoContrato: document.getElementById('rc-tipocontrato').value,
+      observacoes: document.getElementById('rc-obs').value.trim()
+    };
+    if(LOTS._editingColabId){
+      const c = colaboradorById(LOTS._editingColabId);
+      if(!canManageColaborador(c.unidade)){ errEl.textContent='Você não tem permissão para editar este colaborador.'; return; }
+      Object.assign(c, dados);
+      await save.colaboradores();
+      logAudit('Colaborador editado', dados.nome);
+      toast('Colaborador atualizado.');
+    } else {
+      state.colaboradores.push({ id: uid(), ...dados, status:'ativo', dataCadastro: todayISO() });
+      await save.colaboradores();
+      logAudit('Colaborador cadastrado', dados.nome);
+      toast('Colaborador cadastrado.');
+    }
+    fillColabForm(null);
+    renderView('rhcolab'); renderView('rhorg'); renderView('rhdash');
+  });
+  LOTS.deleteColaborador = async (id)=>{
+    const c = colaboradorById(id);
+    if(!c) return;
+    if(!canManageColaborador(c.unidade)){ toast('Você não tem permissão para excluir este colaborador.'); return; }
+    state.colaboradores.forEach(x=>{ if(x.supervisorId===id) x.supervisorId=null; });
+    state.colaboradores = state.colaboradores.filter(x=>x.id!==id);
+    await save.colaboradores();
+    if(LOTS._editingColabId===id) fillColabForm(null);
+    renderView('rhcolab'); renderView('rhorg'); renderView('rhdash');
+    logAudit('Colaborador excluído', c.nome);
+    toast('Colaborador removido.');
+  };
+  ['rcfilter-busca','rcfilter-unidade','rcfilter-status'].forEach(id=>{
+    document.addEventListener('input', e=>{ if(e.target && e.target.id===id) renderColaboradores(); });
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderColaboradores(); });
+  });
+  document.getElementById('btn-clear-rcfilter')?.addEventListener('click', ()=>{
+    document.getElementById('rcfilter-busca').value='';
+    document.getElementById('rcfilter-unidade').value='';
+    document.getElementById('rcfilter-status').value='';
+    renderColaboradores();
+  });
+  document.getElementById('btn-export-colab')?.addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
+    const list = LOTS._colabSnapshot || [];
+    if(list.length===0){ toast('Nada para exportar.'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(list.map(c=>({
+      Matrícula:c.matricula||'', Nome:c.nome, CPF:c.cpf||'', Cargo:c.cargo||'', Departamento:c.departamento||'',
+      Unidade:c.unidade||'', Admissão:c.dataAdmissao||'', 'Tipo de contrato':c.tipoContrato||'',
+      Supervisor: colaboradorById(c.supervisorId)?.nome||'', Status:c.status
+    }))), 'Colaboradores');
+    XLSX.writeFile(wb, 'colaboradores-rh-lots.xlsx');
+    toast('Exportação gerada.');
+  });
+  function renderColaboradores(){
+    syncColaboradoresStatus();
+    applyColabFormPermissions();
+    populateColabSelects();
+    const busca = (document.getElementById('rcfilter-busca')?.value||'').trim().toLowerCase();
+    const uoF = document.getElementById('rcfilter-unidade')?.value || '';
+    const stF = document.getElementById('rcfilter-status')?.value || '';
+    let list = visibleColaboradores()
+      .filter(c=>!uoF || c.unidade===uoF)
+      .filter(c=>!stF || c.status===stF)
+      .filter(c=>!busca || [c.nome,c.cargo,c.matricula].join(' ').toLowerCase().includes(busca))
+      .sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+    LOTS._colabSnapshot = list;
+
+    const kpiGrid = document.getElementById('rc-kpi-grid');
+    if(kpiGrid){
+      const todos = visibleColaboradores();
+      kpiGrid.innerHTML = [
+        {label:'Ativos', val: todos.filter(c=>c.status==='ativo').length},
+        {label:'Em férias', val: todos.filter(c=>c.status==='ferias').length},
+        {label:'Afastados', val: todos.filter(c=>c.status==='afastado').length},
+        {label:'Desligados', val: todos.filter(c=>c.status==='desligado').length},
+        {label:'Total cadastrado', val: todos.length}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    const tbl = document.getElementById('tbl-colab');
+    if(!tbl) return;
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum colaborador encontrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(c=>{
+      const sup = colaboradorById(c.supervisorId);
+      return `<tr>
+        <td class="mono">${c.matricula||'—'}</td>
+        <td>${c.nome}</td>
+        <td>${c.cargo||'—'}</td>
+        <td>${c.unidade||'—'}</td>
+        <td class="mono">${fmtDate(c.dataAdmissao)}</td>
+        <td>${sup?sup.nome:'—'}</td>
+        <td>${rhStatusBadge(c.status)}</td>
+        <td><div class="action-links">
+          ${canManageColaborador(c.unidade) ? `<button class="icon-btn" onclick="LOTS.editColaborador('${c.id}')">editar</button>` : ''}
+          ${canManageColaborador(c.unidade) ? `<button class="icon-btn danger" onclick="LOTS.deleteColaborador('${c.id}')">excluir</button>` : ''}
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---------------- ORGANOGRAMA ---------------- */
+  document.getElementById('rgfilter-unidade')?.addEventListener('change', renderOrganograma);
+  document.getElementById('btn-clear-rgfilter')?.addEventListener('click', ()=>{
+    document.getElementById('rgfilter-unidade').value='';
+    renderOrganograma();
+  });
+  function buildOrgNode(c, lista){
+    const filhos = lista.filter(x=>x.supervisorId===c.id);
+    return `<li>
+      <div class="org-node"><span class="org-node-name">${c.nome}</span><span class="org-node-role">${c.cargo||'—'}</span>${rhStatusBadge(c.status)}</div>
+      ${filhos.length ? `<ul>${filhos.map(f=>buildOrgNode(f,lista)).join('')}</ul>` : ''}
+    </li>`;
+  }
+  function renderOrganograma(){
+    const container = document.getElementById('rh-org-container');
+    if(!container) return;
+    const uoF = document.getElementById('rgfilter-unidade')?.value || '';
+    const base = visibleColaboradores().filter(c=>c.status!=='desligado').filter(c=>!uoF || c.unidade===uoF);
+    if(base.length===0){ container.innerHTML = '<div class="card"><div class="empty-row" style="padding:24px; text-align:center; color:var(--text-faint); font-style:italic;">Nenhum colaborador ativo cadastrado.</div></div>'; return; }
+    const unidades = [...new Set(base.map(c=>c.unidade||'Sem unidade'))].sort();
+    container.innerHTML = unidades.map(uo=>{
+      const lista = base.filter(c=>c.unidade===uo);
+      const idsNaUnidade = new Set(lista.map(c=>c.id));
+      const raizes = lista.filter(c=>!c.supervisorId || !idsNaUnidade.has(c.supervisorId));
+      return `<div class="org-unit-title">${uo}</div>
+        <div class="card"><ul class="org-tree">${raizes.map(r=>buildOrgNode(r,lista)).join('') || '<li class="page-sub">Nenhum colaborador nesta unidade.</li>'}</ul></div>`;
+    }).join('');
+  }
+
+  /* ---------------- VAGAS ---------------- */
+  LOTS._editingVagaId = null;
+  function vagaBadge(status){
+    if(status==='aberta') return '<span class="badge badge-ok">Aberta</span>';
+    if(status==='em_selecao') return '<span class="badge badge-pending">Em seleção</span>';
+    if(status==='encerrada') return '<span class="badge badge-neutral">Encerrada</span>';
+    if(status==='cancelada') return '<span class="badge badge-danger">Cancelada</span>';
+    return '—';
+  }
+  function fillVagaForm(v){
+    LOTS._editingVagaId = v ? v.id : null;
+    document.getElementById('rv-form-title').textContent = v ? 'Editar vaga' : 'Nova vaga';
+    document.getElementById('rv-titulo').value = v?.titulo || '';
+    document.getElementById('rv-depto').value = v?.departamento || '';
+    document.getElementById('rv-unidade').value = v?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4823-MNS');
+    document.getElementById('rv-tipocontrato').value = v?.tipoContrato || 'CLT';
+    document.getElementById('rv-qtd').value = v?.quantidade || 1;
+    document.getElementById('rv-motivo').value = v?.motivoAbertura || 'aumento_quadro';
+    document.getElementById('rv-abertura').value = v?.dataAbertura || todayISO();
+    document.getElementById('rv-prazo').value = v?.prazoPrevisto || '';
+    document.getElementById('rv-responsavel').value = v?.responsavel || '';
+    document.getElementById('rv-obs').value = v?.observacoes || '';
+    document.getElementById('btn-save-vaga').textContent = v ? 'Salvar alterações' : 'Abrir vaga';
+    document.getElementById('btn-cancel-edit-vaga').style.display = v ? 'inline-block' : 'none';
+    document.getElementById('rv-err').textContent = '';
+  }
+  LOTS.editVaga = (id)=>{
+    const v = state.vagas.find(x=>x.id===id);
+    if(!v) return;
+    fillVagaForm(v);
+    document.querySelector('#view-rhvagas .reg-card').scrollIntoView({behavior:'smooth'});
+  };
+  document.getElementById('btn-cancel-edit-vaga')?.addEventListener('click', ()=>fillVagaForm(null));
+  document.getElementById('btn-save-vaga')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('rv-err');
+    const titulo = document.getElementById('rv-titulo').value.trim();
+    const unidade = document.getElementById('rv-unidade').value;
+    if(!titulo){ errEl.textContent='Informe o cargo/título da vaga.'; return; }
+    const u = currentUser();
+    if(u.role==='gestor' && unidade!==u.uoResponsavel){ errEl.textContent='Você só pode abrir vagas para sua própria unidade.'; return; }
+    errEl.textContent='';
+    const dados = {
+      titulo, departamento: document.getElementById('rv-depto').value.trim(), unidade,
+      tipoContrato: document.getElementById('rv-tipocontrato').value,
+      quantidade: Number(document.getElementById('rv-qtd').value)||1,
+      motivoAbertura: document.getElementById('rv-motivo').value,
+      dataAbertura: document.getElementById('rv-abertura').value || todayISO(),
+      prazoPrevisto: document.getElementById('rv-prazo').value || '',
+      responsavel: document.getElementById('rv-responsavel').value.trim(),
+      observacoes: document.getElementById('rv-obs').value.trim()
+    };
+    if(LOTS._editingVagaId){
+      const v = state.vagas.find(x=>x.id===LOTS._editingVagaId);
+      Object.assign(v, dados);
+      await save.vagas();
+      logAudit('Vaga editada', titulo);
+      toast('Vaga atualizada.');
+    } else {
+      state.vagas.push({ id: uid(), ...dados, status:'aberta', dataCadastro: todayISO() });
+      await save.vagas();
+      logAudit('Vaga aberta', titulo);
+      toast('Vaga cadastrada.');
+    }
+    fillVagaForm(null);
+    renderView('rhvagas'); renderView('rhdash');
+  });
+  LOTS.setVagaStatus = async (id, status)=>{
+    const v = state.vagas.find(x=>x.id===id);
+    if(!v) return;
+    v.status = status;
+    await save.vagas();
+    renderView('rhvagas'); renderView('rhdash');
+    logAudit('Status da vaga alterado', `${v.titulo} — ${status}`);
+  };
+  LOTS.deleteVaga = async (id)=>{
+    const v = state.vagas.find(x=>x.id===id);
+    state.vagas = state.vagas.filter(x=>x.id!==id);
+    await save.vagas();
+    if(LOTS._editingVagaId===id) fillVagaForm(null);
+    renderView('rhvagas'); renderView('rhdash');
+    logAudit('Vaga excluída', v?.titulo||id);
+  };
+  ['rvfilter-unidade','rvfilter-status'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderVagas(); });
+  });
+  document.getElementById('btn-clear-rvfilter')?.addEventListener('click', ()=>{
+    document.getElementById('rvfilter-unidade').value='';
+    document.getElementById('rvfilter-status').value='';
+    renderVagas();
+  });
+  function renderVagas(){
+    const uoF = document.getElementById('rvfilter-unidade')?.value || '';
+    const stF = document.getElementById('rvfilter-status')?.value || '';
+    let list = visibleVagas().filter(v=>!uoF||v.unidade===uoF).filter(v=>!stF||v.status===stF)
+      .sort((a,b)=>(b.dataAbertura||'').localeCompare(a.dataAbertura||''));
+
+    const kpiGrid = document.getElementById('rv-kpi-grid');
+    if(kpiGrid){
+      const todas = visibleVagas();
+      kpiGrid.innerHTML = [
+        {label:'Abertas', val: todas.filter(v=>v.status==='aberta').length},
+        {label:'Em seleção', val: todas.filter(v=>v.status==='em_selecao').length},
+        {label:'Encerradas', val: todas.filter(v=>v.status==='encerrada').length},
+        {label:'Posições em aberto', val: todas.reduce((s,v)=>s+((v.status==='aberta'||v.status==='em_selecao')?Number(v.quantidade||0):0),0)}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    const tbl = document.getElementById('tbl-vagas');
+    if(!tbl) return;
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhuma vaga cadastrada.</td></tr>'; return; }
+    tbl.innerHTML = list.map(v=>`<tr>
+      <td>${v.titulo}</td>
+      <td>${v.unidade||'—'}</td>
+      <td>${v.tipoContrato||'—'}</td>
+      <td class="mono">${v.quantidade||1}</td>
+      <td>${RH_MOTIVO_VAGA_LABEL[v.motivoAbertura]||'—'}</td>
+      <td class="mono">${fmtDate(v.dataAbertura)}</td>
+      <td>${vagaBadge(v.status)}</td>
+      <td><div class="action-links">
+        <button class="icon-btn" onclick="LOTS.editVaga('${v.id}')">editar</button>
+        ${v.status==='aberta'?`<button class="icon-btn" onclick="LOTS.setVagaStatus('${v.id}','em_selecao')">em seleção</button>`:''}
+        ${v.status!=='encerrada'&&v.status!=='cancelada'?`<button class="icon-btn" onclick="LOTS.setVagaStatus('${v.id}','encerrada')">encerrar</button>`:''}
+        ${v.status!=='cancelada'&&v.status!=='encerrada'?`<button class="icon-btn danger" onclick="LOTS.setVagaStatus('${v.id}','cancelada')">cancelar</button>`:''}
+        <button class="icon-btn danger" onclick="LOTS.deleteVaga('${v.id}')">excluir</button>
+      </div></td>
+    </tr>`).join('');
+  }
+
+  /* ---------------- FÉRIAS E AFASTAMENTOS ---------------- */
+  function feriasStatus(f){
+    const hoje = todayISO();
+    const fim = f.dataFim || f.dataInicio;
+    if(f.dataInicio > hoje) return 'agendado';
+    if(fim < hoje) return 'concluido';
+    return 'em_andamento';
+  }
+  function feriasStatusBadge(status){
+    if(status==='agendado') return '<span class="badge badge-pending">Agendado</span>';
+    if(status==='em_andamento') return '<span class="badge badge-ok">Em andamento</span>';
+    return '<span class="badge badge-neutral">Concluído</span>';
+  }
+  document.getElementById('btn-save-ferias')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('rf2-err');
+    const colaboradorId = document.getElementById('rf2-colab').value;
+    const inicio = document.getElementById('rf2-inicio').value;
+    const fim = document.getElementById('rf2-fim').value;
+    if(!colaboradorId){ errEl.textContent='Selecione o colaborador.'; return; }
+    if(!inicio){ errEl.textContent='Informe a data de início.'; return; }
+    if(fim && fim<inicio){ errEl.textContent='A data final não pode ser antes da data inicial.'; return; }
+    const c = colaboradorById(colaboradorId);
+    if(!canManageColaborador(c?.unidade)){ errEl.textContent='Você não tem permissão para lançar registros deste colaborador.'; return; }
+    errEl.textContent='';
+    const novo = {
+      id: uid(), colaboradorId, tipo: document.getElementById('rf2-tipo').value,
+      dataInicio: inicio, dataFim: fim || inicio,
+      observacoes: document.getElementById('rf2-obs').value.trim(),
+      dataCadastro: todayISO()
+    };
+    state.ferias.push(novo);
+    await save.ferias();
+    syncColaboradoresStatus();
+    await save.colaboradores();
+    document.getElementById('rf2-inicio').value=''; document.getElementById('rf2-fim').value=''; document.getElementById('rf2-obs').value='';
+    logAudit('Férias/afastamento registrado', `${c?.nome||''} — ${RH_TIPO_LABEL[novo.tipo]}`);
+    toast('Registro salvo.');
+    renderView('rhferias'); renderView('rhcolab'); renderView('rhdash');
+  });
+  LOTS.deleteFerias = async (id)=>{
+    const f = state.ferias.find(x=>x.id===id);
+    if(!f) return;
+    const c = colaboradorById(f.colaboradorId);
+    if(!canManageColaborador(c?.unidade)){ toast('Sem permissão para excluir este registro.'); return; }
+    state.ferias = state.ferias.filter(x=>x.id!==id);
+    await save.ferias();
+    syncColaboradoresStatus();
+    await save.colaboradores();
+    renderView('rhferias'); renderView('rhcolab'); renderView('rhdash');
+    logAudit('Férias/afastamento excluído', c?.nome||id);
+  };
+  ['rffilter-colab','rffilter-tipo','rffilter-status'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderFeriasAfastamentos(); });
+  });
+  document.getElementById('btn-clear-rffilter')?.addEventListener('click', ()=>{
+    document.getElementById('rffilter-colab').value='';
+    document.getElementById('rffilter-tipo').value='';
+    document.getElementById('rffilter-status').value='';
+    renderFeriasAfastamentos();
+  });
+  function renderFeriasAfastamentos(){
+    populateColabSelects();
+    const okIds = visibleColaboradores().map(c=>c.id);
+    const colabF = document.getElementById('rffilter-colab')?.value || '';
+    const tipoF = document.getElementById('rffilter-tipo')?.value || '';
+    const stF = document.getElementById('rffilter-status')?.value || '';
+    let list = state.ferias.filter(f=>okIds.includes(f.colaboradorId))
+      .filter(f=>!colabF||f.colaboradorId===colabF)
+      .filter(f=>!tipoF||f.tipo===tipoF)
+      .map(f=>({...f, _status: feriasStatus(f)}))
+      .filter(f=>!stF||f._status===stF)
+      .sort((a,b)=>(b.dataInicio||'').localeCompare(a.dataInicio||''));
+
+    const kpiGrid = document.getElementById('rf2-kpi-grid');
+    if(kpiGrid){
+      const all = state.ferias.filter(f=>okIds.includes(f.colaboradorId)).map(f=>({...f, _status: feriasStatus(f)}));
+      const anoAtual = todayISO().slice(0,4);
+      kpiGrid.innerHTML = [
+        {label:'Em andamento agora', val: all.filter(f=>f._status==='em_andamento').length},
+        {label:'Agendados (próx. 30 dias)', val: all.filter(f=>f._status==='agendado' && diasEntre(todayISO(),f.dataInicio)<=30).length},
+        {label:'Afastamentos médicos no ano', val: all.filter(f=>(f.tipo==='atestado'||f.tipo==='afastamento_inss') && (f.dataInicio||'').startsWith(anoAtual)).length},
+        {label:'Registros no total', val: all.length}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    const tbl = document.getElementById('tbl-ferias');
+    if(!tbl) return;
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum registro encontrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(f=>{
+      const c = colaboradorById(f.colaboradorId);
+      const dias = diasEntre(f.dataInicio, f.dataFim||f.dataInicio)+1;
+      return `<tr>
+        <td>${c?c.nome:'—'}</td>
+        <td>${RH_TIPO_LABEL[f.tipo]||f.tipo}</td>
+        <td class="mono">${fmtDate(f.dataInicio)}</td>
+        <td class="mono">${fmtDate(f.dataFim)}</td>
+        <td class="mono">${dias}</td>
+        <td>${feriasStatusBadge(f._status)}</td>
+        <td><div class="action-links">
+          ${canManageColaborador(c?.unidade)?`<button class="icon-btn danger" onclick="LOTS.deleteFerias('${f.id}')">excluir</button>`:''}
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---------------- ADMISSÃO / DESLIGAMENTO ---------------- */
+  function novoProcessoForm(tipo){
+    const colabs = visibleColaboradores().filter(c=>c.status!=='desligado');
+    return `
+      <div class="modal-title">${tipo==='admissao'?'Novo processo de admissão':'Novo processo de desligamento'}</div>
+      <div class="field"><label>Colaborador</label><select id="np-colab"><option value="">Selecione</option>${colabs.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
+      <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
+      ${tipo==='desligamento' ? `
+      <div class="field"><label>Motivo do desligamento</label>
+        <select id="np-motivo">
+          <option value="pedido_demissao">Pedido de demissão</option>
+          <option value="demissao_sem_justa_causa">Demissão sem justa causa</option>
+          <option value="demissao_justa_causa">Demissão por justa causa</option>
+          <option value="termino_contrato">Término de contrato</option>
+          <option value="acordo">Acordo entre as partes</option>
+        </select>
+      </div>
+      <div class="field"><label>Aviso prévio</label>
+        <select id="np-aviso">
+          <option value="trabalhado">Trabalhado</option>
+          <option value="indenizado">Indenizado</option>
+          <option value="dispensado">Dispensado</option>
+        </select>
+      </div>` : ''}
+      <div class="err-msg" id="np-err"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.saveNovoProcesso('${tipo}')">Iniciar processo</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-admissao')?.addEventListener('click', ()=> openModal(novoProcessoForm('admissao')));
+  document.getElementById('btn-new-desligamento')?.addEventListener('click', ()=> openModal(novoProcessoForm('desligamento')));
+  LOTS.saveNovoProcesso = async (tipo)=>{
+    const errEl = document.getElementById('np-err');
+    const colaboradorId = document.getElementById('np-colab').value;
+    if(!colaboradorId){ errEl.textContent='Selecione o colaborador.'; return; }
+    const c = colaboradorById(colaboradorId);
+    if(!canManageColaborador(c?.unidade)){ errEl.textContent='Você não tem permissão para este colaborador.'; return; }
+    if(state.processos.some(p=>p.colaboradorId===colaboradorId && p.tipo===tipo && p.status==='em_andamento')){
+      errEl.textContent='Já existe um processo deste tipo em andamento para este colaborador.'; return;
+    }
+    const dataInicio = document.getElementById('np-data').value || todayISO();
+    const novo = {
+      id: uid(), colaboradorId, tipo, dataInicio,
+      etapas: (tipo==='admissao'?RH_ETAPAS_ADMISSAO:RH_ETAPAS_DESLIGAMENTO).map(nome=>({nome, feito:false})),
+      status:'em_andamento', dataConclusao:null, observacoes:''
+    };
+    if(tipo==='desligamento'){
+      novo.motivoSaida = document.getElementById('np-motivo').value;
+      novo.avisoPrevio = document.getElementById('np-aviso').value;
+    }
+    state.processos.push(novo);
+    await save.processos();
+    logAudit(tipo==='admissao'?'Processo de admissão iniciado':'Processo de desligamento iniciado', c?.nome||'');
+    toast('Processo iniciado.');
+    renderView('rhprocessos'); renderView('rhdash');
+    LOTS.openProcesso(novo.id);
+  };
+  function processoChecklistForm(p){
+    const c = colaboradorById(p.colaboradorId);
+    const feitos = p.etapas.filter(e=>e.feito).length;
+    const pct = p.etapas.length ? Math.round(feitos/p.etapas.length*100) : 0;
+    const podeEditar = p.status!=='concluido' && canManageColaborador(c?.unidade);
+    return `
+      <div class="modal-title">${p.tipo==='admissao'?'Admissão':'Desligamento'} — ${c?c.nome:'—'}</div>
+      <div class="page-sub" style="margin-bottom:6px;">Início: ${fmtDate(p.dataInicio)}${p.status==='concluido'?` · Concluído em ${fmtDate(p.dataConclusao)}`:''}</div>
+      ${p.tipo==='desligamento' ? `<div class="page-sub" style="margin-bottom:10px;">Motivo: ${RH_MOTIVO_DESLIGAMENTO_LABEL[p.motivoSaida]||'—'} · Aviso prévio: ${({trabalhado:'Trabalhado',indenizado:'Indenizado',dispensado:'Dispensado'})[p.avisoPrevio]||'—'}</div>`:''}
+      <div class="checklist-progress"><div class="checklist-progress-fill" style="width:${pct}%;"></div></div>
+      ${p.etapas.map((e,i)=>`<label class="checklist-item"><input type="checkbox" ${e.feito?'checked':''} ${podeEditar?'':'disabled'} onchange="LOTS.toggleEtapaProcesso('${p.id}',${i})"> ${e.nome}</label>`).join('')}
+      <div class="field" style="margin-top:14px;"><label>Observações</label><input id="pp-obs" value="${(p.observacoes||'').replace(/"/g,'&quot;')}" ${podeEditar?'':'disabled'}></div>
+      <div class="err-msg" id="pp-err"></div>
+      <div class="modal-actions">
+        ${podeEditar ? `<button class="btn-primary" onclick="LOTS.concluirProcesso('${p.id}')">Concluir processo</button>` : ''}
+        <button class="btn-ghost" onclick="closeModalGlobal()">Fechar</button>
+        ${podeEditar ? `<button class="btn-danger" onclick="LOTS.deleteProcesso('${p.id}')">Excluir</button>` : ''}
+      </div>`;
+  }
+  LOTS.openProcesso = (id)=>{
+    const p = state.processos.find(x=>x.id===id);
+    if(!p) return;
+    openModal(processoChecklistForm(p));
+  };
+  LOTS.toggleEtapaProcesso = async (id, idx)=>{
+    const p = state.processos.find(x=>x.id===id);
+    if(!p) return;
+    p.etapas[idx].feito = !p.etapas[idx].feito;
+    await save.processos();
+    renderView('rhprocessos');
+    openModal(processoChecklistForm(p));
+  };
+  LOTS.concluirProcesso = async (id)=>{
+    const p = state.processos.find(x=>x.id===id);
+    if(!p) return;
+    const obsEl = document.getElementById('pp-obs');
+    p.observacoes = obsEl ? obsEl.value.trim() : p.observacoes;
+    p.status='concluido';
+    p.dataConclusao = todayISO();
+    const c = colaboradorById(p.colaboradorId);
+    if(c && p.tipo==='desligamento'){
+      c.status='desligado';
+      c.dataDesligamento = p.dataInicio;
+      c.motivoDesligamento = p.motivoSaida;
+      c.avisoPrevio = p.avisoPrevio;
+      await save.colaboradores();
+    }
+    await save.processos();
+    closeModal();
+    renderView('rhprocessos'); renderView('rhcolab'); renderView('rhorg'); renderView('rhdash');
+    logAudit(p.tipo==='admissao'?'Processo de admissão concluído':'Processo de desligamento concluído', c?c.nome:'');
+    toast('Processo concluído.');
+  };
+  LOTS.deleteProcesso = async (id)=>{
+    const p = state.processos.find(x=>x.id===id);
+    if(!p) return;
+    state.processos = state.processos.filter(x=>x.id!==id);
+    await save.processos();
+    closeModal();
+    renderView('rhprocessos'); renderView('rhdash');
+    logAudit('Processo de RH excluído', colaboradorById(p.colaboradorId)?.nome||id);
+  };
+  ['rpfilter-tipo','rpfilter-status'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderProcessos(); });
+  });
+  document.getElementById('btn-clear-rpfilter')?.addEventListener('click', ()=>{
+    document.getElementById('rpfilter-tipo').value='';
+    document.getElementById('rpfilter-status').value='';
+    renderProcessos();
+  });
+  function renderProcessos(){
+    const okIds = visibleColaboradores().map(c=>c.id);
+    const tipoF = document.getElementById('rpfilter-tipo')?.value || '';
+    const stF = document.getElementById('rpfilter-status')?.value || '';
+    let list = state.processos.filter(p=>okIds.includes(p.colaboradorId))
+      .filter(p=>!tipoF||p.tipo===tipoF)
+      .filter(p=>!stF||p.status===stF)
+      .sort((a,b)=>(b.dataInicio||'').localeCompare(a.dataInicio||''));
+
+    const kpiGrid = document.getElementById('rp-kpi-grid');
+    if(kpiGrid){
+      const all = state.processos.filter(p=>okIds.includes(p.colaboradorId));
+      const mesAtual = todayISO().slice(0,7);
+      kpiGrid.innerHTML = [
+        {label:'Admissões em andamento', val: all.filter(p=>p.tipo==='admissao'&&p.status==='em_andamento').length},
+        {label:'Desligamentos em andamento', val: all.filter(p=>p.tipo==='desligamento'&&p.status==='em_andamento').length},
+        {label:'Concluídos no mês', val: all.filter(p=>p.status==='concluido'&&(p.dataConclusao||'').startsWith(mesAtual)).length}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    const tbl = document.getElementById('tbl-processos');
+    if(!tbl) return;
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum processo registrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(p=>{
+      const c = colaboradorById(p.colaboradorId);
+      const feitos = p.etapas.filter(e=>e.feito).length;
+      return `<tr>
+        <td>${c?c.nome:'—'}</td>
+        <td>${p.tipo==='admissao'?'Admissão':'Desligamento'}</td>
+        <td class="mono">${fmtDate(p.dataInicio)}</td>
+        <td class="mono">${feitos}/${p.etapas.length}</td>
+        <td>${p.status==='concluido'?'<span class="badge badge-ok">Concluído</span>':'<span class="badge badge-pending">Em andamento</span>'}</td>
+        <td><div class="action-links"><button class="icon-btn" onclick="LOTS.openProcesso('${p.id}')">abrir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---------------- PAINEL RH (DASHBOARD) ---------------- */
+  function renderRHDashboard(){
+    syncColaboradoresStatus();
+    const todos = visibleColaboradores();
+    const ativos = todos.filter(c=>c.status!=='desligado');
+    const hoje = todayISO();
+    const mesAtual = hoje.slice(0,7);
+    const dozeMesesAtras = addMonths(hoje, -12);
+
+    const admissoesMes = todos.filter(c=>(c.dataAdmissao||'').startsWith(mesAtual)).length;
+    const desligamentosMes = todos.filter(c=>c.status==='desligado' && (c.dataDesligamento||'').startsWith(mesAtual)).length;
+    const desligamentos12m = todos.filter(c=>c.status==='desligado' && c.dataDesligamento && c.dataDesligamento>=dozeMesesAtras).length;
+    const headcountMedio = Math.max(ativos.length + desligamentos12m/2, 1);
+    const turnover = Math.round((desligamentos12m/headcountMedio)*100);
+    const vagasAbertas = visibleVagas().filter(v=>v.status==='aberta'||v.status==='em_selecao').length;
+    const emFeriasOuAfastado = ativos.filter(c=>c.status==='ferias'||c.status==='afastado').length;
+
+    const kpiGrid = document.getElementById('rh-kpi-grid');
+    if(kpiGrid){
+      kpiGrid.innerHTML = [
+        {label:'Colaboradores ativos', val: ativos.filter(c=>c.status==='ativo').length},
+        {label:'Em férias/afastados', val: emFeriasOuAfastado},
+        {label:'Admissões no mês', val: admissoesMes},
+        {label:'Desligamentos no mês', val: desligamentosMes},
+        {label:'Turnover (12 meses)', val: turnover+'%', color: turnover>15?'var(--danger)':''},
+        {label:'Vagas abertas', val: vagasAbertas}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    const vencTbl = document.getElementById('rh-dash-vencimentos');
+    if(vencTbl){
+      const vencendo = ativos.filter(c=>c.status==='ativo'||c.status==='ferias').filter(c=>c.dataAdmissao).map(c=>{
+        const meses = monthsBetween(c.dataAdmissao, hoje);
+        const periodoIndex = Math.floor(meses/12);
+        const deadline = addMonths(c.dataAdmissao, (periodoIndex+1)*12);
+        const dias = diasEntre(hoje, deadline);
+        return {c, deadline, dias};
+      }).filter(x=>x.dias<=60 && x.dias>=-30).sort((a,b)=>a.dias-b.dias);
+      vencTbl.innerHTML = vencendo.length ? vencendo.map(x=>`<tr>
+        <td>${x.c.nome}</td><td>${x.c.cargo||'—'}</td><td>${x.c.unidade||'—'}</td>
+        <td class="mono">${fmtDate(x.deadline)}</td>
+        <td class="mono" style="${x.dias<0?'color:var(--danger);':''}">${x.dias<0?'Vencido há '+Math.abs(x.dias)+'d':x.dias+' dias'}</td>
+      </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Nenhum vencimento próximo.</td></tr>';
+    }
+
+    const hcTbl = document.getElementById('rh-dash-headcount');
+    if(hcTbl){
+      const unidades = [...new Set(ativos.map(c=>c.unidade||'Sem unidade'))].sort();
+      hcTbl.innerHTML = unidades.length ? unidades.map(uo=>{
+        const grupo = ativos.filter(c=>c.unidade===uo);
+        return `<tr>
+          <td>${uo}</td>
+          <td class="mono">${grupo.filter(c=>c.status==='ativo').length}</td>
+          <td class="mono">${grupo.filter(c=>c.status==='ferias').length}</td>
+          <td class="mono">${grupo.filter(c=>c.status==='afastado').length}</td>
+          <td class="mono">${grupo.length}</td>
+        </tr>`;
+      }).join('') : '<tr class="empty-row"><td colspan="5">Nenhum colaborador cadastrado.</td></tr>';
+    }
+
+    const procTbl = document.getElementById('rh-dash-processos');
+    if(procTbl){
+      const okIds = todos.map(c=>c.id);
+      const emAndamento = state.processos.filter(p=>p.status==='em_andamento' && okIds.includes(p.colaboradorId));
+      procTbl.innerHTML = emAndamento.length ? emAndamento.map(p=>{
+        const c = colaboradorById(p.colaboradorId);
+        const feitos = p.etapas.filter(e=>e.feito).length;
+        return `<tr>
+          <td>${c?c.nome:'—'}</td>
+          <td>${p.tipo==='admissao'?'Admissão':'Desligamento'}</td>
+          <td class="mono">${fmtDate(p.dataInicio)}</td>
+          <td class="mono">${feitos}/${p.etapas.length}</td>
+          <td><button class="icon-btn" onclick="LOTS.openProcesso('${p.id}')">abrir</button></td>
+        </tr>`;
+      }).join('') : '<tr class="empty-row"><td colspan="5">Nenhum processo em andamento.</td></tr>';
+    }
+  }
+
+  /* ---------------- USUÁRIOS ---------------- */
+  function renderUsers(){
+    renderAuditLog();
+    const tbl = document.getElementById('tbl-users');
+    if(!tbl) return;
+    if(state.users.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">—</td></tr>'; return; }
+    tbl.innerHTML = state.users.map(u=>`<tr>
+      <td>${u.name}</td>
+      <td class="mono">${u.username}</td>
+      <td style="text-transform:capitalize;">${({admin:'Administrador', gestor:'Gestor de UO'})[u.role] || u.role}</td>
+      <td>${u.uoResponsavel||'—'}</td>
+      <td><div class="action-links">
+        ${u.id!==currentUser().id?`<button class="icon-btn danger" onclick="LOTS.deleteUser('${u.id}')">excluir</button>`:'<span style="color:var(--text-faint); font-size:12px;">você</span>'}
+      </div></td>
+    </tr>`).join('');
+  }
+  function userForm(){
+    return `
+      <div class="modal-title">Novo usuário</div>
+      <div class="field"><label>Nome</label><input id="f-name" placeholder="Nome completo"></div>
+      <div class="field-row">
+        <div class="field"><label>Login</label><input id="f-username" placeholder="usuario" autocomplete="off"></div>
+        <div class="field"><label>Senha</label><input type="password" id="f-password" placeholder="mín. 6 caracteres" autocomplete="new-password"></div>
+      </div>
+      <div class="field"><label>Perfil</label>
+        <select id="f-role">
+          <option value="gestor">Gestor de UO</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="field" id="f-uo-wrap"><label>UO responsável (se gestor)</label>
+        <select id="f-uo">
+          <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+          <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+          <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+        </select>
+      </div>
+      <div class="err-msg" id="f-err"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="btn-save-user">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  document.getElementById('btn-new-user')?.addEventListener('click', ()=>{
+    openModal(userForm());
+    document.getElementById('btn-save-user').addEventListener('click', LOTS.saveUser);
+    document.getElementById('f-role').addEventListener('change', (e)=>{
+      document.getElementById('f-uo-wrap').style.display = e.target.value==='gestor' ? 'block' : 'none';
+    });
+  });
+  LOTS.saveUser = async ()=>{
+    const errEl = document.getElementById('f-err');
+    const name = document.getElementById('f-name').value.trim();
+    const username = document.getElementById('f-username').value.trim();
+    const password = document.getElementById('f-password').value;
+    const role = document.getElementById('f-role').value;
+    const uoResponsavel = document.getElementById('f-uo').value || null;
+    if(!name || !username || password.length<6){ errEl.textContent='Preencha nome, login e senha (mín. 6 caracteres).'; return; }
+    if(state.users.some(u=>u.username===username)){ errEl.textContent='Este login já existe.'; return; }
+    try{
+      let authEmail = usernameToEmail(username);
+      let cred;
+      try{ cred = await secondaryAuth.createUserWithEmailAndPassword(authEmail, password); }
+      catch(e1){
+        if(e1 && e1.code && e1.code.includes('email-already-in-use')){
+          authEmail = generateAuthEmail(username);
+          cred = await secondaryAuth.createUserWithEmailAndPassword(authEmail, password);
+        } else { throw e1; }
+      }
+      await saveProfile({id:cred.user.uid, name, username, authEmail, role, uoResponsavel: role==='gestor'?uoResponsavel:null});
+      await secondaryAuth.signOut();
+      state.users = await loadAllProfiles();
+      closeModal(); renderView('users');
+      logAudit('Usuário criado', `${name} (${username}) — perfil ${role}`);
+      toast('Usuário criado.');
+    }catch(e){ errEl.textContent = firebaseErrorMsg(e); }
+  };
+  LOTS.deleteUser = async (id)=>{
+    const u = state.users.find(x=>x.id===id);
+    await db.collection(PROFILES).doc(id).delete();
+    state.users = await loadAllProfiles();
+    renderView('users');
+    logAudit('Acesso removido', u ? `${u.name} (${u.username})` : id);
+    toast('Acesso removido.');
+  };
+
+  /* ---------------- render dispatch ---------------- */
+  function renderView(name){
+    if(name==='rhdash') renderRHDashboard();
+    else if(name==='rhcolab') renderColaboradores();
+    else if(name==='rhorg') renderOrganograma();
+    else if(name==='rhvagas') renderVagas();
+    else if(name==='rhferias') renderFeriasAfastamentos();
+    else if(name==='rhprocessos') renderProcessos();
+    else if(name==='users') renderUsers();
+  }
+  function renderAll(){
+    ['rhdash','rhcolab','rhorg','rhvagas','rhferias','rhprocessos','users'].forEach(renderView);
+    wrapTablesForScroll();
+  }
+  function wrapTablesForScroll(){
+    document.querySelectorAll('#app-screen table').forEach(t=>{
+      if(t.parentElement && t.parentElement.classList.contains('table-scroll')) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'table-scroll';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    });
+  }
+
+  updateOnlineStatus();
+</script>
+</body>
+</html>
