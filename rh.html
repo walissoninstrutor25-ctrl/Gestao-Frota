@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-18T18-00-00Z -->
+<!-- APP_BUILD:2026-08-19T19-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -680,7 +680,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-18T18-00-00Z';
+  const APP_VERSION = '2026-08-19T19-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1055,8 +1055,27 @@
     pedido_demissao:'Pedido de demissão', demissao_sem_justa_causa:'Demissão sem justa causa',
     demissao_justa_causa:'Demissão por justa causa', termino_contrato:'Término de contrato', acordo:'Acordo entre as partes'
   };
-  const RH_ETAPAS_ADMISSAO = ['Documentação recebida','Exame admissional (ASO)','Contrato assinado','Cadastro em folha/eSocial','Uniformes/equipamentos entregues','Integração e treinamento inicial'];
+  // etapas do processo de admissão — "Teste prático" só entra se o cargo for de motorista
+  function buildEtapasAdmissao(cargo){
+    const nomes = ['Entrevista','Pesquisa social'];
+    if(/motorista/i.test(cargo||'')) nomes.push('Teste prático');
+    nomes.push('Carta proposta','ASO admissional','Documentação','Integração');
+    return nomes.map(nome=>({nome, feito:false}));
+  }
   const RH_ETAPAS_DESLIGAMENTO = ['Aviso comunicado ao colaborador','Exame demissional (ASO)','Devolução de uniformes/equipamentos','Cálculo da rescisão','Homologação/eSocial','Baixa em folha de pagamento'];
+  // acha a unidade de um processo mesmo antes de virar colaborador (admissão em andamento guarda a unidade direto no processo)
+  function processoUnidade(p){
+    if(p.colaboradorId) return colaboradorById(p.colaboradorId)?.unidade;
+    return p.unidade;
+  }
+  function processoNome(p){
+    return colaboradorById(p.colaboradorId)?.nome || p.candidatoNome || '—';
+  }
+  function visibleProcessos(){
+    const u = currentUser();
+    if(u.role==='gestor') return state.processos.filter(p=>processoUnidade(p)===u.uoResponsavel);
+    return state.processos;
+  }
 
   function rhStatusBadge(status){
     if(status==='ativo') return '<span class="badge badge-ok">Ativo</span>';
@@ -1532,31 +1551,62 @@
 
   /* ---------------- ADMISSÃO / DESLIGAMENTO ---------------- */
   function novoProcessoForm(tipo){
-    const colabs = visibleColaboradores().filter(c=>c.status!=='desligado');
+    if(tipo==='desligamento'){
+      const colabs = visibleColaboradores().filter(c=>c.status!=='desligado');
+      return `
+        <div class="modal-title">Novo processo de desligamento</div>
+        <div class="field"><label>Colaborador</label><select id="np-colab"><option value="">Selecione</option>${colabs.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
+        <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
+        <div class="field"><label>Motivo do desligamento</label>
+          <select id="np-motivo">
+            <option value="pedido_demissao">Pedido de demissão</option>
+            <option value="demissao_sem_justa_causa">Demissão sem justa causa</option>
+            <option value="demissao_justa_causa">Demissão por justa causa</option>
+            <option value="termino_contrato">Término de contrato</option>
+            <option value="acordo">Acordo entre as partes</option>
+          </select>
+        </div>
+        <div class="field"><label>Aviso prévio</label>
+          <select id="np-aviso">
+            <option value="trabalhado">Trabalhado</option>
+            <option value="indenizado">Indenizado</option>
+            <option value="dispensado">Dispensado</option>
+          </select>
+        </div>
+        <div class="err-msg" id="np-err"></div>
+        <div class="modal-actions">
+          <button class="btn-primary" onclick="LOTS.saveNovoProcesso('desligamento')">Iniciar processo</button>
+          <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+        </div>`;
+    }
+    // admissão: ainda não existe colaborador — o processo carrega os dados do candidato
+    // até o checklist ser concluído e virar cadastro de verdade
     return `
-      <div class="modal-title">${tipo==='admissao'?'Novo processo de admissão':'Novo processo de desligamento'}</div>
-      <div class="field"><label>Colaborador</label><select id="np-colab"><option value="">Selecione</option>${colabs.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
-      <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
-      ${tipo==='desligamento' ? `
-      <div class="field"><label>Motivo do desligamento</label>
-        <select id="np-motivo">
-          <option value="pedido_demissao">Pedido de demissão</option>
-          <option value="demissao_sem_justa_causa">Demissão sem justa causa</option>
-          <option value="demissao_justa_causa">Demissão por justa causa</option>
-          <option value="termino_contrato">Término de contrato</option>
-          <option value="acordo">Acordo entre as partes</option>
-        </select>
+      <div class="modal-title">Novo processo de admissão</div>
+      <div class="field"><label>Nome do candidato</label><input id="np-nome" placeholder="Nome completo"></div>
+      <div class="field-row">
+        <div class="field"><label>Cargo</label><input id="np-cargo" placeholder="Ex: Motorista, Analista..."></div>
+        <div class="field"><label>Unidade</label>
+          <select id="np-unidade">
+            <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+            <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+            <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+          </select>
+        </div>
       </div>
-      <div class="field"><label>Aviso prévio</label>
-        <select id="np-aviso">
-          <option value="trabalhado">Trabalhado</option>
-          <option value="indenizado">Indenizado</option>
-          <option value="dispensado">Dispensado</option>
-        </select>
-      </div>` : ''}
+      <div class="field-row">
+        <div class="field"><label>Departamento/Setor</label><input id="np-depto" placeholder="Ex: Operações"></div>
+        <div class="field"><label>Tipo de contrato</label>
+          <select id="np-tipocontrato">
+            <option value="CLT">CLT</option><option value="PJ">PJ</option>
+            <option value="Estágio">Estágio</option><option value="Temporário">Temporário</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
       <div class="err-msg" id="np-err"></div>
       <div class="modal-actions">
-        <button class="btn-primary" onclick="LOTS.saveNovoProcesso('${tipo}')">Iniciar processo</button>
+        <button class="btn-primary" onclick="LOTS.saveNovoProcesso('admissao')">Iniciar processo</button>
         <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
       </div>`;
   }
@@ -1564,26 +1614,49 @@
   document.getElementById('btn-new-desligamento')?.addEventListener('click', ()=> openModal(novoProcessoForm('desligamento')));
   LOTS.saveNovoProcesso = async (tipo)=>{
     const errEl = document.getElementById('np-err');
-    const colaboradorId = document.getElementById('np-colab').value;
-    if(!colaboradorId){ errEl.textContent='Selecione o colaborador.'; return; }
-    const c = colaboradorById(colaboradorId);
-    if(!canManageColaborador(c?.unidade)){ errEl.textContent='Você não tem permissão para este colaborador.'; return; }
-    if(state.processos.some(p=>p.colaboradorId===colaboradorId && p.tipo===tipo && p.status==='em_andamento')){
-      errEl.textContent='Já existe um processo deste tipo em andamento para este colaborador.'; return;
-    }
     const dataInicio = document.getElementById('np-data').value || todayISO();
+
+    if(tipo==='desligamento'){
+      const colaboradorId = document.getElementById('np-colab').value;
+      if(!colaboradorId){ errEl.textContent='Selecione o colaborador.'; return; }
+      const c = colaboradorById(colaboradorId);
+      if(!canManageColaborador(c?.unidade)){ errEl.textContent='Você não tem permissão para este colaborador.'; return; }
+      if(state.processos.some(p=>p.colaboradorId===colaboradorId && p.tipo==='desligamento' && p.status==='em_andamento')){
+        errEl.textContent='Já existe um processo de desligamento em andamento para este colaborador.'; return;
+      }
+      const novo = {
+        id: uid(), colaboradorId, tipo:'desligamento', dataInicio,
+        etapas: RH_ETAPAS_DESLIGAMENTO.map(nome=>({nome, feito:false})),
+        status:'em_andamento', dataConclusao:null, observacoes:'',
+        motivoSaida: document.getElementById('np-motivo').value,
+        avisoPrevio: document.getElementById('np-aviso').value
+      };
+      state.processos.push(novo);
+      await save.processos();
+      logAudit('Processo de desligamento iniciado', c?.nome||'');
+      toast('Processo iniciado.');
+      renderView('rhprocessos'); renderView('rhdash');
+      LOTS.openProcesso(novo.id);
+      return;
+    }
+
+    // admissão
+    const nome = document.getElementById('np-nome').value.trim();
+    const cargo = document.getElementById('np-cargo').value.trim();
+    const unidade = document.getElementById('np-unidade').value;
+    if(!nome){ errEl.textContent='Informe o nome do candidato.'; return; }
+    if(!canManageColaborador(unidade)){ errEl.textContent='Você não tem permissão para cadastrar processos nesta unidade.'; return; }
     const novo = {
-      id: uid(), colaboradorId, tipo, dataInicio,
-      etapas: (tipo==='admissao'?RH_ETAPAS_ADMISSAO:RH_ETAPAS_DESLIGAMENTO).map(nome=>({nome, feito:false})),
+      id: uid(), colaboradorId: null, tipo:'admissao', dataInicio,
+      candidatoNome: nome, cargo, unidade,
+      departamento: document.getElementById('np-depto').value.trim(),
+      tipoContrato: document.getElementById('np-tipocontrato').value,
+      etapas: buildEtapasAdmissao(cargo),
       status:'em_andamento', dataConclusao:null, observacoes:''
     };
-    if(tipo==='desligamento'){
-      novo.motivoSaida = document.getElementById('np-motivo').value;
-      novo.avisoPrevio = document.getElementById('np-aviso').value;
-    }
     state.processos.push(novo);
     await save.processos();
-    logAudit(tipo==='admissao'?'Processo de admissão iniciado':'Processo de desligamento iniciado', c?.nome||'');
+    logAudit('Processo de admissão iniciado', nome);
     toast('Processo iniciado.');
     renderView('rhprocessos'); renderView('rhdash');
     LOTS.openProcesso(novo.id);
@@ -1592,21 +1665,73 @@
     const c = colaboradorById(p.colaboradorId);
     const feitos = p.etapas.filter(e=>e.feito).length;
     const pct = p.etapas.length ? Math.round(feitos/p.etapas.length*100) : 0;
-    const podeEditar = p.status!=='concluido' && canManageColaborador(c?.unidade);
+    const podeEditar = p.status!=='concluido' && canManageColaborador(processoUnidade(p));
+    const checklistCompleto = feitos===p.etapas.length;
     return `
-      <div class="modal-title">${p.tipo==='admissao'?'Admissão':'Desligamento'} — ${c?c.nome:'—'}</div>
-      <div class="page-sub" style="margin-bottom:6px;">Início: ${fmtDate(p.dataInicio)}${p.status==='concluido'?` · Concluído em ${fmtDate(p.dataConclusao)}`:''}</div>
+      <div class="modal-title">${p.tipo==='admissao'?'Admissão':'Desligamento'} — ${processoNome(p)}</div>
+      <div class="page-sub" style="margin-bottom:6px;">
+        ${p.tipo==='admissao' ? `${p.cargo||'—'} · ${p.unidade||'—'}${p.departamento?' · '+p.departamento:''} · ` : ''}
+        Início: ${fmtDate(p.dataInicio)}${p.status==='concluido'?` · Concluído em ${fmtDate(p.dataConclusao)}`:''}
+      </div>
       ${p.tipo==='desligamento' ? `<div class="page-sub" style="margin-bottom:10px;">Motivo: ${RH_MOTIVO_DESLIGAMENTO_LABEL[p.motivoSaida]||'—'} · Aviso prévio: ${({trabalhado:'Trabalhado',indenizado:'Indenizado',dispensado:'Dispensado'})[p.avisoPrevio]||'—'}</div>`:''}
       <div class="checklist-progress"><div class="checklist-progress-fill" style="width:${pct}%;"></div></div>
       ${p.etapas.map((e,i)=>`<label class="checklist-item"><input type="checkbox" ${e.feito?'checked':''} ${podeEditar?'':'disabled'} onchange="LOTS.toggleEtapaProcesso('${p.id}',${i})"> ${e.nome}</label>`).join('')}
-      <div class="field" style="margin-top:14px;"><label>Observações</label><input id="pp-obs" value="${(p.observacoes||'').replace(/"/g,'&quot;')}" ${podeEditar?'':'disabled'}></div>
+      <div class="field" style="margin-top:14px;"><label>Observações</label><input id="pp-obs" value="${(p.observacoes||'').replace(/"/g,'&quot;')}" ${podeEditar?'':'disabled'} onchange="LOTS.salvarObsProcesso('${p.id}')"></div>
+      ${p.tipo==='admissao' && checklistCompleto && podeEditar ? `
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin-bottom:12px;">Checklist concluído — finalizar admissão</div>
+        <div class="field-row">
+          <div class="field"><label>Matrícula</label><input id="pp-matricula" placeholder="Opcional"></div>
+          <div class="field"><label>CPF</label><input id="pp-cpf" placeholder="Opcional"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Reporta para (supervisor)</label><select id="pp-supervisor"><option value="">— Nenhum —</option>${visibleColaboradores().filter(x=>x.status!=='desligado').map(x=>`<option value="${x.id}">${x.nome}</option>`).join('')}</select></div>
+          <div class="field"><label>Data de admissão</label><input type="date" id="pp-admissao" value="${todayISO()}"></div>
+        </div>
+      ` : ''}
       <div class="err-msg" id="pp-err"></div>
       <div class="modal-actions">
-        ${podeEditar ? `<button class="btn-primary" onclick="LOTS.concluirProcesso('${p.id}')">Concluir processo</button>` : ''}
+        ${p.tipo==='admissao' && checklistCompleto && podeEditar ? `<button class="btn-primary" onclick="LOTS.finalizarAdmissao('${p.id}')">Cadastrar colaborador</button>` : ''}
+        ${p.tipo==='desligamento' && podeEditar ? `<button class="btn-primary" onclick="LOTS.concluirProcesso('${p.id}')">Concluir processo</button>` : ''}
         <button class="btn-ghost" onclick="closeModalGlobal()">Fechar</button>
         ${podeEditar ? `<button class="btn-danger" onclick="LOTS.deleteProcesso('${p.id}')">Excluir</button>` : ''}
       </div>`;
   }
+  LOTS.salvarObsProcesso = async (id)=>{
+    const p = state.processos.find(x=>x.id===id);
+    const el = document.getElementById('pp-obs');
+    if(!p || !el) return;
+    p.observacoes = el.value.trim();
+    await save.processos();
+  };
+  LOTS.finalizarAdmissao = async (id)=>{
+    const p = state.processos.find(x=>x.id===id);
+    if(!p) return;
+    const errEl = document.getElementById('pp-err');
+    const dataAdmissao = document.getElementById('pp-admissao').value;
+    if(!dataAdmissao){ errEl.textContent='Informe a data de admissão.'; return; }
+    const novoColaborador = {
+      id: uid(),
+      matricula: document.getElementById('pp-matricula').value.trim(),
+      nome: p.candidatoNome,
+      cpf: document.getElementById('pp-cpf').value.trim(),
+      dataNascimento: '', telefone: '', email: '',
+      cargo: p.cargo || '', departamento: p.departamento || '', unidade: p.unidade,
+      supervisorId: document.getElementById('pp-supervisor').value || null,
+      dataAdmissao, tipoContrato: p.tipoContrato || 'CLT',
+      observacoes: p.observacoes || '', status: 'ativo', dataCadastro: todayISO()
+    };
+    state.colaboradores.push(novoColaborador);
+    await save.colaboradores();
+    p.status = 'concluido';
+    p.dataConclusao = todayISO();
+    p.colaboradorId = novoColaborador.id;
+    await save.processos();
+    closeModal();
+    renderAll();
+    logAudit('Processo de admissão concluído — colaborador cadastrado', novoColaborador.nome);
+    toast('Colaborador cadastrado como ativo!');
+  };
   LOTS.openProcesso = (id)=>{
     const p = state.processos.find(x=>x.id===id);
     if(!p) return;
@@ -1615,10 +1740,21 @@
   LOTS.toggleEtapaProcesso = async (id, idx)=>{
     const p = state.processos.find(x=>x.id===id);
     if(!p) return;
+    const eraCompleto = p.etapas.every(e=>e.feito);
     p.etapas[idx].feito = !p.etapas[idx].feito;
     await save.processos();
     renderView('rhprocessos');
-    openModal(processoChecklistForm(p));
+    const agoraCompleto = p.etapas.every(e=>e.feito);
+    if(eraCompleto !== agoraCompleto){
+      // a estrutura do modal muda (aparecem/somem os campos de finalizar admissão) — recria
+      openModal(processoChecklistForm(p));
+    } else {
+      // só atualiza a barra de progresso, sem destruir/recriar as caixinhas de marcar
+      const feitos = p.etapas.filter(e=>e.feito).length;
+      const pct = p.etapas.length ? Math.round(feitos/p.etapas.length*100) : 0;
+      const fill = document.querySelector('#modal-body .checklist-progress-fill');
+      if(fill) fill.style.width = pct+'%';
+    }
   };
   LOTS.concluirProcesso = async (id)=>{
     const p = state.processos.find(x=>x.id===id);
@@ -1648,7 +1784,7 @@
     await save.processos();
     closeModal();
     renderView('rhprocessos'); renderView('rhdash');
-    logAudit('Processo de RH excluído', colaboradorById(p.colaboradorId)?.nome||id);
+    logAudit('Processo de RH excluído', processoNome(p));
   };
   ['rpfilter-tipo','rpfilter-status'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderProcessos(); });
@@ -1659,17 +1795,16 @@
     renderProcessos();
   });
   function renderProcessos(){
-    const okIds = visibleColaboradores().map(c=>c.id);
     const tipoF = document.getElementById('rpfilter-tipo')?.value || '';
     const stF = document.getElementById('rpfilter-status')?.value || '';
-    let list = state.processos.filter(p=>okIds.includes(p.colaboradorId))
+    let list = visibleProcessos()
       .filter(p=>!tipoF||p.tipo===tipoF)
       .filter(p=>!stF||p.status===stF)
       .sort((a,b)=>(b.dataInicio||'').localeCompare(a.dataInicio||''));
 
     const kpiGrid = document.getElementById('rp-kpi-grid');
     if(kpiGrid){
-      const all = state.processos.filter(p=>okIds.includes(p.colaboradorId));
+      const all = visibleProcessos();
       const mesAtual = todayISO().slice(0,7);
       kpiGrid.innerHTML = [
         {label:'Admissões em andamento', val: all.filter(p=>p.tipo==='admissao'&&p.status==='em_andamento').length},
@@ -1682,10 +1817,9 @@
     if(!tbl) return;
     if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum processo registrado.</td></tr>'; return; }
     tbl.innerHTML = list.map(p=>{
-      const c = colaboradorById(p.colaboradorId);
       const feitos = p.etapas.filter(e=>e.feito).length;
       return `<tr>
-        <td>${c?c.nome:'—'}</td>
+        <td>${processoNome(p)}</td>
         <td>${p.tipo==='admissao'?'Admissão':'Desligamento'}</td>
         <td class="mono">${fmtDate(p.dataInicio)}</td>
         <td class="mono">${feitos}/${p.etapas.length}</td>
@@ -1757,13 +1891,11 @@
 
     const procTbl = document.getElementById('rh-dash-processos');
     if(procTbl){
-      const okIds = todos.map(c=>c.id);
-      const emAndamento = state.processos.filter(p=>p.status==='em_andamento' && okIds.includes(p.colaboradorId));
+      const emAndamento = visibleProcessos().filter(p=>p.status==='em_andamento');
       procTbl.innerHTML = emAndamento.length ? emAndamento.map(p=>{
-        const c = colaboradorById(p.colaboradorId);
         const feitos = p.etapas.filter(e=>e.feito).length;
         return `<tr>
-          <td>${c?c.nome:'—'}</td>
+          <td>${processoNome(p)}</td>
           <td>${p.tipo==='admissao'?'Admissão':'Desligamento'}</td>
           <td class="mono">${fmtDate(p.dataInicio)}</td>
           <td class="mono">${feitos}/${p.etapas.length}</td>
