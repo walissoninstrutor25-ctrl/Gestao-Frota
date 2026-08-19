@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T00-15-00Z -->
+<!-- APP_BUILD:2026-08-09T00-35-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -760,6 +760,7 @@
             </tr></thead>
             <tbody id="fuelsheet-body"></tbody></table>
           </div>
+          <datalist id="fuelsheet-vehicle-list"></datalist>
           <button class="btn-primary" id="btn-fuelsheet-save" style="margin-top:14px;">💾 Salvar lançamentos</button>
           <div class="err-msg" id="fuelsheet-msg"></div>
         </div>
@@ -1659,7 +1660,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T00-15-00Z';
+  const APP_VERSION = '2026-08-09T00-35-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2641,16 +2642,26 @@
 
   /* ---------------- planilha de abastecimento dentro do próprio sistema (grid editável) ---------------- */
   function fuelSheetVehicleOptions(){
-    return '<option value="">Selecione a frota</option>' + state.vehicles
+    return state.vehicles
       .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')))
-      .map(v=>`<option value="${v.id}">${v.frota||'—'} — ${v.plate}</option>`).join('');
+      .map(v=>`<option data-id="${v.id}" value="${v.frota||'—'} — ${v.plate}"></option>`).join('');
+  }
+  function fuelSheetRefreshDatalist(){
+    const dl = document.getElementById('fuelsheet-vehicle-list');
+    if(dl) dl.innerHTML = fuelSheetVehicleOptions();
+  }
+  function fuelSheetFindVehicleByLabel(label){
+    const alvo = normKey(label);
+    if(!alvo) return null;
+    return state.vehicles.find(v=>normKey(`${v.frota||'—'} — ${v.plate}`)===alvo) || null;
   }
   function fuelSheetAddRow(){
     const body = document.getElementById('fuelsheet-body');
     if(!body) return;
+    fuelSheetRefreshDatalist();
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><select class="fs-frota">${fuelSheetVehicleOptions()}</select></td>
+      <td><input type="text" class="fs-frota" list="fuelsheet-vehicle-list" placeholder="Digite a frota ou a placa" autocomplete="off"></td>
       <td class="mono fs-placa">—</td>
       <td><input type="number" class="fs-km" placeholder="0"></td>
       <td><input type="number" class="fs-litros" placeholder="0" step="0.01"></td>
@@ -2664,8 +2675,10 @@
       <td><button class="icon-btn danger fs-remove" title="Remover linha">✕</button></td>
     `;
     body.appendChild(tr);
-    tr.querySelector('.fs-frota').addEventListener('change', (e)=>{
-      const v = vehicleById(e.target.value);
+    const frotaInput = tr.querySelector('.fs-frota');
+    frotaInput.addEventListener('input', (e)=>{
+      const v = fuelSheetFindVehicleByLabel(e.target.value);
+      tr.dataset.vehicleId = v ? v.id : '';
       tr.querySelector('.fs-placa').textContent = v ? v.plate : '—';
     });
     tr.querySelector('.fs-remove').addEventListener('click', ()=>{
@@ -2689,16 +2702,17 @@
     const erros = [];
     const validas = [];
     linhas.forEach((tr, i)=>{
-      const vehicleId = tr.querySelector('.fs-frota').value;
+      const frotaTexto = tr.querySelector('.fs-frota').value.trim();
+      const vehicleId = tr.dataset.vehicleId || '';
       const km = Number(tr.querySelector('.fs-km').value)||0;
       const litros = Number(tr.querySelector('.fs-litros').value)||0;
       const posto = tr.querySelector('.fs-posto').value;
       const data = tr.querySelector('.fs-data').value;
       const linhaNum = i+1;
-      const algoPreenchido = vehicleId || km || litros;
+      const algoPreenchido = frotaTexto || km || litros;
       if(!algoPreenchido) return; // linha em branco, ignora
 
-      if(!vehicleId){ erros.push(`Linha ${linhaNum}: selecione a frota.`); return; }
+      if(!vehicleId){ erros.push(`Linha ${linhaNum}: "${frotaTexto}" não bate com nenhuma frota/placa cadastrada — escolha uma opção da lista.`); return; }
       const v = vehicleById(vehicleId);
       if(!v){ erros.push(`Linha ${linhaNum}: veículo não encontrado.`); return; }
       if(km<=0){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): informe o KM atual.`); return; }
