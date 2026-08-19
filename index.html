@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-08T23-00-00Z -->
+<!-- APP_BUILD:2026-08-09T00-15-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -566,14 +566,18 @@
         <div class="card" id="card-controle-km">
           <div class="card-head"><div class="card-title">Controle de KM</div></div>
           <div class="page-sub" style="margin:-6px 0 10px 2px;">KM atual (do último abastecimento ou da importação em lote) x KM limite do contrato, no regime de Limite de KM mensal (limite mensal × 12 = limite anual). Km excedente: Strada R$ 0,95/km, Polo/Saveiro R$ 0,75/km.</div>
-          <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>KM limite (anual)</th><th>KM restante</th><th>Custo excedente</th><th></th></tr></thead>
-          <tbody id="dash-controle-km"></tbody></table>
+          <div style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>KM limite (anual)</th><th>KM restante</th><th>Custo excedente</th><th></th></tr></thead>
+            <tbody id="dash-controle-km"></tbody></table>
+          </div>
         </div>
 
         <div class="card">
           <div class="card-head"><div class="card-title">Lançamentos</div></div>
-          <table><thead><tr><th>Data</th><th>Unidade</th><th>Veículo</th><th>Tipo</th><th>KM</th><th>Litros</th><th>Valor</th><th>Motorista / Descrição</th></tr></thead>
-          <tbody id="dash-recent"></tbody></table>
+          <div style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Data</th><th>Unidade</th><th>Veículo</th><th>Tipo</th><th>KM</th><th>Litros</th><th>Valor</th><th>Motorista / Descrição</th></tr></thead>
+            <tbody id="dash-recent"></tbody></table>
+          </div>
         </div>
       </div>
 
@@ -629,6 +633,7 @@
               <select id="rf-franquia">
                 <option value="3000">3.000 km</option>
                 <option value="5000">5.000 km</option>
+                <option value="7000">7.000 km</option>
                 <option value="8000">8.000 km</option>
                 <option value="9000">9.000 km</option>
                 <option value="12000">12.000 km</option>
@@ -669,12 +674,12 @@
           </div>
 
           <div class="field">
-            <label>Pasta dos CRLVs (pra usar o botão "ver CRLV" da lista abaixo)</label>
+            <label>📁 Pasta dos CRLVs — vale pra TODAS as frotas (leve e pesada)</label>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-              <button type="button" class="btn-ghost btn-sm" id="btn-pick-onedrive-veh">📁 Selecionar pasta</button>
+              <button type="button" class="btn-ghost btn-sm" id="btn-pick-onedrive-veh">📁 Selecionar / trocar pasta</button>
               <span class="page-sub" id="onedrive-folder-name-veh" style="margin:0;">Nenhuma pasta selecionada ainda.</span>
             </div>
-            <div class="page-sub" style="margin-top:6px;">Escolha a pasta do OneDrive (sincronizada no seu computador) onde ficam os PDFs de CRLV, nomeados como Frota_Placa (ex: 4823-MNS_ABC1D23.pdf). Selecionar aqui uma vez já vale pra qualquer veículo — cada aparelho/navegador precisa selecionar a sua própria vez.</div>
+            <div class="page-sub" style="margin-top:6px;">Uma pasta só, usada pelo botão "ver CRLV" de <b>qualquer veículo do sistema</b> — leve ou pesado, já cadastrado ou que for cadastrar depois. Não precisa selecionar de novo pra cada frota. Escolha a pasta do OneDrive sincronizada no seu computador onde ficam todos os PDFs de CRLV, nomeados como Frota_Placa (ex: 4823-MNS_ABC1D23.pdf). Se precisar trocar de pasta no futuro, é só clicar de novo aqui. Essa seleção vale só neste aparelho/navegador — em outro computador, selecione lá também (mesma pasta).</div>
           </div>
 
           <div class="expand-toggle" id="toggle-embarcados">📡 Cadastro Embarcados <span class="expand-arrow">▾</span></div>
@@ -875,9 +880,16 @@
                 <option value="">Selecione</option>
                 <option value="Preventiva">Preventiva</option>
                 <option value="Corretiva">Corretiva</option>
+                <option value="Revisão">Revisão</option>
               </select>
             </div>
             <div class="field" id="cf-mecanica-km-wrap" style="display:none;"><label>KM de revisão</label><input id="cf-mecanica-km" placeholder="Ex: 45000"></div>
+            <div class="field" id="cf-sem-custo-wrap" style="display:none;">
+              <label>&nbsp;</label>
+              <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+                <input type="checkbox" id="cf-sem-custo" style="width:auto;"> Sem custo (revisão gratuita/garantia)
+              </label>
+            </div>
           </div>
 
           <div class="field-grid-4" id="cf-despachante-row" style="display:none;">
@@ -1374,6 +1386,15 @@
               </select>
             </div>
           </div>
+
+          <div class="field">
+            <label>📁 Pasta dos CRLVs — vale pra TODAS as frotas (leve e pesada)</label>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn-ghost btn-sm" id="btn-pick-onedrive-heavy">📁 Selecionar / trocar pasta</button>
+              <span class="page-sub" id="onedrive-folder-name-heavy" style="margin:0;">Nenhuma pasta selecionada ainda.</span>
+            </div>
+            <div class="page-sub" style="margin-top:6px;">É a mesma pasta usada pela Frota Leve — mudar aqui muda em todo o sistema. Nomeie os PDFs como Frota_Placa (ex: T-045_ABC1D23.pdf).</div>
+          </div>
           <button class="btn-primary reg-submit" id="btn-register-heavy">Cadastrar veículo</button>
           <div class="err-msg" id="hf-err"></div>
         </div>
@@ -1638,7 +1659,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-08T23-00-00Z';
+  const APP_VERSION = '2026-08-09T00-15-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2886,6 +2907,8 @@
     if(el2) el2.textContent = text;
     const el3 = document.getElementById('onedrive-folder-name-veh');
     if(el3) el3.textContent = text;
+    const el4 = document.getElementById('onedrive-folder-name-heavy');
+    if(el4) el4.textContent = text;
   }
   async function pickOneDriveFolder(){
     if(!('showDirectoryPicker' in window)){
@@ -2905,6 +2928,7 @@
   document.getElementById('btn-pick-onedrive')?.addEventListener('click', pickOneDriveFolder);
   document.getElementById('btn-pick-onedrive-sin')?.addEventListener('click', pickOneDriveFolder);
   document.getElementById('btn-pick-onedrive-veh')?.addEventListener('click', pickOneDriveFolder);
+  document.getElementById('btn-pick-onedrive-heavy')?.addEventListener('click', pickOneDriveFolder);
   async function restoreOneDriveFolder(){
     if(!('indexedDB' in window)) return;
     try{
@@ -3046,15 +3070,24 @@
     document.getElementById('cf-funilaria-servico-wrap').style.display = e.target.value ? 'block' : 'none';
   });
   document.getElementById('cf-mecanica-tipo')?.addEventListener('change', (e)=>{
-    document.getElementById('cf-mecanica-km-wrap').style.display = e.target.value==='Preventiva' ? 'block' : 'none';
+    const isRevisao = e.target.value==='Revisão';
+    document.getElementById('cf-mecanica-km-wrap').style.display = (e.target.value==='Preventiva' || isRevisao) ? 'block' : 'none';
+    document.getElementById('cf-sem-custo-wrap').style.display = isRevisao ? 'block' : 'none';
+    if(!isRevisao){ document.getElementById('cf-sem-custo').checked = false; document.getElementById('cf-value').disabled = false; }
+  });
+  document.getElementById('cf-sem-custo')?.addEventListener('change', (e)=>{
+    const valEl = document.getElementById('cf-value');
+    valEl.disabled = e.target.checked;
+    if(e.target.checked) valEl.value = '0';
   });
 
   document.getElementById('btn-save-cost')?.addEventListener('click', async ()=>{
     const errEl = document.getElementById('cf-err');
     const vehicleId = document.getElementById('cf-vehicle').value;
     if(!vehicleId){ errEl.textContent='Selecione um veículo.'; return; }
-    const value = Number(document.getElementById('cf-value').value)||0;
-    if(value<=0){ errEl.textContent='Informe o valor do serviço.'; return; }
+    const semCusto = document.getElementById('cf-sem-custo').checked;
+    const value = semCusto ? 0 : (Number(document.getElementById('cf-value').value)||0);
+    if(!semCusto && value<=0){ errEl.textContent='Informe o valor do serviço (ou marque "Sem custo").'; return; }
     errEl.textContent='';
 
     const rec = {
@@ -3114,6 +3147,19 @@
     state.costs.push(rec);
     await save.costs();
 
+    // se for uma Revisão de Mecânica, marca o km dessa revisão no veículo —
+    // o Controle de Revisão do Painel usa isso como base pra próxima revisão (10.000 km depois)
+    if(rec.category==='Mecânica' && rec.mecanicaTipo==='Revisão'){
+      const v = vehicleById(rec.vehicleId);
+      if(v){
+        const kmRevisao = Number(rec.mecanicaKmRevisao) || rec.km || kmAtualDaFrota(rec.vehicleId);
+        if(kmRevisao>0){
+          v.kmUltimaRevisao = kmRevisao;
+          await save.vehicles();
+        }
+      }
+    }
+
     // limpa o formulário
     document.getElementById('cf-vehicle').value='';
     document.getElementById('cf-plate').value='';
@@ -3138,6 +3184,9 @@
     document.getElementById('cf-funilaria-servico-wrap').style.display='none';
     document.getElementById('cf-mecanica-row').style.display='none';
     document.getElementById('cf-mecanica-km-wrap').style.display='none';
+    document.getElementById('cf-sem-custo-wrap').style.display='none';
+    document.getElementById('cf-sem-custo').checked=false;
+    document.getElementById('cf-value').disabled=false;
     document.getElementById('cf-despachante-row').style.display='none';
     document.getElementById('cf-servico-datas-row').style.display='none';
 
@@ -5165,6 +5214,8 @@
 
     // ---- Controle de Revisão: revisão a cada 10.000 km, alerta a 1.000 km ----
     // KM usado é o maior km já registrado na planilha de abastecimento (atualizada semanalmente), não o km do cadastro.
+    // Base do ciclo: km da última revisão lançada em Custos Extras (Mecânica > Revisão); se nunca teve
+    // revisão lançada, usa a base 0 (múltiplos de 10.000 desde o começo, como já era antes).
     const revisaoBody = document.getElementById('dash-revisao');
     const revisaoKpiGrid = document.getElementById('revisao-kpi-grid');
     if(revisaoBody){
@@ -5174,8 +5225,10 @@
         .map(v=>{
           const km0 = kmAtualDaFrota(v.id);
           if(km0<=0) return null; // sem abastecimento registrado ainda pra esse veículo: não dá pra avaliar
-          const resto = km0 % REVISAO_INTERVALO_KM;
-          const faltam = resto===0 ? 0 : (REVISAO_INTERVALO_KM - resto);
+          const baseline = Number(v.kmUltimaRevisao)||0;
+          const kmDesde = Math.max(0, km0 - baseline);
+          const resto = kmDesde % REVISAO_INTERVALO_KM;
+          const faltam = resto===0 ? (kmDesde===0 ? REVISAO_INTERVALO_KM : 0) : (REVISAO_INTERVALO_KM - resto);
           return {v, km0, faltam};
         })
         .filter(Boolean);
