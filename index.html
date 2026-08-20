@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T00-35-00Z -->
+<!-- APP_BUILD:2026-08-09T01-40-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -328,6 +328,8 @@
      assim ela nunca "quebra"/estica a página inteira — em celular, tablet ou PC,
      só a tabela rola de lado, o resto da tela (menu, filtros, cards) fica parado. */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:12px; border-radius:8px;}
+  /* rolagem vertical com cabeçalho fixo — usado no Controle de KM, Lançamentos e lista de veículos */
+  .table-scroll-y thead th{position:sticky; top:0; background:var(--surface); z-index:1; box-shadow:0 1px 0 var(--line);}
   .table-scroll table{margin-top:0;}
   .table-scroll table td, .table-scroll table th{white-space:nowrap;}
   .table-scroll table td.wrap-ok{white-space:normal; min-width:160px;}
@@ -566,7 +568,7 @@
         <div class="card" id="card-controle-km">
           <div class="card-head"><div class="card-title">Controle de KM</div></div>
           <div class="page-sub" style="margin:-6px 0 10px 2px;">KM atual (do último abastecimento ou da importação em lote) x KM limite do contrato, no regime de Limite de KM mensal (limite mensal × 12 = limite anual). Km excedente: Strada R$ 0,95/km, Polo/Saveiro R$ 0,75/km.</div>
-          <div style="max-height:420px; overflow-y:auto;">
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
             <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>KM atual</th><th>KM limite (anual)</th><th>KM restante</th><th>Custo excedente</th><th></th></tr></thead>
             <tbody id="dash-controle-km"></tbody></table>
           </div>
@@ -574,8 +576,8 @@
 
         <div class="card">
           <div class="card-head"><div class="card-title">Lançamentos</div></div>
-          <div style="max-height:420px; overflow-y:auto;">
-            <table><thead><tr><th>Data</th><th>Unidade</th><th>Veículo</th><th>Tipo</th><th>KM</th><th>Litros</th><th>Valor</th><th>Motorista / Descrição</th></tr></thead>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Data</th><th>Unidade</th><th>Veículo</th><th>Tipo</th><th>KM</th><th>Litros</th><th>Valor</th><th>Posto / Descrição</th></tr></thead>
             <tbody id="dash-recent"></tbody></table>
           </div>
         </div>
@@ -714,7 +716,7 @@
         </div>
 
         <div class="card">
-          <div style="max-height:520px; overflow-y:auto;">
+          <div class="table-scroll-y" style="max-height:520px; overflow-y:auto;">
             <table><thead><tr><th>Frota</th><th>Placa</th><th>Modelo</th><th>UO</th><th>KM atual</th><th>Locadora</th><th>Valor locação</th><th>KM limite do contrato</th><th>Status</th><th></th></tr></thead>
             <tbody id="tbl-vehicles"></tbody></table>
           </div>
@@ -724,11 +726,11 @@
         <div class="card">
           <div class="card-head"><div class="card-title">Importação de KM em lote para atualização de sistema</div></div>
           <div class="page-sub" style="margin-bottom:12px;">
-            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>KM Inicial</b>. Cada linha precisa bater Frota <u>e</u> Placa com um veículo já cadastrado — se não bater, nada é importado até você corrigir a planilha. Use isso pra ajustar o km de partida de vários veículos de uma vez (ex: veículo comprado usado, ou acerto de km no início do uso do sistema).
+            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>KM Atual</b>. Cada linha precisa bater Frota <u>e</u> Placa com um veículo já cadastrado — se não bater, nada é importado até você corrigir a planilha. Use isso pra atualizar o km de vários veículos de uma vez (ex: acerto de km, veículo comprado usado, ou atualização periódica do sistema).
           </div>
           <div class="field-grid-4" style="align-items:end;">
             <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-kminicial-file" accept=".xlsx,.xls,.csv"></div>
-            <div class="field"><button class="btn-primary" id="btn-import-kminicial" style="width:100%;">⬆ Importar KM inicial</button></div>
+            <div class="field"><button class="btn-primary" id="btn-import-kminicial" style="width:100%;">⬆ Importar KM atual</button></div>
           </div>
           <div class="err-msg" id="import-kminicial-msg"></div>
           <div id="import-kminicial-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06);"></div>
@@ -1660,7 +1662,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T00-35-00Z';
+  const APP_VERSION = '2026-08-09T01-40-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2268,7 +2270,7 @@
         const frota = String(pickCol(row,'frota')||'').trim();
         const placaCol = pickCol(row,'placa');
         const placaRaw = String(placaCol||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-        const kmInicial = Number(pickCol(row,'km inicial','kminicial','km'))||0;
+        const kmInicial = Number(pickCol(row,'km atual','kmatual','km inicial','kminicial','km'))||0;
         if(!frota && !placaRaw) return; // linha em branco, ignora
         const v = state.vehicles.find(x=>String(x.frota||'').trim()===frota);
         if(!v){ erros.push(`Linha ${linha}: Frota "${frota}" não encontrada no cadastro.`); return; }
@@ -2287,7 +2289,7 @@
       validos.forEach(({v,kmInicial})=>{ v.km = kmInicial; });
       await save.vehicles();
       msgEl.style.color='var(--go)';
-      msgEl.textContent = `${validos.length} veículo(s) com KM inicial atualizado.`;
+      msgEl.textContent = `${validos.length} veículo(s) com KM atual atualizado.`;
       fileInput.value='';
       renderView('vehicles'); renderView('dashboard');
     }catch(e){
@@ -2486,7 +2488,9 @@
     if(id){
       Object.assign(vehicleById(id), data);
     } else {
-      state.vehicles.push({id:uid(), consumoEsperado:0, precoLitro:0, ...data});
+      // guarda o km de início do regime (fixo, não muda quando o km atual for atualizado
+      // depois pelos abastecimentos) — é a referência pro cálculo de km rodado no Controle de KM.
+      state.vehicles.push({id:uid(), consumoEsperado:0, precoLitro:0, kmInicioRegime:data.km, ...data});
     }
     await save.vehicles();
     fillVehicleRegForm(null);
@@ -2529,6 +2533,28 @@
     renderView('fuel');
   });
 
+  // filtro compartilhado do BI de combustível (usado no KPI, no histórico e nos rankings)
+  function getFuelBIFiltered(){
+    const start = document.getElementById('bifuel-start')?.value || '';
+    const end = document.getElementById('bifuel-end')?.value || '';
+    const month = document.getElementById('bifuel-month')?.value || '';
+    const uo = document.getElementById('bifuel-uo')?.value || '';
+    const vehicleFilter = document.getElementById('bifuel-vehicle')?.value || '';
+
+    const okVids = visibleVehicles()
+      .filter(v => !uo || v.unidade===uo)
+      .filter(v => !vehicleFilter || v.id===vehicleFilter)
+      .map(v=>v.id);
+
+    return visibleFuel().filter(f=>{
+      if(!okVids.includes(f.vehicleId)) return false;
+      if(start && f.date<start) return false;
+      if(end && f.date>end) return false;
+      if(month && f.date?.slice(0,7)!==month) return false;
+      return true;
+    });
+  }
+
   function renderFuel(){
     populateFuelParamsSelect();
     populateFuelBIFilters();
@@ -2537,8 +2563,9 @@
     const sheetBody = document.getElementById('fuelsheet-body');
     if(sheetBody && sheetBody.children.length===0) fuelSheetReset();
     const tbl = document.getElementById('tbl-fuel');
-    const list = visibleFuel().slice().sort((a,b)=>b.date.localeCompare(a.date));
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum abastecimento registrado.</td></tr>'; return; }
+    // usa o mesmo filtro do BI acima (Período, Mês, UO, Veículo) — antes mostrava tudo sem filtrar
+    const list = getFuelBIFiltered().slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum abastecimento encontrado para os filtros selecionados.</td></tr>'; return; }
     tbl.innerHTML = list.map(f=>{
       const v = vehicleById(f.vehicleId);
       return `<tr>
@@ -2772,12 +2799,32 @@
     }).join('');
     mSel.value = months.includes(keepM) ? keepM : '';
   }
+  function refreshFuelBIAndTable(){
+    renderFuelBI();
+    const tbl = document.getElementById('tbl-fuel');
+    if(!tbl) return;
+    const list = getFuelBIFiltered().slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum abastecimento encontrado para os filtros selecionados.</td></tr>'; return; }
+    tbl.innerHTML = list.map(f=>{
+      const v = vehicleById(f.vehicleId);
+      return `<tr>
+        <td class="mono">${fmtDate(f.date)}</td>
+        <td class="mono">${v?.frota||'—'}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td class="mono">${f.liters} L</td>
+        <td class="mono">${fmtMoney(f.value)}</td>
+        <td class="mono">${Number(f.km).toLocaleString('pt-BR')} km</td>
+        <td>${f.station||'—'}</td>
+        <td><div class="action-links">${canDelete() ? `<button class="icon-btn danger" onclick="LOTS.deleteFuel('${f.id}')">excluir</button>` : ''}</div></td>
+      </tr>`;
+    }).join('');
+  }
   ['bifuel-start','bifuel-end','bifuel-month','bifuel-uo','bifuel-vehicle'].forEach(id=>{
-    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderFuelBI(); });
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) refreshFuelBIAndTable(); });
   });
   document.getElementById('btn-clear-bifuel')?.addEventListener('click', ()=>{
     ['bifuel-start','bifuel-end','bifuel-month','bifuel-uo','bifuel-vehicle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    renderFuelBI();
+    refreshFuelBIAndTable();
   });
 
   function renderFuelBI(){
@@ -5234,8 +5281,9 @@
     const revisaoKpiGrid = document.getElementById('revisao-kpi-grid');
     if(revisaoBody){
       // avalia a frota ativa inteira (não só quem está perto) pra calcular os % gerais
+      // (v.status!=='inativo' em vez de ==='ativo': veículo sem status definido também entra, evita sumir da lista)
       const frotaAvaliada = vlist
-        .filter(v=>v.status==='ativo')
+        .filter(v=>v.status!=='inativo')
         .map(v=>{
           const km0 = kmAtualDaFrota(v.id);
           if(km0<=0) return null; // sem abastecimento registrado ainda pra esse veículo: não dá pra avaliar
@@ -5261,7 +5309,7 @@
 
       const revisaoList = frotaAvaliada
         .filter(r=>r.faltam<=REVISAO_ALERTA_KM)
-        .sort((a,b)=>a.faltam-b.faltam);
+        .sort((a,b)=>a.faltam-b.faltam); // sempre do menor faltante pro maior
       if(revisaoList.length===0){
         revisaoBody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhum veículo próximo da revisão no momento.</td></tr>';
       } else {
@@ -5270,7 +5318,7 @@
           <td><span class="plate">${r.v.plate}</span></td>
           <td>${r.v.unidade||'—'}</td>
           <td class="mono">${r.km0.toLocaleString('pt-BR')} km</td>
-          <td class="mono">${r.faltam===0 ? '<span class="badge badge-danger">Vencida</span>' : r.faltam.toLocaleString('pt-BR')+' km'}</td>
+          <td class="mono" style="color:var(--danger); font-weight:700;">${r.faltam===0 ? '<span class="badge badge-danger">Vencida</span>' : r.faltam.toLocaleString('pt-BR')+' km'}</td>
         </tr>`).join('');
       }
     }
@@ -5284,18 +5332,24 @@
         if(m.includes('polo') || m.includes('saveiro')) return 0.75;
         return null;
       };
+      let precisaSalvarBaseline = false;
       const linhas = vlist
-        .filter(v=>v.status==='ativo' && v.regime==='Limite de KM mensal' && v.franquiaKm && v.franquiaKm!=='sem-limite')
+        .filter(v=>v.status!=='inativo' && v.regime==='Limite de KM mensal' && v.franquiaKm && v.franquiaKm!=='sem-limite')
         .map(v=>{
+          // migração: veículo cadastrado antes dessa correção não tem baseline fixo ainda —
+          // fixa agora no km atual dele (a partir de agora o km rodado passa a contar certo)
+          if(v.kmInicioRegime==null){ v.kmInicioRegime = Number(v.km)||0; precisaSalvarBaseline = true; }
           const kmAtual = kmAtualDaFrota(v.id);
           const limiteAnual = Number(v.franquiaKm)*12;
-          const kmRodado = Math.max(0, kmAtual - (Number(v.km)||0));
+          const kmRodado = Math.max(0, kmAtual - Number(v.kmInicioRegime));
           const kmRestante = limiteAnual - kmRodado;
           const excedente = kmRestante<0 ? Math.abs(kmRestante) : 0;
           const custoKm = custoExcedidoPorModelo(v.model);
           const custoTotal = (excedente>0 && custoKm!==null) ? excedente*custoKm : 0;
           return {v, kmAtual, limiteAnual, kmRestante, excedente, custoKm, custoTotal};
-        });
+        })
+        .sort((a,b)=>a.kmRestante-b.kmRestante); // do menor faltante pro maior
+      if(precisaSalvarBaseline) save.vehicles();
       if(linhas.length===0){
         kmCtrlBody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum veículo ativo no regime de Limite de KM mensal.</td></tr>';
       } else {
