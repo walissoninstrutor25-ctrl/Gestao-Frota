@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T01-40-00Z -->
+<!-- APP_BUILD:2026-08-09T02-10-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -327,7 +327,9 @@
   /* toda tabela do sistema fica dentro de uma faixa com rolagem horizontal própria,
      assim ela nunca "quebra"/estica a página inteira — em celular, tablet ou PC,
      só a tabela rola de lado, o resto da tela (menu, filtros, cards) fica parado. */
-  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:12px; border-radius:8px;}
+  .table-scroll{overflow-x:auto; overflow-y:visible; -webkit-overflow-scrolling:touch; margin-top:12px; border-radius:8px;}
+  /* dentro de uma faixa com rolagem vertical (table-scroll-y), a faixa horizontal não pode competir pelo scroll vertical */
+  .table-scroll-y .table-scroll{margin-top:0;}
   /* rolagem vertical com cabeçalho fixo — usado no Controle de KM, Lançamentos e lista de veículos */
   .table-scroll-y thead th{position:sticky; top:0; background:var(--surface); z-index:1; box-shadow:0 1px 0 var(--line);}
   .table-scroll table{margin-top:0;}
@@ -1662,7 +1664,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T01-40-00Z';
+  const APP_VERSION = '2026-08-09T02-10-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -5324,6 +5326,8 @@
     }
 
     // ---- Controle de KM: km atual x limite do contrato (regime "Limite de KM mensal") ----
+    // KM restante = KM limite (anual) − KM atual (sempre o mais recente: último abastecimento ou
+    // importação de km em lote, o que for maior). Sem base fixa nenhuma — direto e simples.
     const kmCtrlBody = document.getElementById('dash-controle-km');
     if(kmCtrlBody){
       const custoExcedidoPorModelo = (model)=>{
@@ -5332,24 +5336,18 @@
         if(m.includes('polo') || m.includes('saveiro')) return 0.75;
         return null;
       };
-      let precisaSalvarBaseline = false;
       const linhas = vlist
         .filter(v=>v.status!=='inativo' && v.regime==='Limite de KM mensal' && v.franquiaKm && v.franquiaKm!=='sem-limite')
         .map(v=>{
-          // migração: veículo cadastrado antes dessa correção não tem baseline fixo ainda —
-          // fixa agora no km atual dele (a partir de agora o km rodado passa a contar certo)
-          if(v.kmInicioRegime==null){ v.kmInicioRegime = Number(v.km)||0; precisaSalvarBaseline = true; }
           const kmAtual = kmAtualDaFrota(v.id);
           const limiteAnual = Number(v.franquiaKm)*12;
-          const kmRodado = Math.max(0, kmAtual - Number(v.kmInicioRegime));
-          const kmRestante = limiteAnual - kmRodado;
+          const kmRestante = limiteAnual - kmAtual;
           const excedente = kmRestante<0 ? Math.abs(kmRestante) : 0;
           const custoKm = custoExcedidoPorModelo(v.model);
           const custoTotal = (excedente>0 && custoKm!==null) ? excedente*custoKm : 0;
           return {v, kmAtual, limiteAnual, kmRestante, excedente, custoKm, custoTotal};
         })
         .sort((a,b)=>a.kmRestante-b.kmRestante); // do menor faltante pro maior
-      if(precisaSalvarBaseline) save.vehicles();
       if(linhas.length===0){
         kmCtrlBody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum veículo ativo no regime de Limite de KM mensal.</td></tr>';
       } else {
