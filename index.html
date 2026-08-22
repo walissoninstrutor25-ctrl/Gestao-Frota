@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T02-10-00Z -->
+<!-- APP_BUILD:2026-08-09T03-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -513,6 +513,10 @@
         <div class="subtab active" data-view="heavydash">Painel</div>
         <div class="subtab" data-view="heavyfleet">Cadastro de veículos</div>
         <div class="subtab" data-view="heavyfines">Multas</div>
+      </div>
+      <div class="subtab-bar" id="subtabs-conjuntos" style="display:none;">
+        <div class="subtab active" data-view="conjuntodash">Painel</div>
+        <div class="subtab" data-view="conjuntocadastro">Cadastro de Conjuntos</div>
       </div>
 
       <!-- DASHBOARD -->
@@ -1557,6 +1561,87 @@
         </div>
       </div>
 
+      <!-- CONJUNTOS: PAINEL -->
+      <div class="view" id="view-conjuntodash">
+        <div class="topbar">
+          <div><div class="page-title">Painel — Conjuntos</div><div class="page-sub">Visão geral dos conjuntos (carretas/reboques)</div></div>
+        </div>
+        <div class="kpi-grid" id="conjunto-kpi-grid"></div>
+        <div class="card" id="card-crlv-conjunto">
+          <div class="card-head"><div class="card-title">Alerta de vencimento de CRLV</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Aparecem aqui os conjuntos com CRLV vencido ou vencendo em até 60 dias.</div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>Nº CRLV</th><th>Vencimento</th><th>Situação</th></tr></thead>
+            <tbody id="tbl-crlv-conjunto"></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Conjuntos cadastrados</div></div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Frota</th><th>Placa</th><th>Marca/Modelo</th><th>UO</th><th>Responsável</th><th>Kit lona</th><th>Status</th></tr></thead>
+            <tbody id="tbl-conjunto-resumo"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONJUNTOS: CADASTRO -->
+      <div class="view" id="view-conjuntocadastro">
+        <div class="topbar">
+          <div><div class="page-title">Cadastro de Conjuntos</div><div class="page-sub">Carretas, reboques e semirreboques</div></div>
+        </div>
+        <div class="card reg-card">
+          <div class="field-grid-4">
+            <div class="field"><label>Frota</label><input id="cj-frota" placeholder="Ex: CJ-0123"></div>
+            <div class="field"><label>Placa</label><input id="cj-plate" placeholder="ABC1D23"></div>
+            <div class="field"><label>Marca</label><input id="cj-marca" placeholder="Ex: Randon"></div>
+            <div class="field"><label>Modelo</label><input id="cj-modelo" placeholder="Ex: Graneleiro"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>UO</label>
+              <select id="cj-uo">${UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Tara do conjunto (kg)</label><input id="cj-tara" placeholder="Ex: 6500"></div>
+            <div class="field"><label>PBT (kg)</label><input id="cj-pbt" placeholder="Ex: 41000"></div>
+            <div class="field"><label>Responsável pelo ativo</label>
+              <select id="cj-responsavel">
+                <option value="Frota LOTS">Frota LOTS</option>
+                <option value="Frota Atvos">Frota Atvos</option>
+                <option value="Frota Unidas">Frota Unidas</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Nº do Chassis</label><input id="cj-chassis" placeholder="Ex: 9BWZZZ377VT004251"></div>
+            <div class="field"><label>Renavam</label><input id="cj-renavam" placeholder="Ex: 00123456789"></div>
+            <div class="field"><label>Nº CRLV</label><input id="cj-crlv" placeholder="Ex: 123456789"></div>
+            <div class="field" id="cj-crlv-venc-wrap" style="display:none;"><label>Data de vencimento do CRLV</label><input type="date" id="cj-crlv-venc"></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Kit lona</label>
+              <select id="cj-kit-lona">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
+            <div class="field"><label>Status</label>
+              <select id="cj-status">
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-register-conjunto">Cadastrar conjunto</button>
+          <div class="err-msg" id="cj-err"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Conjuntos cadastrados</div></div>
+          <div class="table-scroll-y" style="max-height:520px; overflow-y:auto;">
+            <table><thead><tr><th>Frota</th><th>Placa</th><th>Marca/Modelo</th><th>UO</th><th>Tara</th><th>PBT</th><th>Responsável</th><th>Nº CRLV</th><th>Venc. CRLV</th><th>Kit lona</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tbl-conjunto"></tbody></table>
+          </div>
+        </div>
+      </div>
+
       <!-- HEAVY RANKING -->
       <div class="view" id="view-heavyranking">
         <div class="topbar">
@@ -1664,7 +1749,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T02-10-00Z';
+  const APP_VERSION = '2026-08-09T03-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1824,7 +1909,7 @@
   let state = {
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
     heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{}, premiacaoBudget:{}, auditLog:[],
-    transfers:[], fornecedores:[], tires:[],
+    transfers:[], fornecedores:[], tires:[], conjuntos:[],
     currentProfile:null
   };
 
@@ -1853,6 +1938,7 @@
     state.auditLog = await loadShared('lots-audit-log', []);
     setLoadingProgress(66, 'Carregando frota pesada…');
     state.heavyVehicles = await loadShared('lots-heavy-vehicles', []);
+    state.conjuntos = await loadShared('lots-conjuntos', []);
     setLoadingProgress(76, 'Carregando custos (pesada)…');
     state.heavyCosts = await loadShared('lots-heavy-costs', []);
     setLoadingProgress(86, 'Carregando multas (pesada)…');
@@ -1912,6 +1998,7 @@
     fines: () => saveShared('lots-fines', state.fines),
     sinistros: () => saveShared('lots-sinistros', state.sinistros),
     heavyVehicles: () => saveShared('lots-heavy-vehicles', state.heavyVehicles),
+    conjuntos: () => saveShared('lots-conjuntos', state.conjuntos),
     heavyCosts: () => saveShared('lots-heavy-costs', state.heavyCosts),
     heavyFines: () => saveShared('lots-heavy-fines', state.heavyFines),
     heavySinistros: () => saveShared('lots-heavy-sinistros', state.heavySinistros),
@@ -2082,15 +2169,39 @@
     }
   });
 
-  /* ---------------- NAV (dois níveis: frota leve / frota pesada) ---------------- */
+  /* ---------------- NAV (frota leve / frota pesada [cavalo mecânico ou conjuntos]) ---------------- */
   document.querySelectorAll('.nav-item[data-fleet]').forEach(el=>{
-    el.addEventListener('click', ()=>switchFleet(el.dataset.fleet));
+    if(el.dataset.fleet==='heavy'){
+      // "Controle de Frota Pesada" primeiro pergunta qual das duas áreas separadas
+      el.addEventListener('click', ()=>{
+        openModal(`
+          <div class="modal-title">Frota Pesada — o que você quer acessar?</div>
+          <div class="page-sub" style="margin-bottom:14px;">São duas áreas separadas dentro da Frota Pesada.</div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <button class="btn-primary" style="padding:16px; font-size:15px;" onclick="LOTS.escolherTipoPesada('heavy')">🚛 Cavalo Mecânico</button>
+            <button class="btn-primary" style="padding:16px; font-size:15px;" onclick="LOTS.escolherTipoPesada('conjuntos')">🚚 Conjuntos (carretas/reboques)</button>
+          </div>
+          <div class="modal-actions"><button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button></div>
+        `);
+      });
+    } else {
+      el.addEventListener('click', ()=>switchFleet(el.dataset.fleet));
+    }
   });
+  LOTS.escolherTipoPesada = (fleet)=>{
+    closeModal();
+    switchFleet(fleet);
+  };
   function switchFleet(fleet){
-    document.querySelectorAll('.nav-item[data-fleet]').forEach(n=>n.classList.toggle('active', n.dataset.fleet===fleet));
+    document.querySelectorAll('.nav-item[data-fleet]').forEach(n=>{
+      const combina = n.dataset.fleet===fleet || (n.dataset.fleet==='heavy' && fleet==='conjuntos');
+      n.classList.toggle('active', combina);
+    });
     document.getElementById('subtabs-light').style.display = fleet==='light' ? 'flex' : 'none';
     document.getElementById('subtabs-heavy').style.display = fleet==='heavy' ? 'flex' : 'none';
-    const bar = document.getElementById(fleet==='light' ? 'subtabs-light' : 'subtabs-heavy');
+    document.getElementById('subtabs-conjuntos').style.display = fleet==='conjuntos' ? 'flex' : 'none';
+    const barId = fleet==='light' ? 'subtabs-light' : (fleet==='heavy' ? 'subtabs-heavy' : 'subtabs-conjuntos');
+    const bar = document.getElementById(barId);
     const firstView = bar.querySelector('.subtab').dataset.view;
     switchView(firstView);
   }
@@ -3722,6 +3833,159 @@
   });
 
   // veículos de frota pesada com CRLV vencendo em até 30 dias (ou já vencido)
+  /* ---------------- CONJUNTOS (carretas/reboques) ---------------- */
+  function crlvVencendoListConjuntos(){
+    const hoje = new Date(todayISO());
+    return state.conjuntos
+      .filter(c=>c.crlvVencimento)
+      .map(c=>{
+        const venc = new Date(c.crlvVencimento);
+        const diasRestantes = Math.round((venc-hoje)/86400000);
+        return {c, diasRestantes};
+      })
+      .filter(r=>r.diasRestantes<=60) // alerta com 60 dias de antecedência, como pedido
+      .sort((a,b)=>a.diasRestantes-b.diasRestantes);
+  }
+  function renderConjuntoDash(){
+    const kpiGrid = document.getElementById('conjunto-kpi-grid');
+    if(!kpiGrid) return;
+    const all = state.conjuntos;
+    kpiGrid.innerHTML = [
+      {label:'Total de conjuntos', val: all.length},
+      {label:'Ativos', val: all.filter(c=>c.status==='ativo').length},
+      {label:'Inativos', val: all.filter(c=>c.status==='inativo').length},
+      {label:'Com kit lona', val: all.filter(c=>c.kitLona==='sim').length},
+      {label:'CRLV vencendo/vencido (60d)', val: crlvVencendoListConjuntos().length}
+    ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+
+    const crlvTbl = document.getElementById('tbl-crlv-conjunto');
+    if(crlvTbl){
+      const alertas = crlvVencendoListConjuntos();
+      if(alertas.length===0){
+        crlvTbl.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum CRLV vencido ou perto do vencimento.</td></tr>';
+      } else {
+        crlvTbl.innerHTML = alertas.map(({c,diasRestantes})=>{
+          const situacao = diasRestantes<0 ? `<span class="badge badge-danger">Vencido há ${Math.abs(diasRestantes)} dia(s)</span>` : `<span class="badge badge-pending">Vence em ${diasRestantes} dia(s)</span>`;
+          return `<tr>
+            <td class="mono">${c.frota||'—'}</td>
+            <td><span class="plate">${c.plate||'—'}</span></td>
+            <td>${c.uo||'—'}</td>
+            <td class="mono">${c.crlv||'—'}</td>
+            <td class="mono">${fmtDate(c.crlvVencimento)}</td>
+            <td>${situacao}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    const resumoTbl = document.getElementById('tbl-conjunto-resumo');
+    if(resumoTbl){
+      if(all.length===0){
+        resumoTbl.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhum conjunto cadastrado ainda.</td></tr>';
+      } else {
+        resumoTbl.innerHTML = all.map(c=>{
+          const badge = c.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
+          return `<tr>
+            <td class="mono">${c.frota||'—'}</td>
+            <td><span class="plate">${c.plate||'—'}</span></td>
+            <td>${c.marca||''} ${c.modelo||''}</td>
+            <td>${c.uo||'—'}</td>
+            <td>${c.responsavel||'—'}</td>
+            <td>${c.kitLona==='sim'?'Sim':'Não'}</td>
+            <td>${badge}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+  }
+  function fillConjuntoForm(c){
+    LOTS._editingConjuntoId = c ? c.id : null;
+    document.getElementById('cj-frota').value = c?.frota || '';
+    document.getElementById('cj-plate').value = c?.plate || '';
+    document.getElementById('cj-marca').value = c?.marca || '';
+    document.getElementById('cj-modelo').value = c?.modelo || '';
+    document.getElementById('cj-uo').value = (c?.uo && UO_LIST.includes(c.uo)) ? c.uo : UO_LIST[0];
+    document.getElementById('cj-tara').value = c?.tara || '';
+    document.getElementById('cj-pbt').value = c?.pbt || '';
+    document.getElementById('cj-responsavel').value = c?.responsavel || 'Frota LOTS';
+    document.getElementById('cj-chassis').value = c?.chassis || '';
+    document.getElementById('cj-renavam').value = c?.renavam || '';
+    document.getElementById('cj-crlv').value = c?.crlv || '';
+    document.getElementById('cj-crlv-venc').value = c?.crlvVencimento || '';
+    document.getElementById('cj-crlv-venc-wrap').style.display = c?.crlv ? 'block' : 'none';
+    document.getElementById('cj-kit-lona').value = c?.kitLona || 'nao';
+    document.getElementById('cj-status').value = c?.status || 'ativo';
+    document.getElementById('btn-register-conjunto').textContent = c ? 'Salvar alterações' : 'Cadastrar conjunto';
+  }
+  document.getElementById('cj-crlv')?.addEventListener('input', (e)=>{
+    document.getElementById('cj-crlv-venc-wrap').style.display = e.target.value.trim() ? 'block' : 'none';
+  });
+  document.getElementById('btn-register-conjunto')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('cj-err');
+    const data = {
+      frota: document.getElementById('cj-frota').value.trim(),
+      plate: document.getElementById('cj-plate').value.trim().toUpperCase(),
+      marca: document.getElementById('cj-marca').value.trim(),
+      modelo: document.getElementById('cj-modelo').value.trim(),
+      uo: document.getElementById('cj-uo').value,
+      tara: Number(document.getElementById('cj-tara').value)||0,
+      pbt: Number(document.getElementById('cj-pbt').value)||0,
+      responsavel: document.getElementById('cj-responsavel').value,
+      chassis: document.getElementById('cj-chassis').value.trim(),
+      renavam: document.getElementById('cj-renavam').value.trim(),
+      crlv: document.getElementById('cj-crlv').value.trim(),
+      crlvVencimento: document.getElementById('cj-crlv-venc').value || '',
+      kitLona: document.getElementById('cj-kit-lona').value,
+      status: document.getElementById('cj-status').value
+    };
+    if(!data.plate || !data.marca){ errEl.textContent='Preencha ao menos placa e marca.'; return; }
+    errEl.textContent='';
+    const id = LOTS._editingConjuntoId;
+    if(id){ Object.assign(state.conjuntos.find(c=>c.id===id), data); }
+    else { state.conjuntos.push({id:uid(), dataCadastro:todayISO(), ...data}); }
+    await save.conjuntos();
+    fillConjuntoForm(null);
+    renderView('conjuntocadastro'); renderView('conjuntodash');
+    logAudit(id?'Conjunto editado':'Conjunto cadastrado', `${data.frota||''} — ${data.plate}`);
+    toast(id ? 'Conjunto atualizado.' : 'Conjunto cadastrado.');
+  });
+  LOTS.editConjunto = (id)=>{
+    fillConjuntoForm(state.conjuntos.find(c=>c.id===id));
+    document.querySelector('#view-conjuntocadastro .reg-card').scrollIntoView({behavior:'smooth'});
+  };
+  LOTS.deleteConjunto = async (id)=>{
+    const c = state.conjuntos.find(x=>x.id===id);
+    state.conjuntos = state.conjuntos.filter(c=>c.id!==id);
+    await save.conjuntos();
+    renderView('conjuntocadastro'); renderView('conjuntodash');
+    logAudit('Conjunto excluído', c ? `${c.frota||''} — ${c.plate}` : id);
+  };
+  function renderConjuntoCadastro(){
+    const tbl = document.getElementById('tbl-conjunto');
+    if(!tbl) return;
+    if(state.conjuntos.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="12">Nenhum conjunto cadastrado ainda.</td></tr>'; return; }
+    tbl.innerHTML = state.conjuntos.map(c=>{
+      const badge = c.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
+      return `<tr>
+        <td class="mono">${c.frota||'—'}</td>
+        <td><span class="plate">${c.plate||'—'}</span></td>
+        <td>${c.marca||''} ${c.modelo||''}</td>
+        <td>${c.uo||'—'}</td>
+        <td class="mono">${c.tara?Number(c.tara).toLocaleString('pt-BR')+' kg':'—'}</td>
+        <td class="mono">${c.pbt?Number(c.pbt).toLocaleString('pt-BR')+' kg':'—'}</td>
+        <td>${c.responsavel||'—'}</td>
+        <td class="mono">${c.crlv||'—'}</td>
+        <td class="mono">${c.crlvVencimento?fmtDate(c.crlvVencimento):'—'}</td>
+        <td>${c.kitLona==='sim'?'Sim':'Não'}</td>
+        <td>${badge}</td>
+        <td><div class="action-links">
+          <button class="icon-btn" onclick="LOTS.editConjunto('${c.id}')">editar</button>
+          <button class="icon-btn danger" onclick="LOTS.deleteConjunto('${c.id}')">excluir</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
   function crlvVencendoList(){
     const hoje = new Date(todayISO());
     return state.heavyVehicles
@@ -5319,7 +5583,7 @@
           <td class="mono">${r.v.frota||'—'}</td>
           <td><span class="plate">${r.v.plate}</span></td>
           <td>${r.v.unidade||'—'}</td>
-          <td class="mono">${r.km0.toLocaleString('pt-BR')} km</td>
+          <td class="mono">${Math.round(r.km0).toLocaleString('pt-BR')} km</td>
           <td class="mono" style="color:var(--danger); font-weight:700;">${r.faltam===0 ? '<span class="badge badge-danger">Vencida</span>' : r.faltam.toLocaleString('pt-BR')+' km'}</td>
         </tr>`).join('');
       }
@@ -5351,13 +5615,15 @@
       if(linhas.length===0){
         kmCtrlBody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum veículo ativo no regime de Limite de KM mensal.</td></tr>';
       } else {
+        // verde: 50.000+ km restantes | amarelo: entre 30.000 e 49.999 | vermelho: abaixo de 30.000 (inclui excedente)
+        const corRestante = (km)=> km>=50000 ? 'var(--go)' : (km>=30000 ? '#e0a800' : 'var(--danger)');
         kmCtrlBody.innerHTML = linhas.map(r=>`<tr>
           <td class="mono">${r.v.frota||'—'}</td>
           <td><span class="plate">${r.v.plate}</span></td>
           <td>${r.v.unidade||'—'}</td>
           <td class="mono">${r.kmAtual.toLocaleString('pt-BR')} km</td>
           <td class="mono">${r.limiteAnual.toLocaleString('pt-BR')} km</td>
-          <td class="mono" style="color:${r.kmRestante<0?'var(--danger)':'var(--go)'}; font-weight:600;">${r.kmRestante.toLocaleString('pt-BR')} km</td>
+          <td class="mono" style="color:${corRestante(r.kmRestante)}; font-weight:700;">${r.kmRestante.toLocaleString('pt-BR')} km</td>
           <td class="mono" style="color:${r.custoTotal>0?'var(--danger)':''};">${r.custoTotal>0 ? fmtMoney(r.custoTotal) : (r.excedente>0 ? 'modelo sem tarifa cadastrada' : '—')}</td>
           <td>${r.custoTotal>0 ? `<button class="icon-btn danger" onclick="LOTS.lancarCustoExcedente('${r.v.id}', ${r.custoTotal.toFixed(2)}, ${r.excedente})">lançar como custo extra</button>` : ''}</td>
         </tr>`).join('');
@@ -5442,10 +5708,13 @@
     else if(name==='heavysinistros') renderHeavySinistros();
     else if(name==='heavyfines') renderHeavyFines();
     else if(name==='heavyranking') renderHeavyRanking();
+    else if(name==='conjuntodash') renderConjuntoDash();
+    else if(name==='conjuntocadastro') renderConjuntoCadastro();
   }
   function renderAll(){
     ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','bu','tires','users',
-     'heavyfleet','heavydash','heavycosts','heavysinistros','heavyfines','heavyranking'].forEach(renderView);
+     'heavyfleet','heavydash','heavycosts','heavysinistros','heavyfines','heavyranking',
+     'conjuntodash','conjuntocadastro'].forEach(renderView);
     wrapTablesForScroll();
   }
 
@@ -5484,6 +5753,7 @@
   listenShared('lots-fines',    d => state.fines = d);
   listenShared('lots-sinistros', d => state.sinistros = d);
   listenShared('lots-heavy-vehicles', d => state.heavyVehicles = d);
+  listenShared('lots-conjuntos', d => state.conjuntos = d);
   listenShared('lots-heavy-costs', d => state.heavyCosts = d);
   listenShared('lots-heavy-fines', d => state.heavyFines = d);
   listenShared('lots-heavy-sinistros', d => state.heavySinistros = d);
