@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-20T14-00-00Z -->
+<!-- APP_BUILD:2026-08-20T15-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -382,8 +382,8 @@
           <div class="field-grid-4">
             <div class="field"><label>Unidade</label>
               <select id="rc-unidade">
-                <option value="4823-MNS">4823-MNS</option>
-                <option value="4824-PRA">4824-PRA</option>
+                <option value="4824-MNS">4824-MNS</option>
+                <option value="4823-PRA">4823-PRA</option>
                 <option value="4818-NRAV">4818-NRAV</option>
                 <option value="4813-NRA">4813-NRA</option>
                 <option value="4830-PPAV">4830-PPAV</option>
@@ -411,7 +411,7 @@
           </div>
           <div id="import-colab-panel" style="display:none; margin-top:10px; padding:14px; border:1px dashed var(--line); border-radius:8px; background:var(--surface-2);">
             <div class="page-sub" style="margin-bottom:10px;">
-              Importa colaboradores ativos e desligados de uma planilha (.xlsx, .xls ou .csv). Reconhece automaticamente colunas como Nome/NOME, ID/Matrícula, CPF, Data de admissão/DATA_ADMISSAO, Data de nascimento, Telefone, E-mail, Cargo/DESCR_CARGO, Departamento/DESCR_DEPARTAMENTO, Unidade/CODIGO_CONTABIL, Status/ATIVO (A = ativo, D = desligado) e Tipo de contrato. Não apaga ninguém já cadastrado, só adiciona (ignora CPFs repetidos).
+              Importa colaboradores ativos e desligados de uma planilha (.xlsx, .xls ou .csv). Reconhece automaticamente colunas como Nome/NOME, ID/Matrícula, CPF, Data de admissão/DATA_ADMISSAO, Data de nascimento, Telefone, E-mail, Cargo/DESCR_CARGO, Departamento/DESCR_DEPARTAMENTO, Unidade/CODIGO_CONTABIL, Status/ATIVO (A = ativo, D = desligado) e Tipo de contrato. Pode importar a mesma planilha quantas vezes precisar: quem já está cadastrado (por matrícula ou CPF) é atualizado, não duplicado — nunca apaga ninguém.
             </div>
             <div class="field-grid-4" style="align-items:end; margin-bottom:0;">
               <div class="field" style="margin-bottom:0;"><label>Arquivo</label><input type="file" id="import-colab-file" accept=".xlsx,.xls,.csv"></div>
@@ -427,7 +427,7 @@
           <div class="filter-field"><label>Busca</label><input id="rcfilter-busca" placeholder="Nome, cargo, matrícula…"></div>
           <div class="filter-field"><label>Unidade</label>
             <select id="rcfilter-unidade"><option value="">Todas</option>
-              <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+              <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
               <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
               <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
             </select>
@@ -458,7 +458,7 @@
         <div class="filter-bar">
           <div class="filter-field"><label>Unidade</label>
             <select id="rgfilter-unidade"><option value="">Todas</option>
-              <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+              <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
               <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
               <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
             </select>
@@ -480,7 +480,7 @@
             <div class="field"><label>Departamento/Setor</label><input id="rv-depto" placeholder="Ex: Operações"></div>
             <div class="field"><label>Unidade</label>
               <select id="rv-unidade">
-                <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+                <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
                 <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
                 <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
               </select>
@@ -516,7 +516,7 @@
         <div class="filter-bar">
           <div class="filter-field"><label>Unidade</label>
             <select id="rvfilter-unidade"><option value="">Todas</option>
-              <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+              <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
               <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
               <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
             </select>
@@ -699,7 +699,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-20T14-00-00Z';
+  const APP_VERSION = '2026-08-20T15-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1168,7 +1168,7 @@
     document.getElementById('rc-email').value = c?.email || '';
     document.getElementById('rc-cargo').value = c?.cargo || '';
     document.getElementById('rc-depto').value = c?.departamento || '';
-    document.getElementById('rc-unidade').value = c?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4823-MNS');
+    document.getElementById('rc-unidade').value = c?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4824-MNS');
     document.getElementById('rc-admissao').value = c?.dataAdmissao || todayISO();
     document.getElementById('rc-tipocontrato').value = c?.tipoContrato || 'CLT';
     document.getElementById('rc-obs').value = c?.observacoes || '';
@@ -1299,7 +1299,7 @@
     const encontrada = UO_LIST_IMPORT.find(u=>u.startsWith(cod));
     return encontrada || cod; // se não bater com nenhuma UO conhecida, guarda o código puro pra revisar depois
   }
-  const UO_LIST_IMPORT = ['4823-MNS','4824-PRA','4818-NRAV','4813-NRA','4830-PPAV','4812-PPA'];
+  const UO_LIST_IMPORT = ['4824-MNS','4823-PRA','4818-NRAV','4813-NRA','4830-PPAV','4812-PPA'];
   function mapTipoContrato(valBruto){
     const s = normalizarCabecalho(valBruto);
     if(s.includes('ESTAGI')) return 'Estágio';
@@ -1342,52 +1342,58 @@
       }
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-      let importados = 0, semNome = 0, duplicados = 0, semPermissao = 0, unidadeNaoReconhecida = 0;
-      const cpfsExistentes = new Set(state.colaboradores.map(c=>(c.cpf||'').replace(/\D/g,'')).filter(Boolean));
+      let novosCount = 0, atualizadosCount = 0, semNome = 0, semPermissao = 0, unidadeNaoReconhecida = 0;
+      // acha um colaborador já existente pela matrícula (prioridade) ou pelo CPF —
+      // assim reimportar a mesma planilha ATUALIZA quem já está cadastrado em vez de duplicar
+      const porMatricula = new Map(state.colaboradores.filter(c=>c.matricula).map(c=>[c.matricula, c]));
+      const porCpf = new Map(state.colaboradores.filter(c=>c.cpf).map(c=>[c.cpf.replace(/\D/g,''), c]));
       for(const row of rows){
         const nome = String(pickCol(row,'NOME','Nome','Colaborador','Nome completo')||'').trim();
         if(!nome){ semNome++; continue; }
-        const cpfRaw = String(pickCol(row,'CPF')||'').trim();
-        const cpfDigitos = cpfRaw.replace(/\D/g,'');
-        if(cpfDigitos && cpfsExistentes.has(cpfDigitos)){ duplicados++; continue; }
         const unidadeBruta = pickCol(row,'CODIGO_CONTABIL','Unidade','UO','COD_UNIORG');
         const unidade = matchUnidade(unidadeBruta) || '';
         if(unidade && !UO_LIST_IMPORT.includes(unidade)) unidadeNaoReconhecida++;
         if(!canManageColaborador(unidade || currentUser().uoResponsavel)){ semPermissao++; continue; }
         const status = mapStatusColaborador(pickCol(row,'ATIVO','Status','Situação','Situacao'));
-        const novo = {
-          id: uid(),
-          matricula: String(pickCol(row,'ID','Matrícula','Matricula','COD_COLABORADOR')||'').trim(),
-          nome, cpf: cpfRaw,
+        const matricula = String(pickCol(row,'ID','Matrícula','Matricula','COD_COLABORADOR')||'').trim();
+        const cpfRaw = String(pickCol(row,'CPF')||'').trim();
+        const cpfDigitos = cpfRaw.replace(/\D/g,'');
+        const dados = {
+          matricula, nome, cpf: cpfRaw,
           dataNascimento: parseDataFlexivel(pickCol(row,'DATA_NASCIMENTO','Data de nascimento')),
           telefone: String(pickCol(row,'TELEFONE','Telefone','Celular')||'').trim(),
           email: String(pickCol(row,'EMAIL','E-mail')||'').trim(),
           cargo: String(pickCol(row,'DESCR_CARGO','Cargo','DESCR_FUNCAO')||'').trim(),
           departamento: String(pickCol(row,'DESCR_DEPARTAMENTO','Departamento','Setor')||'').trim(),
           unidade: unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : ''),
-          supervisorId: null,
           dataAdmissao: parseDataFlexivel(pickCol(row,'DATA_ADMISSAO','Data de admissão','Admissão')) || todayISO(),
           tipoContrato: mapTipoContrato(pickCol(row,'DESCR_TIPO_COLAB','Tipo de contrato','TIPO_COLAB')),
-          observacoes: '', status, dataCadastro: todayISO()
+          status
         };
         if(status==='desligado'){
-          novo.dataDesligamento = parseDataFlexivel(pickCol(row,'DATA_DESLIGAMENTO','Data de desligamento')) || novo.dataAdmissao;
-          novo.motivoDesligamento = '';
+          dados.dataDesligamento = parseDataFlexivel(pickCol(row,'DATA_DESLIGAMENTO','Data de desligamento')) || dados.dataAdmissao;
         }
-        state.colaboradores.push(novo);
-        if(cpfDigitos) cpfsExistentes.add(cpfDigitos);
-        importados++;
+        const existente = (matricula && porMatricula.get(matricula)) || (cpfDigitos && porCpf.get(cpfDigitos));
+        if(existente){
+          Object.assign(existente, dados);
+          atualizadosCount++;
+        } else {
+          const novo = { id: uid(), supervisorId: null, observacoes: '', dataCadastro: todayISO(), ...dados };
+          state.colaboradores.push(novo);
+          if(matricula) porMatricula.set(matricula, novo);
+          if(cpfDigitos) porCpf.set(cpfDigitos, novo);
+          novosCount++;
+        }
       }
       await save.colaboradores();
       renderView('rhcolab'); renderView('rhorg'); renderView('rhdash');
-      logAudit('Importação de colaboradores', `${importados} importado(s) via planilha`);
+      logAudit('Importação de colaboradores', `${novosCount} novo(s), ${atualizadosCount} atualizado(s) via planilha`);
       const avisos = [];
       if(semNome) avisos.push(`${semNome} linha(s) sem nome (ignoradas)`);
-      if(duplicados) avisos.push(`${duplicados} CPF(s) já cadastrado(s) (ignorados)`);
       if(semPermissao) avisos.push(`${semPermissao} fora da sua unidade (sem permissão)`);
       if(unidadeNaoReconhecida) avisos.push(`${unidadeNaoReconhecida} com unidade não reconhecida — confira/edite manualmente`);
-      msgEl.style.color = importados>0 ? 'var(--go)' : 'var(--danger)';
-      msgEl.textContent = `${importados} colaborador(es) importado(s).` + (avisos.length ? ' ' + avisos.join('; ') + '.' : '');
+      msgEl.style.color = (novosCount+atualizadosCount)>0 ? 'var(--go)' : 'var(--danger)';
+      msgEl.textContent = `${novosCount} novo(s), ${atualizadosCount} atualizado(s).` + (avisos.length ? ' ' + avisos.join('; ') + '.' : '');
       fileInput.value='';
     }catch(e){
       console.error(e);
@@ -1486,7 +1492,7 @@
     document.getElementById('rv-form-title').textContent = v ? 'Editar vaga' : 'Nova vaga';
     document.getElementById('rv-titulo').value = v?.titulo || '';
     document.getElementById('rv-depto').value = v?.departamento || '';
-    document.getElementById('rv-unidade').value = v?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4823-MNS');
+    document.getElementById('rv-unidade').value = v?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4824-MNS');
     document.getElementById('rv-tipocontrato').value = v?.tipoContrato || 'CLT';
     document.getElementById('rv-qtd').value = v?.quantidade || 1;
     document.getElementById('rv-motivo').value = v?.motivoAbertura || 'aumento_quadro';
@@ -1744,7 +1750,7 @@
         <div class="field"><label>Cargo</label><input id="np-cargo" placeholder="Ex: Motorista, Analista..."></div>
         <div class="field"><label>Unidade</label>
           <select id="np-unidade">
-            <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+            <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
             <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
             <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
           </select>
@@ -2093,7 +2099,7 @@
       </div>
       <div class="field" id="f-uo-wrap"><label>UO responsável (se gestor)</label>
         <select id="f-uo">
-          <option value="4823-MNS">4823-MNS</option><option value="4824-PRA">4824-PRA</option>
+          <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
           <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
           <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
         </select>
