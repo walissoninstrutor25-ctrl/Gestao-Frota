@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T03-30-00Z -->
+<!-- APP_BUILD:2026-08-09T04-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1749,7 +1749,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T03-30-00Z';
+  const APP_VERSION = '2026-08-09T04-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2188,10 +2188,6 @@
       el.addEventListener('click', ()=>switchFleet(el.dataset.fleet));
     }
   });
-  LOTS.escolherTipoPesada = (fleet)=>{
-    closeModal();
-    switchFleet(fleet);
-  };
   function switchFleet(fleet){
     document.querySelectorAll('.nav-item[data-fleet]').forEach(n=>{
       const combina = n.dataset.fleet===fleet || (n.dataset.fleet==='heavy' && fleet==='conjuntos');
@@ -2415,6 +2411,11 @@
 
   window.LOTS = window.LOTS || {};
   LOTS._editingVehicleId = null;
+
+  LOTS.escolherTipoPesada = (fleet)=>{
+    closeModal();
+    switchFleet(fleet);
+  };
 
   function fillVehicleRegForm(v){
     LOTS._editingVehicleId = v ? v.id : null;
