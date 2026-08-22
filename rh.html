@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-19T19-00-00Z -->
+<!-- APP_BUILD:2026-08-20T14-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -405,6 +405,20 @@
           <button class="btn-primary reg-submit" id="btn-save-colab">Cadastrar colaborador</button>
           <button class="btn-ghost reg-submit" id="btn-cancel-edit-colab" style="display:none; margin-left:8px;">Cancelar edição</button>
           <div class="err-msg" id="rc-err"></div>
+
+          <div style="margin-top:22px; text-align:right;">
+            <button type="button" id="btn-toggle-import-colab" style="background:none; border:none; color:var(--text-faint); font-size:10.5px; padding:2px; cursor:pointer; text-decoration:underline;">importar planilha de colaboradores</button>
+          </div>
+          <div id="import-colab-panel" style="display:none; margin-top:10px; padding:14px; border:1px dashed var(--line); border-radius:8px; background:var(--surface-2);">
+            <div class="page-sub" style="margin-bottom:10px;">
+              Importa colaboradores ativos e desligados de uma planilha (.xlsx, .xls ou .csv). Reconhece automaticamente colunas como Nome/NOME, ID/Matrícula, CPF, Data de admissão/DATA_ADMISSAO, Data de nascimento, Telefone, E-mail, Cargo/DESCR_CARGO, Departamento/DESCR_DEPARTAMENTO, Unidade/CODIGO_CONTABIL, Status/ATIVO (A = ativo, D = desligado) e Tipo de contrato. Não apaga ninguém já cadastrado, só adiciona (ignora CPFs repetidos).
+            </div>
+            <div class="field-grid-4" style="align-items:end; margin-bottom:0;">
+              <div class="field" style="margin-bottom:0;"><label>Arquivo</label><input type="file" id="import-colab-file" accept=".xlsx,.xls,.csv"></div>
+              <div class="field" style="margin-bottom:0;"><button class="btn-ghost btn-sm" id="btn-import-colab" style="width:100%;">Importar planilha</button></div>
+            </div>
+            <div class="err-msg" id="import-colab-msg"></div>
+          </div>
         </div>
 
         <div class="lane accent"></div>
@@ -672,7 +686,12 @@
       }).catch(err=>console.warn('SW falhou:', err));
     });
     let jaRecarregando = false;
+    // na primeiríssima instalação do service worker (sem controller anterior) esse evento
+    // também dispara — mas aí NÃO é uma atualização de verdade, é só o app "ligando" pela
+    // primeira vez, então não faz sentido recarregar e atrapalhar o que a pessoa tava fazendo
+    let jaTinhaController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(!jaTinhaController){ jaTinhaController = true; return; }
       if(jaRecarregando) return;
       jaRecarregando = true;
       toast('Atualizando para a nova versão…');
@@ -680,7 +699,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-19T19-00-00Z';
+  const APP_VERSION = '2026-08-20T14-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1240,6 +1259,143 @@
     XLSX.writeFile(wb, 'colaboradores-rh-lots.xlsx');
     toast('Exportação gerada.');
   });
+
+  /* ---------------- importação de planilha de colaboradores ---------------- */
+  document.getElementById('btn-toggle-import-colab')?.addEventListener('click', ()=>{
+    const panel = document.getElementById('import-colab-panel');
+    panel.style.display = panel.style.display==='none' ? 'block' : 'none';
+  });
+  // acha uma coluna da planilha comparando os nomes sem acento/maiúscula/espaço/underline
+  // (assim funciona tanto com cabeçalhos "amigáveis" quanto com exports de ERP tipo DATA_ADMISSAO)
+  function normalizarCabecalho(h){
+    return String(h||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]/g,'');
+  }
+  function pickCol(row, ...nomes){
+    const chaves = Object.keys(row);
+    for(const nome of nomes){
+      const alvo = normalizarCabecalho(nome);
+      const achada = chaves.find(k=>normalizarCabecalho(k)===alvo);
+      if(achada!==undefined && row[achada]!=='') return row[achada];
+    }
+    return '';
+  }
+  function parseDataFlexivel(val){
+    if(val===undefined || val===null || val==='') return '';
+    if(typeof val === 'number' && window.XLSX && XLSX.SSF){
+      const d = XLSX.SSF.parse_date_code(val);
+      if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+    }
+    const s = String(val).trim();
+    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+    return '';
+  }
+  function matchUnidade(valBruto){
+    const digitos = String(valBruto||'').match(/\d{4}/);
+    if(!digitos) return '';
+    const cod = digitos[0];
+    const encontrada = UO_LIST_IMPORT.find(u=>u.startsWith(cod));
+    return encontrada || cod; // se não bater com nenhuma UO conhecida, guarda o código puro pra revisar depois
+  }
+  const UO_LIST_IMPORT = ['4823-MNS','4824-PRA','4818-NRAV','4813-NRA','4830-PPAV','4812-PPA'];
+  function mapTipoContrato(valBruto){
+    const s = normalizarCabecalho(valBruto);
+    if(s.includes('ESTAGI')) return 'Estágio';
+    if(s.includes('TEMPOR')) return 'Temporário';
+    if(s.includes('PJ')) return 'PJ';
+    return 'CLT';
+  }
+  function mapStatusColaborador(valBruto){
+    const s = normalizarCabecalho(valBruto);
+    if(s==='D' || s.includes('DESLIG') || s.includes('INATIV') || s.includes('DEMITID')) return 'desligado';
+    return 'ativo';
+  }
+  // lê o arquivo tentando UTF-8 e, se detectar muito caractere corrompido (comum em
+  // exports de ERP que salvam em Windows-1252/Latin1), tenta de novo nessa codificação
+  async function lerArquivoComoTexto(file){
+    const buf = await file.arrayBuffer();
+    const utf8 = new TextDecoder('utf-8').decode(buf);
+    const corrompidos = (utf8.match(/�/g) || []).length;
+    if(corrompidos > 3){
+      try{ return new TextDecoder('windows-1252').decode(buf); }catch(e){ return utf8; }
+    }
+    return utf8;
+  }
+  document.getElementById('btn-import-colab')?.addEventListener('click', async ()=>{
+    const fileInput = document.getElementById('import-colab-file');
+    const msgEl = document.getElementById('import-colab-msg');
+    if(!fileInput.files.length){ msgEl.style.color='var(--danger)'; msgEl.textContent='Selecione um arquivo primeiro.'; return; }
+    if(typeof XLSX === 'undefined'){ msgEl.style.color='var(--danger)'; msgEl.textContent='Biblioteca de importação não carregada.'; return; }
+    msgEl.style.color='var(--text-muted)';
+    msgEl.textContent='Lendo planilha…';
+    try{
+      const file = fileInput.files[0];
+      let wb;
+      if(/\.csv$/i.test(file.name)){
+        const texto = await lerArquivoComoTexto(file);
+        wb = XLSX.read(texto, {type:'string'});
+      } else {
+        const buf = await file.arrayBuffer();
+        wb = XLSX.read(buf, {type:'array'});
+      }
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      let importados = 0, semNome = 0, duplicados = 0, semPermissao = 0, unidadeNaoReconhecida = 0;
+      const cpfsExistentes = new Set(state.colaboradores.map(c=>(c.cpf||'').replace(/\D/g,'')).filter(Boolean));
+      for(const row of rows){
+        const nome = String(pickCol(row,'NOME','Nome','Colaborador','Nome completo')||'').trim();
+        if(!nome){ semNome++; continue; }
+        const cpfRaw = String(pickCol(row,'CPF')||'').trim();
+        const cpfDigitos = cpfRaw.replace(/\D/g,'');
+        if(cpfDigitos && cpfsExistentes.has(cpfDigitos)){ duplicados++; continue; }
+        const unidadeBruta = pickCol(row,'CODIGO_CONTABIL','Unidade','UO','COD_UNIORG');
+        const unidade = matchUnidade(unidadeBruta) || '';
+        if(unidade && !UO_LIST_IMPORT.includes(unidade)) unidadeNaoReconhecida++;
+        if(!canManageColaborador(unidade || currentUser().uoResponsavel)){ semPermissao++; continue; }
+        const status = mapStatusColaborador(pickCol(row,'ATIVO','Status','Situação','Situacao'));
+        const novo = {
+          id: uid(),
+          matricula: String(pickCol(row,'ID','Matrícula','Matricula','COD_COLABORADOR')||'').trim(),
+          nome, cpf: cpfRaw,
+          dataNascimento: parseDataFlexivel(pickCol(row,'DATA_NASCIMENTO','Data de nascimento')),
+          telefone: String(pickCol(row,'TELEFONE','Telefone','Celular')||'').trim(),
+          email: String(pickCol(row,'EMAIL','E-mail')||'').trim(),
+          cargo: String(pickCol(row,'DESCR_CARGO','Cargo','DESCR_FUNCAO')||'').trim(),
+          departamento: String(pickCol(row,'DESCR_DEPARTAMENTO','Departamento','Setor')||'').trim(),
+          unidade: unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : ''),
+          supervisorId: null,
+          dataAdmissao: parseDataFlexivel(pickCol(row,'DATA_ADMISSAO','Data de admissão','Admissão')) || todayISO(),
+          tipoContrato: mapTipoContrato(pickCol(row,'DESCR_TIPO_COLAB','Tipo de contrato','TIPO_COLAB')),
+          observacoes: '', status, dataCadastro: todayISO()
+        };
+        if(status==='desligado'){
+          novo.dataDesligamento = parseDataFlexivel(pickCol(row,'DATA_DESLIGAMENTO','Data de desligamento')) || novo.dataAdmissao;
+          novo.motivoDesligamento = '';
+        }
+        state.colaboradores.push(novo);
+        if(cpfDigitos) cpfsExistentes.add(cpfDigitos);
+        importados++;
+      }
+      await save.colaboradores();
+      renderView('rhcolab'); renderView('rhorg'); renderView('rhdash');
+      logAudit('Importação de colaboradores', `${importados} importado(s) via planilha`);
+      const avisos = [];
+      if(semNome) avisos.push(`${semNome} linha(s) sem nome (ignoradas)`);
+      if(duplicados) avisos.push(`${duplicados} CPF(s) já cadastrado(s) (ignorados)`);
+      if(semPermissao) avisos.push(`${semPermissao} fora da sua unidade (sem permissão)`);
+      if(unidadeNaoReconhecida) avisos.push(`${unidadeNaoReconhecida} com unidade não reconhecida — confira/edite manualmente`);
+      msgEl.style.color = importados>0 ? 'var(--go)' : 'var(--danger)';
+      msgEl.textContent = `${importados} colaborador(es) importado(s).` + (avisos.length ? ' ' + avisos.join('; ') + '.' : '');
+      fileInput.value='';
+    }catch(e){
+      console.error(e);
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent='Não foi possível ler esse arquivo. Confira se é um .xlsx, .xls ou .csv válido.';
+    }
+  });
+
   function renderColaboradores(){
     syncColaboradoresStatus();
     applyColabFormPermissions();
