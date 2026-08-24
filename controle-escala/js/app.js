@@ -80,9 +80,23 @@ function countWorkOff(escalaStr) {
 /*  Boot                                                                */
 /* ------------------------------------------------------------------ */
 
+async function loadDataset(tab) {
+  const base = await fetch(tab.file).then((r) => r.json());
+  if (base.colaboradoresPorGrupo) {
+    // Motoristas' colaboradores are split into one small file per grupo
+    // (data/motoristas/*.json) rather than inlined here.
+    const entries = Object.entries(base.colaboradoresPorGrupo);
+    const dir = tab.file.slice(0, tab.file.lastIndexOf('/') + 1);
+    const groupArrays = await Promise.all(entries.map(([, path]) => fetch(dir + path).then((r) => r.json())));
+    base.colaboradores = groupArrays.flat();
+    delete base.colaboradoresPorGrupo;
+  }
+  return base;
+}
+
 async function boot() {
   renderTabs();
-  const results = await Promise.all(TABS.map((t) => fetch(t.file).then((r) => r.json())));
+  const results = await Promise.all(TABS.map((t) => loadDataset(t)));
   TABS.forEach((t, i) => { datasets[t.id] = results[i]; });
 
   const now = new Date();

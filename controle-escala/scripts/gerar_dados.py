@@ -17,6 +17,7 @@ Para trocar de safra/ano: atualize a constante YEAR abaixo antes de rodar.
 import openpyxl
 import calendar
 import json
+import os
 import re
 import sys
 import unicodedata
@@ -349,17 +350,31 @@ def build_file1(path, out_path):
     monthly = parse_all_months(path, marker_grupo)
     lookup, lookup_by_name = parse_nomes_file1(path)
     people = consolidate(monthly, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
+    grupos = sorted(set(p['grupo'] for p in people if p['grupo']))
+    # Colaboradores are split into one small file per grupo (data/motoristas/*.json)
+    # instead of one big array inline here: keeps each generated file small,
+    # which matters when they need to be transferred/reviewed individually.
+    outdir = os.path.dirname(out_path)
+    subdir = os.path.join(outdir, 'motoristas')
+    os.makedirs(subdir, exist_ok=True)
+    grupo_files = {}
+    for g in grupos:
+        slug = re.sub(r'\s+', '_', g.strip().lower())
+        fname = f'{slug}.json'
+        grupo_files[g] = f'motoristas/{fname}'
+        with open(os.path.join(subdir, fname), 'w', encoding='utf-8') as f:
+            json.dump([p for p in people if p['grupo'] == g], f, ensure_ascii=False, indent=2)
     data = {
         'titulo': 'Escala 5x1 — Motoristas Canavieiros — Safra 2026',
         'tipoEscala': '5x1',
         'ano': YEAR,
         'meses': build_meses_meta(monthly),
-        'grupos': sorted(set(p['grupo'] for p in people if p['grupo'])),
-        'colaboradores': people,
+        'grupos': grupos,
+        'colaboradoresPorGrupo': grupo_files,
     }
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=False)
-    print(f'{out_path}: {len(people)} colaboradores, grupos={data["grupos"]}')
+    print(f'{out_path}: {len(people)} colaboradores em {len(grupos)} arquivo(s) de grupo, grupos={grupos}')
     return data
 
 
@@ -431,7 +446,6 @@ def build_file3(path, out_path):
 
 if __name__ == '__main__':
     import argparse
-    import os
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--motoristas', required=True, help='Escala 5x1 Motorista Canavieiro (.xlsx)')
