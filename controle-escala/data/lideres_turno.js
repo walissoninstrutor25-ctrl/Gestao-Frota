@@ -1,4 +1,4 @@
-{
+window.DATA_LIDERES_TURNO = {
   "titulo": "Escala 6x2 — Líder de Turno",
   "tipoEscala": "6x2",
   "ano": 2026,
@@ -174,4 +174,4 @@
       "matricula": 27399
     }
   ]
-}
+};

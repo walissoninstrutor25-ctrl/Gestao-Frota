@@ -1,4 +1,4 @@
-{
+window.DATA_MOTORISTAS_META = {
   "titulo": "Escala 5x1 — Motoristas Canavieiros — Safra 2026",
   "tipoEscala": "5x1",
   "ano": 2026,
@@ -74,14 +74,14 @@
     "GRUPO 07",
     "GRUPO 08"
   ],
-  "colaboradoresPorGrupo": {
-    "GRUPO 01": "motoristas/grupo_01.json",
-    "GRUPO 02": "motoristas/grupo_02.json",
-    "GRUPO 03": "motoristas/grupo_03.json",
-    "GRUPO 04": "motoristas/grupo_04.json",
-    "GRUPO 05": "motoristas/grupo_05.json",
-    "GRUPO 06": "motoristas/grupo_06.json",
-    "GRUPO 07": "motoristas/grupo_07.json",
-    "GRUPO 08": "motoristas/grupo_08.json"
+  "colaboradoresPorGrupoVar": {
+    "GRUPO 01": "DATA_MOTORISTAS_GRUPO_01",
+    "GRUPO 02": "DATA_MOTORISTAS_GRUPO_02",
+    "GRUPO 03": "DATA_MOTORISTAS_GRUPO_03",
+    "GRUPO 04": "DATA_MOTORISTAS_GRUPO_04",
+    "GRUPO 05": "DATA_MOTORISTAS_GRUPO_05",
+    "GRUPO 06": "DATA_MOTORISTAS_GRUPO_06",
+    "GRUPO 07": "DATA_MOTORISTAS_GRUPO_07",
+    "GRUPO 08": "DATA_MOTORISTAS_GRUPO_08"
   }
-}
+};

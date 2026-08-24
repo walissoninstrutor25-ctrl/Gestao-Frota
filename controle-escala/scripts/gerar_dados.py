@@ -1,4 +1,4 @@
-"""Gera os JSON de dados do Controle de Escala a partir das planilhas oficiais.
+"""Gera os dados do Controle de Escala a partir das planilhas oficiais.
 
 Uso:
     python3 gerar_dados.py \\
@@ -11,6 +11,13 @@ Cada planilha precisa manter a mesma estrutura das planilhas da Safra 2026:
 abas NOMES/MESTRE + uma aba por mês (MARÇO..DEZEMBRO), com os dias 1..31 nas
 colunas e o status trabalha/folga indicado pela cor de preenchimento da
 célula (branco = trabalha, cinza = folga) — não pelo texto da célula.
+
+Os arquivos gerados em data/ são .js (não .json): cada um define uma
+variável global `window.ALGUMA_COISA = {...}` e é incluído no index.html
+via <script src="...">, em vez de ser buscado com fetch(). Isso é
+proposital — fetch() de arquivo local é bloqueado pelo navegador quando a
+página é aberta com duplo-clique (file://) em vez de hospedada, então o
+app funciona igual hospedado ou aberto direto do disco.
 
 Para trocar de safra/ano: atualize a constante YEAR abaixo antes de rodar.
 """
@@ -346,34 +353,48 @@ def marker_file3(a, idx):
     return 'IGNORAR'
 
 
+def write_js_data(path, varname, data):
+    """Write `data` as `window.<varname> = {...};` instead of plain JSON.
+
+    The app loads all data through plain <script src> tags, not fetch(), so
+    it works the same whether opened via file://, a local server, or a real
+    host: fetch()/XHR of local files is blocked by browsers' CORS rules when
+    a page is opened directly (double-clicked) instead of served over
+    http(s), which is why an earlier fetch()-based version only worked when
+    hosted. <script> tags aren't subject to that restriction.
+    """
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(f'window.{varname} = ')
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write(';\n')
+
+
 def build_file1(path, out_path):
     monthly = parse_all_months(path, marker_grupo)
     lookup, lookup_by_name = parse_nomes_file1(path)
     people = consolidate(monthly, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
     grupos = sorted(set(p['grupo'] for p in people if p['grupo']))
-    # Colaboradores are split into one small file per grupo (data/motoristas/*.json)
+    # Colaboradores are split into one small file per grupo (data/motoristas/*.js)
     # instead of one big array inline here: keeps each generated file small,
     # which matters when they need to be transferred/reviewed individually.
     outdir = os.path.dirname(out_path)
     subdir = os.path.join(outdir, 'motoristas')
     os.makedirs(subdir, exist_ok=True)
-    grupo_files = {}
+    grupo_vars = {}
     for g in grupos:
         slug = re.sub(r'\s+', '_', g.strip().lower())
-        fname = f'{slug}.json'
-        grupo_files[g] = f'motoristas/{fname}'
-        with open(os.path.join(subdir, fname), 'w', encoding='utf-8') as f:
-            json.dump([p for p in people if p['grupo'] == g], f, ensure_ascii=False, indent=2)
+        varname = f'DATA_MOTORISTAS_{slug.upper()}'
+        grupo_vars[g] = varname
+        write_js_data(os.path.join(subdir, f'{slug}.js'), varname, [p for p in people if p['grupo'] == g])
     data = {
         'titulo': 'Escala 5x1 — Motoristas Canavieiros — Safra 2026',
         'tipoEscala': '5x1',
         'ano': YEAR,
         'meses': build_meses_meta(monthly),
         'grupos': grupos,
-        'colaboradoresPorGrupo': grupo_files,
+        'colaboradoresPorGrupoVar': grupo_vars,
     }
-    with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=False)
+    write_js_data(out_path, 'DATA_MOTORISTAS_META', data)
     print(f'{out_path}: {len(people)} colaboradores em {len(grupos)} arquivo(s) de grupo, grupos={grupos}')
     return data
 
@@ -406,10 +427,8 @@ def build_file2(path, out_turno_path, out_patio_path):
         'meses': build_meses_meta(monthly_patio),
         'colaboradores': people_patio,
     }
-    with open(out_turno_path, 'w', encoding='utf-8') as f:
-        json.dump(data_turno, f, ensure_ascii=False, indent=2)
-    with open(out_patio_path, 'w', encoding='utf-8') as f:
-        json.dump(data_patio, f, ensure_ascii=False, indent=2)
+    write_js_data(out_turno_path, 'DATA_LIDERES_TURNO', data_turno)
+    write_js_data(out_patio_path, 'DATA_LIDERES_PATIO', data_patio)
     print(f'{out_turno_path}: {len(people_turno)} colaboradores')
     print(f'{out_patio_path}: {len(people_patio)} colaboradores')
     return data_turno, data_patio
@@ -438,8 +457,7 @@ def build_file3(path, out_path):
         ],
         'colaboradores': people,
     }
-    with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    write_js_data(out_path, 'DATA_MASTER_DRIVER', data)
     print(f'{out_path}: {len(people)} colaboradores, unidades={[p["unidade"] for p in people]}')
     return data
 
@@ -455,6 +473,6 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
-    build_file1(args.motoristas, os.path.join(args.outdir, 'motoristas.json'))
-    build_file2(args.lideres, os.path.join(args.outdir, 'lideres_turno.json'), os.path.join(args.outdir, 'lideres_patio.json'))
-    build_file3(args.master, os.path.join(args.outdir, 'master_driver.json'))
+    build_file1(args.motoristas, os.path.join(args.outdir, 'motoristas.js'))
+    build_file2(args.lideres, os.path.join(args.outdir, 'lideres_turno.js'), os.path.join(args.outdir, 'lideres_patio.js'))
+    build_file3(args.master, os.path.join(args.outdir, 'master_driver.js'))

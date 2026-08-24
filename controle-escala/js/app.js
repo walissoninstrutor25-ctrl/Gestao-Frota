@@ -5,10 +5,10 @@
 /* ------------------------------------------------------------------ */
 
 const TABS = [
-  { id: 'motoristas', label: 'Motoristas Canavieiros', tag: '5x1', file: 'data/motoristas.json', hasGroups: true, hasUnits: false },
-  { id: 'lideres_turno', label: 'Líder de Turno', tag: '6x2', file: 'data/lideres_turno.json', hasGroups: false, hasUnits: false },
-  { id: 'lideres_patio', label: 'Líder de Pátio', tag: '6x2', file: 'data/lideres_patio.json', hasGroups: false, hasUnits: false },
-  { id: 'master_driver', label: 'Master Driver', tag: '5x1', file: 'data/master_driver.json', hasGroups: false, hasUnits: true },
+  { id: 'motoristas', label: 'Motoristas Canavieiros', tag: '5x1', dataVar: 'DATA_MOTORISTAS_META', hasGroups: true, hasUnits: false },
+  { id: 'lideres_turno', label: 'Líder de Turno', tag: '6x2', dataVar: 'DATA_LIDERES_TURNO', hasGroups: false, hasUnits: false },
+  { id: 'lideres_patio', label: 'Líder de Pátio', tag: '6x2', dataVar: 'DATA_LIDERES_PATIO', hasGroups: false, hasUnits: false },
+  { id: 'master_driver', label: 'Master Driver', tag: '5x1', dataVar: 'DATA_MASTER_DRIVER', hasGroups: false, hasUnits: true },
 ];
 
 const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
@@ -80,23 +80,26 @@ function countWorkOff(escalaStr) {
 /*  Boot                                                                */
 /* ------------------------------------------------------------------ */
 
-async function loadDataset(tab) {
-  const base = await fetch(tab.file).then((r) => r.json());
-  if (base.colaboradoresPorGrupo) {
+function loadDataset(tab) {
+  const base = window[tab.dataVar];
+  if (!base) throw new Error(`Dados não encontrados: window.${tab.dataVar}. Confira se todos os <script> de data/ estão carregando antes de js/app.js.`);
+  if (base.colaboradoresPorGrupoVar) {
     // Motoristas' colaboradores are split into one small file per grupo
-    // (data/motoristas/*.json) rather than inlined here.
-    const entries = Object.entries(base.colaboradoresPorGrupo);
-    const dir = tab.file.slice(0, tab.file.lastIndexOf('/') + 1);
-    const groupArrays = await Promise.all(entries.map(([, path]) => fetch(dir + path).then((r) => r.json())));
-    base.colaboradores = groupArrays.flat();
-    delete base.colaboradoresPorGrupo;
+    // (data/motoristas/*.js, each setting its own window.DATA_MOTORISTAS_*)
+    // rather than inlined here.
+    base.colaboradores = Object.values(base.colaboradoresPorGrupoVar).flatMap((varname) => {
+      const arr = window[varname];
+      if (!arr) throw new Error(`Dados não encontrados: window.${varname}`);
+      return arr;
+    });
+    delete base.colaboradoresPorGrupoVar;
   }
   return base;
 }
 
-async function boot() {
+function boot() {
   renderTabs();
-  const results = await Promise.all(TABS.map((t) => loadDataset(t)));
+  const results = TABS.map((t) => loadDataset(t));
   TABS.forEach((t, i) => { datasets[t.id] = results[i]; });
 
   const now = new Date();
@@ -453,11 +456,20 @@ function tickClock() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  boot();
+  try {
+    boot();
+  } catch (err) {
+    document.getElementById('app').innerHTML = `
+      <div class="empty-state">
+        Não foi possível carregar os dados da escala.<br>
+        <small style="display:block;margin-top:8px;opacity:.7">${err.message}</small>
+      </div>`;
+    console.error(err);
+  }
   tickClock();
   setInterval(tickClock, 30000);
   document.getElementById('year').textContent = new Date().getFullYear();
-  if ('serviceWorker' in navigator) {
+  if (location.protocol !== 'file:' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 });

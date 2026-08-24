@@ -1,4 +1,4 @@
-{
+window.DATA_MASTER_DRIVER = {
   "titulo": "Escala 5x1 — Master Driver — MNS & PRA",
   "tipoEscala": "5x1",
   "ano": 2026,
@@ -186,4 +186,4 @@
       "unidade": "PRA"
     }
   ]
-}
+};

@@ -7,18 +7,18 @@ const FILES = [
   "./assets/lots-logo.png",
   "./assets/lots-logo-192.png",
   "./assets/lots-logo-512.png",
-  "./data/motoristas.json",
-  "./data/motoristas/grupo_01.json",
-  "./data/motoristas/grupo_02.json",
-  "./data/motoristas/grupo_03.json",
-  "./data/motoristas/grupo_04.json",
-  "./data/motoristas/grupo_05.json",
-  "./data/motoristas/grupo_06.json",
-  "./data/motoristas/grupo_07.json",
-  "./data/motoristas/grupo_08.json",
-  "./data/lideres_turno.json",
-  "./data/lideres_patio.json",
-  "./data/master_driver.json"
+  "./data/motoristas.js",
+  "./data/motoristas/grupo_01.js",
+  "./data/motoristas/grupo_02.js",
+  "./data/motoristas/grupo_03.js",
+  "./data/motoristas/grupo_04.js",
+  "./data/motoristas/grupo_05.js",
+  "./data/motoristas/grupo_06.js",
+  "./data/motoristas/grupo_07.js",
+  "./data/motoristas/grupo_08.js",
+  "./data/lideres_turno.js",
+  "./data/lideres_patio.js",
+  "./data/master_driver.js"
 ];
 
 self.addEventListener("install", event => {

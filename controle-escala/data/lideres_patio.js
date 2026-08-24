@@ -1,4 +1,4 @@
-{
+window.DATA_LIDERES_PATIO = {
   "titulo": "Escala 6x2 — Líder de Pátio",
   "tipoEscala": "6x2",
   "ano": 2026,
@@ -146,4 +146,4 @@
       "telefone": "(18)997069154"
     }
   ]
-}
+};

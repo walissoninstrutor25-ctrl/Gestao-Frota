@@ -1,4 +1,4 @@
-[
+window.DATA_MOTORISTAS_GRUPO_07 = [
   {
     "nome": "DIOGO VITORINO DOS SANTOS",
     "grupo": "GRUPO 07",
@@ -188,4 +188,4 @@
     "lider": "PAULO HENRIQUE",
     "cargo": "MOTORISTA"
   }
-]
+];

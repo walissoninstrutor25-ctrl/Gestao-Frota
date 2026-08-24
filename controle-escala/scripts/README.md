@@ -1,6 +1,6 @@
 # Atualizar os dados das escalas
 
-Os dados que o app mostra (`../data/*.json`) são gerados a partir das 3
+Os dados que o app mostra (`../data/*.js`) são gerados a partir das 3
 planilhas oficiais — eles **não** são lidos da planilha em tempo real.
 Para atualizar (nova safra, troca de colaborador, correção de mês etc.),
 gere as planilhas atualizadas no mesmo formato das originais e rode:
@@ -14,8 +14,17 @@ python3 gerar_dados.py \
   --outdir ../data
 ```
 
-Isso sobrescreve os 4 arquivos em `../data/`. Recarregue a página do app
+Isso sobrescreve os arquivos em `../data/`. Recarregue a página do app
 para ver os dados novos (não precisa build nem deploy separado).
+
+Os arquivos são `.js`, não `.json`: cada um só define uma variável
+(`window.DATA_MOTORISTAS_META = {...}`, por exemplo) e é carregado pelo
+`index.html` via `<script src="...">`. Isso é proposital — assim o app
+funciona igual tanto aberto direto do disco (duplo-clique) quanto
+hospedado; com `fetch()`/`.json`, o navegador bloqueia o carregamento
+quando a página é aberta sem servidor. Se adicionar um novo arquivo de
+dados, lembre de incluir o `<script src="...">` correspondente no
+`index.html`, antes de `js/app.js`.
 
 ## Formato esperado da planilha
 

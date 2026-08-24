@@ -1,7 +1,7 @@
-[
+window.DATA_MOTORISTAS_GRUPO_02 = [
   {
-    "nome": "JOSE VALDES CALADO DE LIMA",
-    "grupo": "GRUPO 01",
+    "nome": "FABIO RODRIGUES DE SOUSA",
+    "grupo": "GRUPO 02",
     "papel": "A",
     "papelNormalizado": "Turno A",
     "escala": {
@@ -16,13 +16,13 @@
       "NOVEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
       "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
     },
-    "matricula": 31469,
+    "matricula": 31454,
     "lider": "EDER TEODORO",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "ANDRE ANTONIO DA SILVA",
-    "grupo": "GRUPO 01",
+    "nome": "RENATO MARTINS CABRAL",
+    "grupo": "GRUPO 02",
     "papel": "A",
     "papelNormalizado": "Turno A",
     "escala": {
@@ -37,13 +37,13 @@
       "NOVEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
       "DEZEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW"
     },
-    "matricula": 31572,
+    "matricula": 31485,
     "lider": "EDER TEODORO",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "MARCOS AURELIO TEODORO FREITAS",
-    "grupo": "GRUPO 01",
+    "nome": "CARLOS RAMIRO DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "A",
     "papelNormalizado": "Turno A",
     "escala": {
@@ -58,13 +58,13 @@
       "NOVEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
       "DEZEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW"
     },
-    "matricula": 32259,
+    "matricula": 31434,
     "lider": "EDER TEODORO",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "LAYLA CRYSTINA RAMOS NOGUEIRA",
-    "grupo": "GRUPO 01",
+    "nome": "AILSON MAXIMO DE AMORIM",
+    "grupo": "GRUPO 02",
     "papel": "A",
     "papelNormalizado": "Turno A",
     "escala": {
@@ -79,13 +79,13 @@
       "NOVEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
       "DEZEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW"
     },
-    "matricula": 31472,
+    "matricula": 31753,
     "lider": "EDER TEODORO",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "MAYARA INGRIDY GALVAO",
-    "grupo": "GRUPO 01",
+    "nome": "GILMAR DA SILVA FERREIRA",
+    "grupo": "GRUPO 02",
     "papel": "A",
     "papelNormalizado": "Turno A",
     "escala": {
@@ -100,13 +100,13 @@
       "NOVEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
       "DEZEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW"
     },
-    "matricula": 31481,
+    "matricula": 31456,
     "lider": "EDER TEODORO",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "JOSE IRINEU DA SILVA",
-    "grupo": "GRUPO 01",
+    "nome": "ALBERES FERREIRA DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "A",
     "papelNormalizado": "Turno A",
     "escala": {
@@ -121,13 +121,13 @@
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 31898,
+    "matricula": 31900,
     "lider": "EDER TEODORO",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "ADVALDO RODRIGUES DE CARVALHO",
-    "grupo": "GRUPO 01",
+    "nome": "ENIVALDO JOSE DA SILVA FILHO",
+    "grupo": "GRUPO 02",
     "papel": "B",
     "papelNormalizado": "Turno B",
     "escala": {
@@ -142,13 +142,13 @@
       "NOVEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
       "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
     },
-    "matricula": 31518,
+    "matricula": 32300,
     "lider": "EMERSON TABUAS",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "PEDRO DOS SANTOS SILVA",
-    "grupo": "GRUPO 01",
+    "nome": "EDKLEBER MARTINS DOS SANTOS",
+    "grupo": "GRUPO 02",
     "papel": "B",
     "papelNormalizado": "Turno B",
     "escala": {
@@ -163,13 +163,13 @@
       "NOVEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
       "DEZEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW"
     },
-    "matricula": 31482,
+    "matricula": 31452,
     "lider": "EMERSON TABUAS",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "DIEGO RODRIGUES COSTA",
-    "grupo": "GRUPO 01",
+    "nome": "EDISSANDRO DIAS DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "B",
     "papelNormalizado": "Turno B",
     "escala": {
@@ -184,13 +184,13 @@
       "NOVEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
       "DEZEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW"
     },
-    "matricula": 31444,
+    "matricula": 31451,
     "lider": "EMERSON TABUAS",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "FELIX TAVARES DA SILVA",
-    "grupo": "GRUPO 01",
+    "nome": "CLAUDIO JOSE DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "B",
     "papelNormalizado": "Turno B",
     "escala": {
@@ -205,13 +205,13 @@
       "NOVEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
       "DEZEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW"
     },
-    "matricula": 31654,
+    "matricula": 31539,
     "lider": "EMERSON TABUAS",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "EDISON TEIXEIRA DOS SANTOS",
-    "grupo": "GRUPO 01",
+    "nome": "WILSON CARLOS DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "B",
     "papelNormalizado": "Turno B",
     "escala": {
@@ -226,13 +226,13 @@
       "NOVEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
       "DEZEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW"
     },
-    "matricula": 31450,
+    "matricula": 31530,
     "lider": "EMERSON TABUAS",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "WEINO CARLOS MARQUES SANTOS",
-    "grupo": "GRUPO 01",
+    "nome": "MARQUES HERNANDES ALMEIDA DA CUNHA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "B",
     "papelNormalizado": "Turno B",
     "escala": {
@@ -247,13 +247,13 @@
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 32017,
+    "matricula": 32156,
     "lider": "EMERSON TABUAS",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "ROGERIO SILVA DOS SANTOS",
-    "grupo": "GRUPO 01",
+    "nome": "JULIANO NARCISO DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "C",
     "papelNormalizado": "Turno C",
     "escala": {
@@ -268,13 +268,13 @@
       "NOVEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
       "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
     },
-    "matricula": 31567,
+    "matricula": 31566,
     "lider": "PAULO HENRIQUE",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "FERNANDO NETO FERREIRA LIMA",
-    "grupo": "GRUPO 01",
+    "nome": "ANDRE CARLOS DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "C",
     "papelNormalizado": "Turno C",
     "escala": {
@@ -289,13 +289,13 @@
       "NOVEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
       "DEZEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW"
     },
-    "matricula": 31455,
+    "matricula": 31429,
     "lider": "PAULO HENRIQUE",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "CARLOS JOSE DA SILVA",
-    "grupo": "GRUPO 01",
+    "nome": "EDSON CARVALHO DOS SANTOS",
+    "grupo": "GRUPO 02",
     "papel": "C",
     "papelNormalizado": "Turno C",
     "escala": {
@@ -310,13 +310,34 @@
       "NOVEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
       "DEZEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW"
     },
-    "matricula": 31433,
+    "matricula": 31498,
     "lider": "PAULO HENRIQUE",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "SEVERINO ANTONIO DE SOUZA SANTOS",
-    "grupo": "GRUPO 01",
+    "nome": "COSME PEREIRA DA SILVA JUNIOR",
+    "grupo": "GRUPO 02",
+    "papel": "C",
+    "papelNormalizado": "Turno C",
+    "escala": {
+      "MARÇO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "ABRIL": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "MAIO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "JUNHO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "JULHO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
+      "AGOSTO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
+      "SETEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
+      "OUTUBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "NOVEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "DEZEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW"
+    },
+    "matricula": 31440,
+    "lider": "PAULO HENRIQUE",
+    "cargo": "MOTORISTA"
+  },
+  {
+    "nome": "MARCIANO MIRANDA DA SILVA",
+    "grupo": "GRUPO 02",
     "papel": "C",
     "papelNormalizado": "Turno C",
     "escala": {
@@ -331,13 +352,13 @@
       "NOVEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
       "DEZEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW"
     },
-    "matricula": 31555,
+    "matricula": 31477,
     "lider": "PAULO HENRIQUE",
     "cargo": "MOTORISTA"
   },
   {
-    "nome": "ELIEL DA SILVA NUNES PEREIRA",
-    "grupo": "GRUPO 01",
+    "nome": "CLAUDSON PEREIRA BISPO DE SOUZA",
+    "grupo": "GRUPO 02",
     "papel": "C",
     "papelNormalizado": "Turno C",
     "escala": {
@@ -352,8 +373,8 @@
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 31890,
+    "matricula": 31438,
     "lider": "PAULO HENRIQUE",
     "cargo": "MOTORISTA"
   }
-]
+];
