@@ -61,9 +61,16 @@ const EDIT_STORAGE_KEY = 'escala:edits:v1';
 function loadEdits() {
   try {
     const raw = JSON.parse(localStorage.getItem(EDIT_STORAGE_KEY) || '{}');
-    return { contato: raw.contato || {}, dias: raw.dias || {}, equipe: raw.equipe || {} };
+    return {
+      contato: raw.contato || {},
+      dias: raw.dias || {},
+      equipe: raw.equipe || {},
+      moves: raw.moves || {},        // numero equipamento -> grupo de destino
+      newEquip: raw.newEquip || {},  // numero equipamento (criado do zero) -> grupo
+      newGrupos: raw.newGrupos || [], // grupos criados do zero (podem estar vazios)
+    };
   } catch {
-    return { contato: {}, dias: {}, equipe: {} };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [] };
   }
 }
 
@@ -75,7 +82,8 @@ function persistEdits() {
 }
 
 function hasAnyEdits() {
-  return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0;
+  return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0
+    || Object.keys(edits.moves).length > 0 || Object.keys(edits.newEquip).length > 0 || edits.newGrupos.length > 0;
 }
 
 function updateResetBtnVisibility() {
@@ -125,6 +133,58 @@ function equipeEditGet(path, field, fallback) {
 function equipeEditSet(path, field, value) {
   edits.equipe[path] = { ...edits.equipe[path], [field]: value };
   persistEdits();
+}
+
+// Reatribuição de equipamentos entre grupos (só existe para 'motoristas' —
+// é a única aba onde a equipe é organizada em grupos de equipamentos).
+// Um equipamento vira do grupo em que está para o grupo de destino,
+// criando o grupo de destino se ainda não existir. numero é global e
+// único entre grupos (garantido no momento de criar/mover), então não
+// precisa saber o grupo de origem para achar o equipamento.
+function moveEquipamentoToGrupo(ds, numero, targetGrupo) {
+  let equip = null;
+  for (const g of ds.mestre) {
+    const idx = g.equipamentos.findIndex((e) => e.numero === numero);
+    if (idx !== -1) {
+      if (g.grupo === targetGrupo) return false;
+      equip = g.equipamentos.splice(idx, 1)[0];
+      break;
+    }
+  }
+  if (!equip) return false;
+  let alvo = ds.mestre.find((g) => g.grupo === targetGrupo);
+  if (!alvo) {
+    alvo = { grupo: targetGrupo, equipamentos: [], folguistas: {} };
+    ds.mestre.push(alvo);
+  }
+  alvo.equipamentos.push(equip);
+  return true;
+}
+
+function equipamentoExiste(ds, numero) {
+  return ds.mestre.some((g) => g.equipamentos.some((e) => e.numero === numero));
+}
+
+function ordenarMestre(ds) {
+  ds.mestre.sort((a, b) => a.grupo.localeCompare(b.grupo, 'pt-BR', { numeric: true }));
+}
+
+// Reconstrói, sobre os dados originais da planilha, os grupos/equipamentos
+// criados do zero e as trocas de grupo feitas em modo de edição — chamado
+// uma vez no boot, antes de renderizar.
+function applyStoredMestreOps(ds) {
+  edits.newGrupos.forEach((nome) => {
+    if (!ds.mestre.find((g) => g.grupo === nome)) ds.mestre.push({ grupo: nome, equipamentos: [], folguistas: {} });
+  });
+  Object.keys(edits.newEquip).forEach((numero) => {
+    if (equipamentoExiste(ds, numero)) return;
+    const grupo = edits.newEquip[numero];
+    let g = ds.mestre.find((x) => x.grupo === grupo);
+    if (!g) { g = { grupo, equipamentos: [], folguistas: {} }; ds.mestre.push(g); }
+    g.equipamentos.push({ numero, turnos: {} });
+  });
+  Object.keys(edits.moves).forEach((numero) => moveEquipamentoToGrupo(ds, numero, edits.moves[numero]));
+  ordenarMestre(ds);
 }
 
 /* ------------------------------------------------------------------ */
@@ -196,6 +256,7 @@ function boot() {
   const results = TABS.map((t) => loadDataset(t));
   TABS.forEach((t, i) => { datasets[t.id] = results[i]; });
   applyStoredEditsToDatasets();
+  if (datasets.motoristas && datasets.motoristas.mestre) applyStoredMestreOps(datasets.motoristas);
 
   const now = new Date();
   TABS.forEach((t) => {
@@ -328,7 +389,10 @@ function renderPanel() {
   if (isEquipe) {
     const viewBody = document.getElementById('viewBody');
     viewBody.innerHTML = renderEquipeHtml(ds, cfg, mestre);
-    if (state.editMode) wireEquipeEdits(viewBody);
+    if (state.editMode) {
+      wireEquipeEdits(viewBody);
+      if (cfg.id === 'motoristas') wireEquipeStructure(viewBody, ds);
+    }
   } else {
     document.getElementById('viewBody').innerHTML = `
       <div id="todayStrip"></div>
@@ -460,33 +524,48 @@ function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, ap
     </div>`;
 }
 
-function equipeGrupoHtml(g) {
-  const basePath = `motoristas|${g.grupo}`;
+function equipeGrupoHtml(g, allGrupos) {
+  const moveSelect = (numero) => `
+    <select class="equip-move-select" data-equip="${numero}" title="Mover para outro grupo">
+      ${allGrupos.map((gn) => `<option value="${gn}" ${gn === g.grupo ? 'selected' : ''}>${gn}</option>`).join('')}
+      <option value="__novo__">+ Novo grupo…</option>
+    </select>`;
   const rows = g.equipamentos.map((e) => `
     <tr>
-      <td class="col-nome"><span class="nome">Equip. ${e.numero}</span>${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}</td>
-      <td>${equipePessoaHtml(e.turnos.A, `${basePath}|equip|${e.numero}|A`)}</td>
-      <td>${equipePessoaHtml(e.turnos.B, `${basePath}|equip|${e.numero}|B`)}</td>
-      <td>${equipePessoaHtml(e.turnos.C, `${basePath}|equip|${e.numero}|C`)}</td>
+      <td class="col-nome">
+        <span class="nome">Equip. ${e.numero}</span>${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}
+        ${state.editMode ? moveSelect(e.numero) : ''}
+      </td>
+      <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`)}</td>
+      <td>${equipePessoaHtml(e.turnos.B, `motoristas|equip|${e.numero}|B`)}</td>
+      <td>${equipePessoaHtml(e.turnos.C, `motoristas|equip|${e.numero}|C`)}</td>
     </tr>`).join('');
   const temFolguistas = state.editMode || ['A', 'B', 'C'].some((t) => g.folguistas[t]);
+  const folguistaBase = `motoristas|grupo|${g.grupo}`;
   return `
-    <div class="equipe-grupo">
+    <div class="equipe-grupo" data-grupo="${g.grupo}">
       <h3>${g.grupo}</h3>
       <table class="equipe-table">
         <thead><tr><th>Equipamento</th><th>Turno A</th><th>Turno B</th><th>Turno C</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+      ${!g.equipamentos.length ? '<p class="equipe-vazio-msg">Nenhum equipamento neste grupo ainda.</p>' : ''}
+      ${state.editMode ? `<button class="icon-btn equip-add-btn" data-grupo="${g.grupo}">+ Adicionar equipamento</button>` : ''}
       ${temFolguistas ? `
         <div class="equipe-folguistas">
-          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${basePath}|folguista|${t}`)}</div>` : '').join('')}
+          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${folguistaBase}|folguista|${t}`)}</div>` : '').join('')}
         </div>` : ''}
     </div>`;
 }
 
 function renderEquipeHtml(ds, cfg, mestre) {
   if (cfg.id === 'motoristas') {
-    return `<div class="equipe-wrap">${mestre.map((g) => equipeGrupoHtml(g)).join('')}</div>`;
+    const visiveis = state.editMode ? mestre : mestre.filter((g) => g.equipamentos.length || Object.keys(g.folguistas).length);
+    const allGrupos = mestre.map((g) => g.grupo);
+    return `<div class="equipe-wrap">
+      ${state.editMode ? `<button class="icon-btn" id="addGrupoBtn">+ Adicionar novo grupo</button>` : ''}
+      ${visiveis.map((g) => equipeGrupoHtml(g, allGrupos)).join('')}
+    </div>`;
   }
   if (cfg.id === 'master_driver') {
     const basePath = `master_driver|${state.unit[cfg.id]}`;
@@ -504,6 +583,52 @@ function wireEquipeEdits(container) {
     el.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
     });
+  });
+}
+
+// Controles de estrutura da Equipe (só motoristas): mover equipamento de
+// grupo, adicionar equipamento novo, adicionar grupo novo do zero.
+function wireEquipeStructure(container, ds) {
+  container.querySelectorAll('.equip-move-select').forEach((sel) => {
+    const original = sel.value;
+    sel.addEventListener('change', () => {
+      const numero = sel.dataset.equip;
+      let target = sel.value;
+      if (target === '__novo__') {
+        target = (prompt('Nome do novo grupo (ex.: GRUPO 09):') || '').trim().toUpperCase();
+        if (!target) { sel.value = original; return; }
+        if (!edits.newGrupos.includes(target) && !ds.mestre.some((g) => g.grupo === target)) edits.newGrupos.push(target);
+      }
+      edits.moves[numero] = target;
+      persistEdits();
+      moveEquipamentoToGrupo(ds, numero, target);
+      ordenarMestre(ds);
+      renderPanel();
+    });
+  });
+
+  container.querySelectorAll('.equip-add-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const grupo = btn.dataset.grupo;
+      const numero = (prompt('Número do equipamento (veículo) a adicionar:') || '').trim();
+      if (!numero) return;
+      if (equipamentoExiste(ds, numero)) { alert(`Já existe um equipamento ${numero} cadastrado.`); return; }
+      edits.newEquip[numero] = grupo;
+      persistEdits();
+      applyStoredMestreOps(ds);
+      renderPanel();
+    });
+  });
+
+  const addGrupoBtn = document.getElementById('addGrupoBtn');
+  if (addGrupoBtn) addGrupoBtn.addEventListener('click', () => {
+    const nome = (prompt('Nome do novo grupo (ex.: GRUPO 09):') || '').trim().toUpperCase();
+    if (!nome) return;
+    if (ds.mestre.some((g) => g.grupo === nome)) { alert(`O grupo "${nome}" já existe.`); return; }
+    edits.newGrupos.push(nome);
+    persistEdits();
+    applyStoredMestreOps(ds);
+    renderPanel();
   });
 }
 
@@ -641,7 +766,7 @@ function renderGrid(ds, cfg, monthMeta) {
   wrap.querySelectorAll('.person-row').forEach((row) => {
     row.addEventListener('click', (e) => {
       if (state.editMode && e.target.closest('.day-cell')) return;
-      openModal(ds.colaboradores.find((p) => p.__key === row.dataset.key), monthMeta, cfg);
+      openModal(ds.colaboradores.find((p) => p.__key === row.dataset.key), monthMeta, cfg, ds);
     });
   });
   if (state.editMode) {
@@ -700,12 +825,14 @@ function personRowHtml(p, days, monthMeta, ds, todayDay) {
 /*  Person modal                                                       */
 /* ------------------------------------------------------------------ */
 
-function openModal(p, monthMeta, cfg) {
+function openModal(p, monthMeta, cfg, ds) {
   if (!p) return;
   const { w, o } = countWorkOff(p.escala[monthMeta.chave]);
   const backdrop = document.getElementById('modalBackdrop');
 
   if (state.editMode && cfg) {
+    const grupos = ds ? [...new Set(ds.colaboradores.map((x) => x.grupo).filter(Boolean))] : [];
+    const papeis = ds ? [...new Set(ds.colaboradores.map((x) => x.papelNormalizado).filter(Boolean))] : [];
     backdrop.innerHTML = `
       <div class="modal">
         <div class="modal-head">
@@ -716,6 +843,10 @@ function openModal(p, monthMeta, cfg) {
         <div class="modal-body">
           <div class="modal-row edit"><span class="k">Nome</span><input class="modal-input" id="editNome" value="${p.nome || ''}"></div>
           <div class="modal-row edit"><span class="k">Matrícula</span><input class="modal-input" id="editMatricula" value="${p.matricula || ''}"></div>
+          <div class="modal-row edit"><span class="k">Turno</span><input class="modal-input" id="editTurno" list="turnoOptions" value="${p.papelNormalizado || ''}"></div>
+          <datalist id="turnoOptions">${papeis.map((v) => `<option value="${v}">`).join('')}</datalist>
+          <div class="modal-row edit"><span class="k">Grupo</span><input class="modal-input" id="editGrupo" list="grupoOptions" value="${p.grupo || ''}"></div>
+          <datalist id="grupoOptions">${grupos.map((v) => `<option value="${v}">`).join('')}</datalist>
           <div class="modal-row edit"><span class="k">Líder</span><input class="modal-input" id="editLider" value="${p.lider || ''}"></div>
           <div class="modal-row edit"><span class="k">Telefone</span><input class="modal-input" id="editTelefone" value="${p.telefone || ''}"></div>
         </div>
@@ -735,6 +866,8 @@ function openModal(p, monthMeta, cfg) {
       const values = {
         nome: document.getElementById('editNome').value.trim() || p.nome,
         matricula: as_int_or_null(document.getElementById('editMatricula').value.trim()),
+        papelNormalizado: document.getElementById('editTurno').value.trim() || null,
+        grupo: document.getElementById('editGrupo').value.trim() || null,
         lider: document.getElementById('editLider').value.trim() || null,
         telefone: document.getElementById('editTelefone').value.trim() || null,
       };
