@@ -29,13 +29,92 @@ const state = {
   activeTab: localStorage.getItem('escala:lastTab') || 'motoristas',
   month: {},      // tabId -> chave do mes selecionado
   unit: {},        // tabId -> 'MNS' | 'PRA'
+  view: {},        // tabId -> 'escala' | 'equipe'
   search: '',
   grupo: 'todos',
   papel: 'todos',
   collapsed: {},   // tabId -> Set(grupo)
+  editMode: false,
 };
 
 const datasets = {}; // tabId -> parsed json
+
+/* ------------------------------------------------------------------ */
+/*  Edições locais (modo edição)                                       */
+/*  Sem backend: as edições ficam salvas só neste navegador            */
+/*  (localStorage), não são sincronizadas entre dispositivos.          */
+/* ------------------------------------------------------------------ */
+
+const EDIT_STORAGE_KEY = 'escala:edits:v1';
+
+function loadEdits() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(EDIT_STORAGE_KEY) || '{}');
+    return { contato: raw.contato || {}, dias: raw.dias || {}, equipe: raw.equipe || {} };
+  } catch {
+    return { contato: {}, dias: {}, equipe: {} };
+  }
+}
+
+const edits = loadEdits();
+
+function persistEdits() {
+  localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(edits));
+  updateResetBtnVisibility();
+}
+
+function hasAnyEdits() {
+  return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0;
+}
+
+function updateResetBtnVisibility() {
+  const btn = document.getElementById('resetEditsBtn');
+  if (btn) btn.style.display = hasAnyEdits() ? '' : 'none';
+}
+
+function computeOriginalKey(cfgId, nome, grupo) {
+  return `${cfgId}|${normText(nome)}|${grupo || ''}`;
+}
+
+// Returns the person's stable identity key. Computed once from the pristine
+// (pre-edit) nome+grupo and cached on the object as __pk, so renaming
+// someone mid-session doesn't change which localStorage entry their edits
+// are saved under.
+function personKey(cfgId, p) {
+  return p.__pk || computeOriginalKey(cfgId, p.nome, p.grupo);
+}
+
+function applyStoredEditsToDatasets() {
+  TABS.forEach((cfg) => {
+    const ds = datasets[cfg.id];
+    if (!ds) return;
+    ds.colaboradores.forEach((p) => {
+      p.__pk = computeOriginalKey(cfg.id, p.nome, p.grupo);
+      const pk = p.__pk;
+      const contato = edits.contato[pk];
+      if (contato) Object.assign(p, contato);
+      const dias = edits.dias[pk];
+      if (dias) {
+        Object.keys(dias).forEach((monthKey) => {
+          if (!p.escala[monthKey]) return;
+          const chars = p.escala[monthKey].split('');
+          Object.keys(dias[monthKey]).forEach((dayIdx) => { chars[dayIdx] = dias[monthKey][dayIdx]; });
+          p.escala[monthKey] = chars.join('');
+        });
+      }
+    });
+  });
+}
+
+function equipeEditGet(path, field, fallback) {
+  const e = edits.equipe[path];
+  return e && field in e ? e[field] : fallback;
+}
+
+function equipeEditSet(path, field, value) {
+  edits.equipe[path] = { ...edits.equipe[path], [field]: value };
+  persistEdits();
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                             */
@@ -101,6 +180,7 @@ function boot() {
   renderTabs();
   const results = TABS.map((t) => loadDataset(t));
   TABS.forEach((t, i) => { datasets[t.id] = results[i]; });
+  applyStoredEditsToDatasets();
 
   const now = new Date();
   TABS.forEach((t) => {
@@ -108,6 +188,7 @@ function boot() {
     state.collapsed[t.id] = new Set();
     state.month[t.id] = monthKeyForRealDate(d, now) || d.meses[0].chave;
     if (t.hasUnits) state.unit[t.id] = d.unidades[0].codigo;
+    state.view[t.id] = 'escala';
   });
 
   activateTab(state.activeTab, true);
@@ -132,6 +213,7 @@ function activateTab(tabId, isBoot) {
   state.search = '';
   state.grupo = 'todos';
   state.papel = 'todos';
+  state.view[tabId] = 'escala';
   if (!isBoot) renderPanel();
   else if (datasets[tabId]) renderPanel();
 }
@@ -166,53 +248,73 @@ function renderPanel() {
   const monthKey = state.month[cfg.id];
   const monthMeta = ds.meses.find((m) => m.chave === monthKey) || ds.meses[0];
 
+  const mestre = currentMestre(ds, cfg);
+  const isEquipe = state.view[cfg.id] === 'equipe' && mestre;
+
   const app = document.getElementById('app');
   app.innerHTML = `
     <div class="panel-head">
       <h2>${ds.titulo}</h2>
-      <p>${cfg.hasGroups ? 'Organizado por grupo e turno.' : 'Organizado por turno.'} Dados da Safra 2026, extraídos da planilha oficial. <span class="print-only-meta">Mês: ${monthMeta.nome} de ${ds.ano}.</span></p>
+      <p>${cfg.hasGroups ? 'Organizado por grupo e turno.' : 'Organizado por turno.'} Dados extraídos da planilha oficial. <span class="print-only-meta">Mês: ${monthMeta.nome} de ${ds.ano}.</span></p>
     </div>
     ${cfg.hasUnits ? renderUnitSwitch(ds, cfg) : ''}
     <div class="toolbar">
       <div class="months" id="months"></div>
       <div class="toolbar-tools">
-        <div class="field"><input type="search" id="searchBox" placeholder="Buscar nome ou matrícula" value="${state.search}"></div>
-        ${cfg.hasGroups ? renderGrupoSelect(ds) : ''}
-        ${renderPapelSelect(ds, cfg)}
-        ${cfg.hasGroups ? `<button class="icon-btn" id="toggleGroups">Recolher grupos</button>` : ''}
+        ${isEquipe ? '' : `<div class="field"><input type="search" id="searchBox" placeholder="Buscar nome ou matrícula" value="${state.search}"></div>`}
+        ${!isEquipe && cfg.hasGroups ? renderGrupoSelect(ds) : ''}
+        ${isEquipe ? '' : renderPapelSelect(ds, cfg)}
+        ${!isEquipe && cfg.hasGroups ? `<button class="icon-btn" id="toggleGroups">Recolher grupos</button>` : ''}
+        ${mestre ? `<button class="icon-btn" id="equipeBtn">${isEquipe ? '📅 Ver escala' : '👥 Ver equipe'}</button>` : ''}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
       </div>
     </div>
-    <div id="todayStrip"></div>
-    <div class="cards" id="cards"></div>
-    <div class="legend">
-      <span class="sw"><i class="work"></i> Trabalha</span>
-      <span class="sw"><i class="off"></i> Folga</span>
-      <span class="sw"><i class="today-mark"></i> Hoje</span>
-    </div>
-    <div class="grid-wrap" id="gridWrap"></div>
+    <div id="viewBody"></div>
   `;
 
   renderMonthPills(ds, cfg, monthMeta);
-  renderTodayStrip(ds, cfg, monthMeta);
-  renderCards(ds, cfg, monthMeta);
-  renderGrid(ds, cfg, monthMeta);
 
-  document.getElementById('searchBox').addEventListener('input', (e) => { state.search = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
-  const grupoSel = document.getElementById('grupoSelect');
-  if (grupoSel) grupoSel.addEventListener('change', (e) => { state.grupo = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
-  const papelSel = document.getElementById('papelSelect');
-  if (papelSel) papelSel.addEventListener('change', (e) => { state.papel = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
-  document.getElementById('printBtn').addEventListener('click', () => window.print());
-  const toggleBtn = document.getElementById('toggleGroups');
-  if (toggleBtn) toggleBtn.addEventListener('click', () => {
-    const allGroups = [...new Set(ds.colaboradores.map((p) => p.grupo))];
-    const collapsed = state.collapsed[cfg.id];
-    const collapseAll = collapsed.size < allGroups.length;
-    collapsed.clear();
-    if (collapseAll) allGroups.forEach((g) => collapsed.add(g));
-    toggleBtn.textContent = collapseAll ? 'Expandir grupos' : 'Recolher grupos';
+  if (isEquipe) {
+    const viewBody = document.getElementById('viewBody');
+    viewBody.innerHTML = renderEquipeHtml(ds, cfg, mestre);
+    if (state.editMode) wireEquipeEdits(viewBody);
+  } else {
+    document.getElementById('viewBody').innerHTML = `
+      <div id="todayStrip"></div>
+      <div class="cards" id="cards"></div>
+      <div class="legend">
+        <span class="sw"><i class="work"></i> Trabalha</span>
+        <span class="sw"><i class="off"></i> Folga</span>
+        <span class="sw"><i class="today-mark"></i> Hoje</span>
+      </div>
+      <div class="grid-wrap" id="gridWrap"></div>
+    `;
+    renderTodayStrip(ds, cfg, monthMeta);
+    renderCards(ds, cfg, monthMeta);
     renderGrid(ds, cfg, monthMeta);
+
+    document.getElementById('searchBox').addEventListener('input', (e) => { state.search = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
+    const grupoSel = document.getElementById('grupoSelect');
+    if (grupoSel) grupoSel.addEventListener('change', (e) => { state.grupo = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
+    const papelSel = document.getElementById('papelSelect');
+    if (papelSel) papelSel.addEventListener('change', (e) => { state.papel = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
+    const toggleBtn = document.getElementById('toggleGroups');
+    if (toggleBtn) toggleBtn.addEventListener('click', () => {
+      const allGroups = [...new Set(ds.colaboradores.map((p) => p.grupo))];
+      const collapsed = state.collapsed[cfg.id];
+      const collapseAll = collapsed.size < allGroups.length;
+      collapsed.clear();
+      if (collapseAll) allGroups.forEach((g) => collapsed.add(g));
+      toggleBtn.textContent = collapseAll ? 'Expandir grupos' : 'Recolher grupos';
+      renderGrid(ds, cfg, monthMeta);
+    });
+  }
+
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+  const equipeBtn = document.getElementById('equipeBtn');
+  if (equipeBtn) equipeBtn.addEventListener('click', () => {
+    state.view[cfg.id] = isEquipe ? 'escala' : 'equipe';
+    renderPanel();
   });
   const unitSwitch = document.getElementById('unitSwitch');
   if (unitSwitch) unitSwitch.querySelectorAll('.unit-btn').forEach((btn) => {
@@ -223,6 +325,13 @@ function renderPanel() {
       renderPanel();
     });
   });
+}
+
+function currentMestre(ds, cfg) {
+  if (!ds.mestre) return null;
+  if (cfg.hasUnits) return ds.mestre[state.unit[cfg.id]] || null;
+  if (Array.isArray(ds.mestre)) return ds.mestre.length ? ds.mestre : null;
+  return ds.mestre;
 }
 
 function renderUnitSwitch(ds, cfg) {
@@ -256,6 +365,97 @@ function renderPapelSelect(ds, cfg) {
   </select></div>`;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Equipe (MESTRE) view — quem é titular/folguista/apoio de cada vaga */
+/* ------------------------------------------------------------------ */
+
+function equipePessoaHtml(p, path) {
+  const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
+  const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
+  if (state.editMode && path) {
+    return `<span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>`;
+  }
+  if (!nome && !matricula) return '<span class="equipe-vazio">—</span>';
+  return `<span class="equipe-nome">${nome || '—'}</span>${matricula ? `<span class="equipe-mat">Mat. ${matricula}</span>` : ''}`;
+}
+
+function equipePessoaText(p, path) {
+  const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
+  const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
+  if (state.editMode && path) {
+    return `<span contenteditable="true" data-edit-path="${path}" data-edit-field="nome">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)`;
+  }
+  if (!nome && !matricula) return '—';
+  return `${nome || '—'}${matricula ? ` (Mat. ${matricula})` : ''}`;
+}
+
+function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, apoio) {
+  const rows = ['A', 'B', 'C'].map((t) => `
+    <tr><td class="col-info"><span class="papel">Turno ${t}</span></td><td>${equipePessoaHtml(turnos && turnos[t], `${basePath}|turno|${t}`)}</td></tr>
+  `).join('');
+  const showFolguistas = folguistaPath || (apoio && apoio.length);
+  return `
+    <div class="equipe-grupo">
+      <h3>${titulo}</h3>
+      <table class="equipe-table">
+        <thead><tr><th>Turno</th><th>Titular</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${showFolguistas ? `
+        <div class="equipe-folguistas">
+          ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath)}</div>` : ''}
+          ${(apoio || []).map((a) => `<div class="equipe-folguista"><b>Apoio ${a.turno}</b> ${equipePessoaText(a, `${basePath}|apoio|${a.turno}`)}</div>`).join('')}
+        </div>` : ''}
+    </div>`;
+}
+
+function equipeGrupoHtml(g) {
+  const basePath = `motoristas|${g.grupo}`;
+  const rows = g.equipamentos.map((e) => `
+    <tr>
+      <td class="col-nome"><span class="nome">Equip. ${e.numero}</span>${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}</td>
+      <td>${equipePessoaHtml(e.turnos.A, `${basePath}|equip|${e.numero}|A`)}</td>
+      <td>${equipePessoaHtml(e.turnos.B, `${basePath}|equip|${e.numero}|B`)}</td>
+      <td>${equipePessoaHtml(e.turnos.C, `${basePath}|equip|${e.numero}|C`)}</td>
+    </tr>`).join('');
+  const temFolguistas = state.editMode || ['A', 'B', 'C'].some((t) => g.folguistas[t]);
+  return `
+    <div class="equipe-grupo">
+      <h3>${g.grupo}</h3>
+      <table class="equipe-table">
+        <thead><tr><th>Equipamento</th><th>Turno A</th><th>Turno B</th><th>Turno C</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${temFolguistas ? `
+        <div class="equipe-folguistas">
+          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${basePath}|folguista|${t}`)}</div>` : '').join('')}
+        </div>` : ''}
+    </div>`;
+}
+
+function renderEquipeHtml(ds, cfg, mestre) {
+  if (cfg.id === 'motoristas') {
+    return `<div class="equipe-wrap">${mestre.map((g) => equipeGrupoHtml(g)).join('')}</div>`;
+  }
+  if (cfg.id === 'master_driver') {
+    const basePath = `master_driver|${state.unit[cfg.id]}`;
+    return `<div class="equipe-wrap">${equipeTurnosHtml(mestre.titulo, basePath, mestre.turnos, null, null, [])}</div>`;
+  }
+  const basePath = cfg.id;
+  return `<div class="equipe-wrap">${equipeTurnosHtml(ds.titulo, basePath, mestre.turnos, `${basePath}|folguista`, mestre.folguista, mestre.apoio)}</div>`;
+}
+
+function wireEquipeEdits(container) {
+  container.querySelectorAll('[data-edit-path]').forEach((el) => {
+    el.addEventListener('blur', () => {
+      equipeEditSet(el.dataset.editPath, el.dataset.editField, el.textContent.trim());
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    });
+  });
+}
+
 function renderMonthPills(ds, cfg, monthMeta) {
   const now = new Date();
   const curKey = monthKeyForRealDate(ds, now);
@@ -278,7 +478,7 @@ function renderTodayStrip(ds, cfg, monthMeta) {
   const el = document.getElementById('todayStrip');
   const curKey = monthKeyForRealDate(ds, now);
   if (!curKey) {
-    el.innerHTML = `<div class="today-strip out-of-range"><div class="ts-date">Fora do período da safra 2026<small>${fmtLongDate(now)}</small></div></div>`;
+    el.innerHTML = `<div class="today-strip out-of-range"><div class="ts-date">Fora do período coberto pela escala<small>${fmtLongDate(now)}</small></div></div>`;
     return;
   }
   const day = now.getDate();
@@ -388,8 +588,42 @@ function renderGrid(ds, cfg, monthMeta) {
     });
   });
   wrap.querySelectorAll('.person-row').forEach((row) => {
-    row.addEventListener('click', () => openModal(ds.colaboradores.find((p) => p.__key === row.dataset.key), monthMeta));
+    row.addEventListener('click', (e) => {
+      if (state.editMode && e.target.closest('.day-cell')) return;
+      openModal(ds.colaboradores.find((p) => p.__key === row.dataset.key), monthMeta, cfg);
+    });
   });
+  if (state.editMode) {
+    wrap.querySelectorAll('.day-cell').forEach((cell) => {
+      cell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const row = cell.closest('.person-row');
+        const p = ds.colaboradores.find((x) => x.__key === row.dataset.key);
+        toggleDayStatus(p, cfg, ds, monthMeta, parseInt(cell.dataset.day, 10), cell);
+      });
+    });
+  }
+}
+
+function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
+  const monthKey = monthMeta.chave;
+  const chars = (p.escala[monthKey] || '').split('');
+  const idx = day - 1;
+  if (!chars[idx]) return;
+  const next = chars[idx] === 'W' ? 'O' : 'W';
+  chars[idx] = next;
+  p.escala[monthKey] = chars.join('');
+
+  const pk = personKey(cfg.id, p);
+  edits.dias[pk] = edits.dias[pk] || {};
+  edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
+  edits.dias[pk][monthKey][idx] = next;
+  persistEdits();
+
+  cellEl.classList.remove('work', 'off');
+  cellEl.classList.add(next === 'W' ? 'work' : 'off');
+  renderCards(ds, cfg, monthMeta);
+  renderTodayStrip(ds, cfg, monthMeta);
 }
 
 let __keyCounter = 0;
@@ -402,7 +636,7 @@ function personRowHtml(p, days, monthMeta, ds, todayDay) {
     const isToday = d === todayDay;
     let cls = 'nodata';
     if (status === 'W') cls = 'work'; else if (status === 'O') cls = 'off';
-    return `<td class="day-cell ${cls} ${wk ? 'weekend' : ''} ${isToday ? 'today-col' : ''}"><span class="dot"></span></td>`;
+    return `<td class="day-cell ${cls} ${wk ? 'weekend' : ''} ${isToday ? 'today-col' : ''}" data-day="${d}"><span class="dot"></span></td>`;
   }).join('');
   return `<tr class="person-row" data-key="${p.__key}">
     <td class="col-nome"><span class="nome">${p.nome}</span>${p.matricula ? `<span class="mat">Mat. ${p.matricula}</span>` : ''}</td>
@@ -415,10 +649,53 @@ function personRowHtml(p, days, monthMeta, ds, todayDay) {
 /*  Person modal                                                       */
 /* ------------------------------------------------------------------ */
 
-function openModal(p, monthMeta) {
+function openModal(p, monthMeta, cfg) {
   if (!p) return;
   const { w, o } = countWorkOff(p.escala[monthMeta.chave]);
   const backdrop = document.getElementById('modalBackdrop');
+
+  if (state.editMode && cfg) {
+    backdrop.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <button class="modal-close" id="modalClose">✕</button>
+          <h3>Editar colaborador</h3>
+          <span>${p.grupo || ''}${p.grupo && p.papelNormalizado ? ' · ' : ''}${p.papelNormalizado || ''}</span>
+        </div>
+        <div class="modal-body">
+          <div class="modal-row edit"><span class="k">Nome</span><input class="modal-input" id="editNome" value="${p.nome || ''}"></div>
+          <div class="modal-row edit"><span class="k">Matrícula</span><input class="modal-input" id="editMatricula" value="${p.matricula || ''}"></div>
+          <div class="modal-row edit"><span class="k">Líder</span><input class="modal-input" id="editLider" value="${p.lider || ''}"></div>
+          <div class="modal-row edit"><span class="k">Telefone</span><input class="modal-input" id="editTelefone" value="${p.telefone || ''}"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn" id="modalCancel">Cancelar</button>
+          <button class="icon-btn primary" id="modalSave">Salvar</button>
+        </div>
+      </div>
+    `;
+    backdrop.classList.add('open');
+    const close = () => closeModal();
+    document.getElementById('modalClose').addEventListener('click', close);
+    document.getElementById('modalCancel').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    document.getElementById('modalSave').addEventListener('click', () => {
+      const pk = personKey(cfg.id, p);
+      const values = {
+        nome: document.getElementById('editNome').value.trim() || p.nome,
+        matricula: as_int_or_null(document.getElementById('editMatricula').value.trim()),
+        lider: document.getElementById('editLider').value.trim() || null,
+        telefone: document.getElementById('editTelefone').value.trim() || null,
+      };
+      Object.assign(p, values);
+      edits.contato[pk] = { ...edits.contato[pk], ...values };
+      persistEdits();
+      close();
+      renderPanel();
+    });
+    return;
+  }
+
   backdrop.innerHTML = `
     <div class="modal">
       <div class="modal-head">
@@ -443,6 +720,12 @@ function openModal(p, monthMeta) {
   backdrop.classList.add('open');
   document.getElementById('modalClose').addEventListener('click', closeModal);
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+}
+
+function as_int_or_null(s) {
+  if (!s) return null;
+  const n = parseInt(s, 10);
+  return Number.isNaN(n) ? s : n;
 }
 function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); }
 
@@ -472,4 +755,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (location.protocol !== 'file:' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+
+  updateResetBtnVisibility();
+  document.getElementById('editModeBtn').addEventListener('click', () => {
+    state.editMode = !state.editMode;
+    const btn = document.getElementById('editModeBtn');
+    btn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';
+    document.body.classList.toggle('edit-mode', state.editMode);
+    if (datasets[state.activeTab]) renderPanel();
+  });
+  document.getElementById('resetEditsBtn').addEventListener('click', () => {
+    if (!confirm('Isso vai apagar todas as edições salvas neste navegador e voltar aos dados originais da planilha. Continuar?')) return;
+    localStorage.removeItem(EDIT_STORAGE_KEY);
+    location.reload();
+  });
 });

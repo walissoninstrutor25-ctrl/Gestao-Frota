@@ -56,7 +56,7 @@ button{font-family:inherit;}
   padding:14px 20px 10px;
 }
 .brand{display:flex; align-items:center; gap:12px; min-width:0;}
-.brand img{width:40px; height:40px; border-radius:9px; flex:none; box-shadow:var(--shadow-sm);}
+.brand img{height:36px; width:auto; flex:none;}
 .brand h1{
   font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.03em;
   font-size:19px; margin:0; line-height:1.15; color:var(--text);
@@ -70,15 +70,6 @@ button{font-family:inherit;}
 @media (min-width:640px){
   .topbar-clock{display:block;}
 }
-.topbar-clock strong{display:block; color:var(--text); font-size:13px; font-weight:600; text-transform:capitalize;}
-.back-link{
-  font-size:12px; font-weight:600; color:var(--accent); text-decoration:none;
-  border:1px solid var(--accent-dim); padding:7px 12px; border-radius:999px;
-  white-space:nowrap; transition:background .15s ease, color .15s ease;
-  display:flex; align-items:center; gap:6px;
-}
-.back-link:hover{background:var(--accent); color:#fff;}
-
 .tabs{
   max-width:1440px; margin:0 auto;
   display:flex; gap:4px; padding:0 16px; overflow-x:auto;
@@ -197,6 +188,32 @@ main{max-width:1440px; margin:0 auto; padding:18px 20px 60px;}
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
   overflow:auto; max-height:72vh; box-shadow:var(--shadow-sm); position:relative;
 }
+
+/* Equipe (MESTRE) view */
+.equipe-wrap{display:flex; flex-direction:column; gap:14px;}
+.equipe-grupo{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; box-shadow:var(--shadow-sm);
+}
+.equipe-grupo h3{
+  font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.02em;
+  font-size:15px; margin:0 0 10px; color:var(--accent-strong);
+}
+table.equipe-table{border-collapse:separate; border-spacing:0; font-size:12.5px; width:100%;}
+table.equipe-table th, table.equipe-table td{
+  border-bottom:1px solid var(--line-soft); padding:8px 10px; text-align:left; white-space:nowrap;
+}
+table.equipe-table thead th{font-size:10.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
+table.equipe-table tbody tr:last-child td{border-bottom:none;}
+table.equipe-table .col-nome .nome, table.equipe-table .col-info .papel{font-weight:600; color:var(--text);}
+.equipe-nome{display:block; font-weight:600; color:var(--text); font-size:12.5px;}
+.equipe-mat{display:block; font-size:10.5px; color:var(--text-faint); font-family:'Roboto Mono',monospace; margin-top:1px;}
+.equipe-vazio{color:var(--text-faint);}
+.equipe-folguistas{
+  display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:12px; padding-top:12px;
+  border-top:1px dashed var(--line); font-size:12px; color:var(--text-muted);
+}
+.equipe-folguista b{color:var(--text); font-weight:700; margin-right:5px;}
 table.escala{border-collapse:separate; border-spacing:0; font-size:12.5px; width:100%;}
 table.escala th, table.escala td{border-bottom:1px solid var(--line-soft); white-space:nowrap;}
 table.escala thead th{
@@ -282,6 +299,30 @@ table.escala .day-col.today-col{background:var(--amber-dim); color:var(--amber);
 .modal-stats div{flex:1; background:var(--surface-2); border-radius:10px; padding:10px; text-align:center;}
 .modal-stats b{display:block; font-family:'Roboto Mono',monospace; font-size:18px;}
 .modal-stats span{font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:700;}
+
+.modal-row.edit{display:block; padding:9px 0;}
+.modal-row.edit .k{display:block; margin-bottom:4px; font-size:11.5px; text-transform:uppercase; letter-spacing:.02em;}
+.modal-input{
+  width:100%; height:36px; border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:0 10px; font-size:13.5px; font-family:'Inter',sans-serif; color:var(--text); background:var(--surface-2);
+}
+.modal-input:focus{outline:none; border-color:var(--accent); background:var(--surface);}
+.modal-actions{display:flex; justify-content:flex-end; gap:8px; padding:0 20px 20px;}
+.modal-actions .icon-btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+.modal-actions .icon-btn.primary:hover{background:var(--accent-strong); border-color:var(--accent-strong); color:#fff;}
+
+/* Modo edição */
+#resetEditsBtn{color:var(--danger); border-color:var(--danger-dim);}
+#resetEditsBtn:hover{background:var(--danger-dim);}
+body.edit-mode #editModeBtn{background:var(--accent); border-color:var(--accent); color:#fff;}
+body.edit-mode table.escala .day-cell{cursor:pointer;}
+body.edit-mode table.escala .day-cell:hover{outline:2px solid var(--accent); outline-offset:-2px;}
+body.edit-mode .equipe-nome[contenteditable], body.edit-mode .equipe-mat [contenteditable], body.edit-mode .equipe-folguista [contenteditable]{
+  border-bottom:1px dashed var(--accent-dim); cursor:text; outline:none; min-width:12px; display:inline-block;
+}
+body.edit-mode .equipe-nome[contenteditable]:focus, body.edit-mode .equipe-mat [contenteditable]:focus, body.edit-mode .equipe-folguista [contenteditable]:focus{
+  border-bottom-color:var(--accent); background:var(--accent-tint);
+}
 
 /* ---------------- footer ---------------- */
 footer{

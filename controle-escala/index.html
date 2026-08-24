@@ -7,7 +7,7 @@
 <title>Controle de Escala · LOTS</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16794a">
-<meta name="description" content="Controle de Escala LOTS — Motoristas Canavieiros 5x1, Líder de Turno 6x2, Líder de Pátio 6x2 e Master Driver 5x1, Safra 2026.">
+<meta name="description" content="Controle de Escala LOTS — Motoristas Canavieiros 5x1, Líder de Turno 6x2, Líder de Pátio 6x2 e Master Driver 5x1.">
 <link rel="icon" href="assets/lots-logo-192.png">
 <link rel="apple-touch-icon" href="assets/lots-logo-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,15 +20,16 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <img src="assets/lots-logo-192.png" alt="LOTS">
+      <img src="assets/lots-logo.png" alt="LOTS">
       <div>
         <h1>Controle de Escala</h1>
-        <span class="sub">LOTS · Safra 2026</span>
+        <span class="sub">LOTS</span>
       </div>
     </div>
     <div class="topbar-meta">
       <div class="topbar-clock" id="clock"></div>
-      <a class="back-link" href="../index.html">← Gestão de Frota</a>
+      <button class="icon-btn" id="resetEditsBtn" title="Desfazer todas as edições salvas neste navegador" style="display:none">↺ Restaurar original</button>
+      <button class="icon-btn" id="editModeBtn" title="Ativar edição">✏️ Editar</button>
     </div>
   </div>
   <nav class="tabs" id="tabs"></nav>
@@ -39,8 +40,7 @@
 </main>
 
 <footer>
-  Controle de Escala LOTS — dados extraídos das planilhas oficiais da Safra 2026, atualizados em 24/08/2026.
-  Aplicativo independente do <a href="../index.html">Gestão de Frota</a>. © <span id="year"></span> LOTS.
+  Controle de Escala LOTS — dados extraídos das planilhas oficiais. © <span id="year"></span> LOTS.
 </footer>
 
 <div class="modal-backdrop" id="modalBackdrop"></div>

@@ -145,5 +145,27 @@ window.DATA_LIDERES_PATIO = {
       "matricula": 27995,
       "telefone": "(18)997069154"
     }
-  ]
+  ],
+  "mestre": {
+    "titulo": "Líder de Pátio",
+    "turnos": {
+      "A": {
+        "matricula": 27462,
+        "nome": "FABIANO DA SILVA SANTOS"
+      },
+      "B": {
+        "matricula": 31445,
+        "nome": "DIEGO MARTINS VIANA"
+      },
+      "C": {
+        "matricula": 29672,
+        "nome": "WANDERLEY LUIZ DE SOUZA LIRA"
+      }
+    },
+    "folguista": {
+      "matricula": 27995,
+      "nome": "DEYBD SOUZA MARTINS"
+    },
+    "apoio": []
+  }
 };

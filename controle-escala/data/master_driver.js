@@ -185,5 +185,41 @@ window.DATA_MASTER_DRIVER = {
       "matricula": 31937,
       "unidade": "PRA"
     }
-  ]
+  ],
+  "mestre": {
+    "MNS": {
+      "titulo": "MASTER OP-MNS",
+      "turnos": {
+        "A": {
+          "matricula": 30485,
+          "nome": "FRANCISCO DAS CHAGAS FERREIRA LIMA"
+        },
+        "B": {
+          "matricula": 28895,
+          "nome": "DANIEL CARVALHO DE SOUZA"
+        },
+        "C": {
+          "matricula": 31487,
+          "nome": "ROZINALDO PEREIRA DA SILVA"
+        }
+      }
+    },
+    "PRA": {
+      "titulo": "MASTER OP-PRA",
+      "turnos": {
+        "A": {
+          "matricula": 30593,
+          "nome": "HUGLENDA MENDONÇA DOS SANTOS"
+        },
+        "B": {
+          "matricula": 27541,
+          "nome": "ROBERTO FERREIRA DE SOUSA SILVA"
+        },
+        "C": {
+          "matricula": 31937,
+          "nome": "JANIO LOPES DA SILVA"
+        }
+      }
+    }
+  }
 };

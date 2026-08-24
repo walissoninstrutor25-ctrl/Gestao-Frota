@@ -353,6 +353,127 @@ def marker_file3(a, idx):
     return 'IGNORAR'
 
 
+# ---------- MESTRE parsers (equipe/equipamento structure, not month-specific) ----------
+
+def _pessoa(mat, nome):
+    return {'matricula': mat, 'nome': nome} if (mat or nome) else None
+
+
+def parse_mestre_file1(path):
+    """GRUPO block -> repeated 3-row 'Equipamento' sub-blocks (header row with
+    turno labels + optional folguistas in cols E-M, then a matrículas row,
+    then a names row). Folguistas (Turno A/B/C) only appear on the first
+    equipamento header row of each grupo."""
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb['MESTRE']
+    grupos = []
+    current = None
+    r = 1
+    while r <= ws.max_row:
+        a = clean(ws.cell(row=r, column=1).value)
+        if isinstance(a, str) and re.match(r'^GRUPO\s*\d+', a.strip()):
+            current = {'grupo': re.sub(r'\s+', ' ', a.strip()), 'equipamentos': [], 'folguistas': {}}
+            grupos.append(current)
+            r += 1
+            continue
+        if a == 'Equipamento' and current is not None:
+            for col, turno in ((5, 'A'), (8, 'B'), (11, 'C')):
+                pessoa = _pessoa(as_matricula(ws.cell(row=r, column=col + 1).value), clean(ws.cell(row=r, column=col + 2).value))
+                if pessoa:
+                    current['folguistas'][turno] = pessoa
+            numero = clean(ws.cell(row=r + 1, column=1).value)
+            if numero is not None:
+                turnos = {}
+                for col, turno in ((2, 'A'), (3, 'B'), (4, 'C')):
+                    pessoa = _pessoa(as_matricula(ws.cell(row=r + 1, column=col).value), clean(ws.cell(row=r + 2, column=col).value))
+                    if pessoa:
+                        turnos[turno] = pessoa
+                # col A of the names row sometimes carries a status tag
+                # instead of a name (e.g. 'Dedicado', 'Reserva' for spare
+                # vehicles without a fixed crew) — surfaced as-is.
+                status = clean(ws.cell(row=r + 2, column=1).value)
+                equip = {'numero': str(numero), 'turnos': turnos}
+                if isinstance(status, str):
+                    equip['status'] = status
+                current['equipamentos'].append(equip)
+            r += 3
+            continue
+        r += 1
+    # drop groups that carry neither equipamentos nor folguistas (empty
+    # template stubs left over in the source, e.g. a trailing 'GRUPO 10'
+    # with no rows filled in under it)
+    return [g for g in grupos if g['equipamentos'] or g['folguistas']]
+
+
+def parse_mestre_file2(path):
+    """'LIDER DE TURNO' / 'LIDER DE PATIO' sections, each with Turno A/B/C
+    2-row blocks (matrícula row + nome row). A Folguista rides on the first
+    Turno's header row (cols C-E). An 'Apoio' pair rides in cols G/H next to
+    Turno A and B's rows — the source mislabels both 'APOIO A', so position
+    (not the label text) decides Apoio A vs Apoio B, matching how section
+    identity elsewhere in this file is taken from row order."""
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb['MESTRE']
+    sections = []
+    current = None
+    apoio_idx = 0
+    r = 1
+    while r <= ws.max_row:
+        a = clean(ws.cell(row=r, column=1).value)
+        if isinstance(a, str) and a.strip().upper() in ('LIDER DE TURNO', 'LIDER DE PATIO'):
+            current = {'titulo': 'Líder de Turno' if 'TURNO' in a.upper() else 'Líder de Pátio', 'turnos': {}, 'folguista': None, 'apoio': []}
+            sections.append(current)
+            apoio_idx = 0
+            r += 1
+            continue
+        if a == 'Turno' and current is not None:
+            folguista = _pessoa(as_matricula(ws.cell(row=r, column=4).value), clean(ws.cell(row=r, column=5).value))
+            if folguista:
+                current['folguista'] = folguista
+            r += 1
+            continue
+        if a in ('A', 'B', 'C') and current is not None:
+            pessoa = _pessoa(as_matricula(ws.cell(row=r, column=2).value), clean(ws.cell(row=r + 1, column=2).value))
+            if pessoa:
+                current['turnos'][a] = pessoa
+            apoio = _pessoa(as_matricula(ws.cell(row=r, column=8).value), clean(ws.cell(row=r + 1, column=8).value))
+            if apoio:
+                apoio_idx += 1
+                apoio['turno'] = chr(ord('A') + apoio_idx - 1)
+                current['apoio'].append(apoio)
+            r += 2
+            continue
+        r += 1
+    return sections
+
+
+def parse_mestre_file3(path):
+    """'MASTER OP-MNS' / 'MASTER OP-PRA' / 'LIDER DE PATIO APOIO' sections,
+    each with Turno A/B/C 2-row blocks (no folguista). The Apoio section is
+    a placeholder in the source (matrícula/nome both literal 0) and is
+    dropped once its turnos come out empty."""
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb['MESTRE']
+    sections = []
+    current = None
+    r = 1
+    while r <= ws.max_row:
+        a = clean(ws.cell(row=r, column=1).value)
+        if isinstance(a, str) and a.strip().upper() in ('MASTER OP-MNS', 'MASTER OP-PRA', 'LIDER DE PATIO APOIO'):
+            current = {'titulo': a.strip(), 'turnos': {}}
+            sections.append(current)
+            r += 1
+            continue
+        if a in ('A', 'B', 'C') and current is not None:
+            pessoa = _pessoa(as_matricula(ws.cell(row=r, column=2).value), clean(ws.cell(row=r + 1, column=2).value))
+            if pessoa:
+                current['turnos'][a] = pessoa
+            r += 2
+            continue
+        r += 1
+    return [s for s in sections if s['turnos']]
+
+
 def write_js_data(path, varname, data):
     """Write `data` as `window.<varname> = {...};` instead of plain JSON.
 
@@ -387,12 +508,13 @@ def build_file1(path, out_path):
         grupo_vars[g] = varname
         write_js_data(os.path.join(subdir, f'{slug}.js'), varname, [p for p in people if p['grupo'] == g])
     data = {
-        'titulo': 'Escala 5x1 — Motoristas Canavieiros — Safra 2026',
+        'titulo': 'Escala 5x1 — Motoristas Canavieiros',
         'tipoEscala': '5x1',
         'ano': YEAR,
         'meses': build_meses_meta(monthly),
         'grupos': grupos,
         'colaboradoresPorGrupoVar': grupo_vars,
+        'mestre': parse_mestre_file1(path),
     }
     write_js_data(out_path, 'DATA_MOTORISTAS_META', data)
     print(f'{out_path}: {len(people)} colaboradores em {len(grupos)} arquivo(s) de grupo, grupos={grupos}')
@@ -413,12 +535,17 @@ def build_file2(path, out_turno_path, out_patio_path):
     people_turno = consolidate(monthly_turno, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
     people_patio = consolidate(monthly_patio, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
 
+    mestre_sections = parse_mestre_file2(path)
+    mestre_turno = next((s for s in mestre_sections if s['titulo'] == 'Líder de Turno'), None)
+    mestre_patio = next((s for s in mestre_sections if s['titulo'] == 'Líder de Pátio'), None)
+
     data_turno = {
         'titulo': 'Escala 6x2 — Líder de Turno',
         'tipoEscala': '6x2',
         'ano': YEAR,
         'meses': build_meses_meta(monthly_turno),
         'colaboradores': people_turno,
+        'mestre': mestre_turno,
     }
     data_patio = {
         'titulo': 'Escala 6x2 — Líder de Pátio',
@@ -426,6 +553,7 @@ def build_file2(path, out_turno_path, out_patio_path):
         'ano': YEAR,
         'meses': build_meses_meta(monthly_patio),
         'colaboradores': people_patio,
+        'mestre': mestre_patio,
     }
     write_js_data(out_turno_path, 'DATA_LIDERES_TURNO', data_turno)
     write_js_data(out_patio_path, 'DATA_LIDERES_PATIO', data_patio)
@@ -446,6 +574,13 @@ def build_file3(path, out_path):
     # drop rows from the generic 'IGNORAR'/LOGISTICA block and anyone we
     # couldn't classify into MNS/PRA via the NOMES sheet
     people = [p for p in people if p['grupo'] == 'MASTER' and p.get('unidade') in ('MNS', 'PRA')]
+    mestre_sections = parse_mestre_file3(path)
+    mestre_by_uo = {}
+    for s in mestre_sections:
+        if 'MNS' in s['titulo'].upper():
+            mestre_by_uo['MNS'] = s
+        elif 'PRA' in s['titulo'].upper():
+            mestre_by_uo['PRA'] = s
     data = {
         'titulo': 'Escala 5x1 — Master Driver — MNS & PRA',
         'tipoEscala': '5x1',
@@ -456,6 +591,7 @@ def build_file3(path, out_path):
             {'codigo': 'PRA', 'uo': '4823', 'label': 'UO 4823 · PRA'},
         ],
         'colaboradores': people,
+        'mestre': mestre_by_uo,
     }
     write_js_data(out_path, 'DATA_MASTER_DRIVER', data)
     print(f'{out_path}: {len(people)} colaboradores, unidades={[p["unidade"] for p in people]}')

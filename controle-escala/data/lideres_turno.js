@@ -173,5 +173,38 @@ window.DATA_LIDERES_TURNO = {
       },
       "matricula": 27399
     }
-  ]
+  ],
+  "mestre": {
+    "titulo": "Líder de Turno",
+    "turnos": {
+      "A": {
+        "matricula": 27224,
+        "nome": "EDER TEODORO NUNES"
+      },
+      "B": {
+        "matricula": 27488,
+        "nome": "EMERSON LUIS FURTADO TABUAS"
+      },
+      "C": {
+        "matricula": 27483,
+        "nome": "PAULO HENRIQUE BORGES DA SILVA"
+      }
+    },
+    "folguista": {
+      "matricula": 27377,
+      "nome": "WEMBER RODRIGUES LOURA"
+    },
+    "apoio": [
+      {
+        "matricula": null,
+        "nome": "ADAO JOSE SOARES",
+        "turno": "A"
+      },
+      {
+        "matricula": 27399,
+        "nome": "ANDRE FERREIRA RODRIGUES",
+        "turno": "B"
+      }
+    ]
+  }
 };
