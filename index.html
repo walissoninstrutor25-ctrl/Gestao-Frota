@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T07-00-00Z -->
+<!-- APP_BUILD:2026-08-09T07-20-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -786,16 +786,19 @@
           <div class="err-msg" id="fp-msg"></div>
 
           <div class="lane" style="margin:18px 0 14px;"></div>
-          <div class="card-title" style="margin-bottom:10px;">Metas cadastradas</div>
-          <div class="filter-bar">
-            <div class="filter-field"><label>UO</label><select id="fpfilter-uo"><option value="">Todas</option></select></div>
-            <div class="filter-field"><label>Placa</label><select id="fpfilter-vehicle"><option value="">Todas</option></select></div>
-            <div class="filter-field"><label>Só sem meta cadastrada</label><select id="fpfilter-semmeta"><option value="">Não</option><option value="sim">Sim</option></select></div>
-            <button class="btn-ghost" id="btn-clear-fpfilter">Limpar</button>
-          </div>
-          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
-            <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>Modelo</th><th>Consumo esperado (km/L)</th><th></th></tr></thead>
-            <tbody id="tbl-fuelparams"></tbody></table>
+          <button class="btn-ghost btn-sm" id="btn-toggle-fuelparams">👁️ Ver metas cadastradas</button>
+          <div id="fuelparams-lista-wrap" style="display:none; margin-top:14px;">
+            <div class="card-title" style="margin-bottom:10px;">Metas cadastradas</div>
+            <div class="filter-bar">
+              <div class="filter-field"><label>UO</label><select id="fpfilter-uo"><option value="">Todas</option></select></div>
+              <div class="filter-field"><label>Placa</label><select id="fpfilter-vehicle"><option value="">Todas</option></select></div>
+              <div class="filter-field"><label>Só sem meta cadastrada</label><select id="fpfilter-semmeta"><option value="">Não</option><option value="sim">Sim</option></select></div>
+              <button class="btn-ghost" id="btn-clear-fpfilter">Limpar</button>
+            </div>
+            <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+              <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>Modelo</th><th>Consumo esperado (km/L)</th><th></th></tr></thead>
+              <tbody id="tbl-fuelparams"></tbody></table>
+            </div>
           </div>
         </div>
 
@@ -1856,7 +1859,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T07-00-00Z';
+  const APP_VERSION = '2026-08-09T07-20-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2824,6 +2827,12 @@
   document.getElementById('btn-clear-fpfilter')?.addEventListener('click', ()=>{
     ['fpfilter-uo','fpfilter-vehicle','fpfilter-semmeta'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     renderFuelParamsTable();
+  });
+  document.getElementById('btn-toggle-fuelparams')?.addEventListener('click', (e)=>{
+    const wrap = document.getElementById('fuelparams-lista-wrap');
+    const abrindo = wrap.style.display==='none';
+    wrap.style.display = abrindo ? 'block' : 'none';
+    e.target.textContent = abrindo ? '🙈 Ocultar metas cadastradas' : '👁️ Ver metas cadastradas';
   });
 
   // filtro compartilhado do BI de combustível (usado no KPI, no histórico e nos rankings)
