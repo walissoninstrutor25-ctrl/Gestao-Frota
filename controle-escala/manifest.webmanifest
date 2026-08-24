@@ -1,0 +1,25 @@
+{
+  "name": "LOTS Controle de Escala",
+  "short_name": "Escala LOTS",
+  "description": "Controle de escala LOTS: Motoristas Canavieiros 5x1, Líder de Turno 6x2, Líder de Pátio 6x2 e Master Driver 5x1 — Safra 2026.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef4f0",
+  "theme_color": "#16794a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/lots-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/lots-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
