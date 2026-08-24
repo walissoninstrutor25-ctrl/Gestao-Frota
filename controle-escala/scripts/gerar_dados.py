@@ -358,7 +358,7 @@ def build_file1(path, out_path):
         'colaboradores': people,
     }
     with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=None, separators=(',', ':'))
+        json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=False)
     print(f'{out_path}: {len(people)} colaboradores, grupos={data["grupos"]}')
     return data
 
@@ -392,9 +392,9 @@ def build_file2(path, out_turno_path, out_patio_path):
         'colaboradores': people_patio,
     }
     with open(out_turno_path, 'w', encoding='utf-8') as f:
-        json.dump(data_turno, f, ensure_ascii=False, separators=(',', ':'))
+        json.dump(data_turno, f, ensure_ascii=False, indent=2)
     with open(out_patio_path, 'w', encoding='utf-8') as f:
-        json.dump(data_patio, f, ensure_ascii=False, separators=(',', ':'))
+        json.dump(data_patio, f, ensure_ascii=False, indent=2)
     print(f'{out_turno_path}: {len(people_turno)} colaboradores')
     print(f'{out_patio_path}: {len(people_patio)} colaboradores')
     return data_turno, data_patio
@@ -424,7 +424,7 @@ def build_file3(path, out_path):
         'colaboradores': people,
     }
     with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+        json.dump(data, f, ensure_ascii=False, indent=2)
     print(f'{out_path}: {len(people)} colaboradores, unidades={[p["unidade"] for p in people]}')
     return data
 

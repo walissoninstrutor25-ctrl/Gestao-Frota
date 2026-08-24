@@ -1,1 +1,177 @@
-{"titulo":"Escala 6x2 — Líder de Turno","tipoEscala":"6x2","ano":2026,"meses":[{"chave":"MARÇO","numero":3,"dias":31,"nome":"Março"},{"chave":"ABRIL","numero":4,"dias":30,"nome":"Abril"},{"chave":"MAIO","numero":5,"dias":31,"nome":"Maio"},{"chave":"JUNHO","numero":6,"dias":30,"nome":"Junho"},{"chave":"JULHO","numero":7,"dias":31,"nome":"Julho"},{"chave":"AGOSTO","numero":8,"dias":31,"nome":"Agosto"},{"chave":"SETEMBRO","numero":9,"dias":30,"nome":"Setembro"},{"chave":"OUTUBRO","numero":10,"dias":31,"nome":"Outubro"},{"chave":"NOVEMBRO","numero":11,"dias":30,"nome":"Novembro"},{"chave":"DEZEMBRO","numero":12,"dias":31,"nome":"Dezembro"}],"colaboradores":[{"nome":"EDER TEODORO NUNES","grupo":"LIDER DE TURNO","papel":"A","papelNormalizado":"Turno A","escala":{"MARÇO":"WWWWWWWWWWOOWWWWWWOOWWWWWWOOWWW","ABRIL":"WWWOOWWWWWWOOWWWWWWOOWWWWWWOOW","MAIO":"WWWWWOOWWWWWWOOWWWWWWOOWWWWWWOO","JUNHO":"WWWWWWOOWWWWWWOOWWWWWWOOWWWWWW","JULHO":"OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW","AGOSTO":"WOOWWWWWWOOWWWWWWOOWWWWWWOOWWWW","SETEMBRO":"WWOOWWWWWWOOWWWWWWOOWWWWWWOOWW","OUTUBRO":"WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW","NOVEMBRO":"WWWWWOOWWWWWWOOWWWWWWOOWWWWWWO","DEZEMBRO":"WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO"},"matricula":27224,"telefone":"(99)99155-2518"},{"nome":"EMERSON LUIS FURTADO TABUAS","grupo":"LIDER DE TURNO","papel":"B","papelNormalizado":"Turno B","escala":{"MARÇO":"WWWWWWWWWWWWOOWWWWWWOOWWWWWWOOW","ABRIL":"WWWWWOOWWWWWWOOWWWWWWOOWWWWWWO","MAIO":"OWWWWWWOOWWWWWWOOWWWWWWOOWWWWWW","JUNHO":"OOWWWWWWOOWWWWWWOOWWWWWWOOWWWW","JULHO":"WWOOWWWWWWOOWWWWWWOOWWWWWWOOWWW","AGOSTO":"WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW","SETEMBRO":"WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO","OUTUBRO":"WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO","NOVEMBRO":"OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW","DEZEMBRO":"OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"},"matricula":27488,"telefone":"(99)99155-4575"},{"nome":"ADAO JOSE SOARES","grupo":"LIDER DE TURNO","papel":"Apoio A","papelNormalizado":"Apoio A","escala":{"MARÇO":"WWWWWWWWWWWWOOWWWWWWOOWWWWWWOOW","ABRIL":"WWWWWOOWWWWWWOOWWWWWWOOWWWWWWO","AGOSTO":"WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW","SETEMBRO":"WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO","OUTUBRO":"WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO","NOVEMBRO":"OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"},"matricula":null},{"nome":"PAULO HENRIQUE BORGES DA SILVA","grupo":"LIDER DE TURNO","papel":"C","papelNormalizado":"Turno C","escala":{"MARÇO":"WWWWWWWWWWWWWWOOWWWWWWOOWWWWWWO","ABRIL":"OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW","MAIO":"WOOWWWWWWOOWWWWWWOOWWWWWWOOWWWW","JUNHO":"WWOOWWWWWWOOWWWWWWOOWWWWWWOOWW","JULHO":"WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW","AGOSTO":"WWWWWOOWWWWWWOOWWWWWWOOWWWWWWOO","SETEMBRO":"WWWWWWOOWWWWWWOOWWWWWWOOWWWWWW","OUTUBRO":"OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW","NOVEMBRO":"WOOWWWWWWOOWWWWWWOOWWWWWWOOWWW"},"matricula":27483,"telefone":"(67)998950179"},{"nome":"WEMBER RODRIGUES LOURA","grupo":"LIDER DE TURNO","papel":"FOLGUISTA","papelNormalizado":"Folguista","escala":{"MARÇO":"WWWWWWWWOOWWWWWWOOWWWWWWOOWWWWW","ABRIL":"WOOWWWWWWOOWWWWWWOOWWWWWWOOWWW","MAIO":"WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW","JUNHO":"WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO","JULHO":"WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO","AGOSTO":"OWWWWWWOOWWWWWWOOWWWWWWOOWWWWWW","SETEMBRO":"OOWWWWWWOOWWWWWWOOWWWWWWOOWWWW","OUTUBRO":"WWOOWWWWWWOOWWWWWWOOWWWWWWOOWWW","NOVEMBRO":"WWWOOWWWWWWOOWWWWWWOOWWWWWWOOW","DEZEMBRO":"WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW"},"matricula":27377,"telefone":"(67)998095372"},{"nome":"ANDRE FERREIRA RODRIGUES","grupo":"LIDER DE TURNO","papel":"APOIO B-C","papelNormalizado":"Apoio B-C","escala":{"MARÇO":"WWWWWWWWOOWWWWWWOOWWWWWWOOWWWWW","ABRIL":"WOOWWWWWWOOWWWWWWOOWWWWWWOOWWW","MAIO":"WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW","JUNHO":"WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO","JULHO":"WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO"},"matricula":27399}]}
+{
+  "titulo": "Escala 6x2 — Líder de Turno",
+  "tipoEscala": "6x2",
+  "ano": 2026,
+  "meses": [
+    {
+      "chave": "MARÇO",
+      "numero": 3,
+      "dias": 31,
+      "nome": "Março"
+    },
+    {
+      "chave": "ABRIL",
+      "numero": 4,
+      "dias": 30,
+      "nome": "Abril"
+    },
+    {
+      "chave": "MAIO",
+      "numero": 5,
+      "dias": 31,
+      "nome": "Maio"
+    },
+    {
+      "chave": "JUNHO",
+      "numero": 6,
+      "dias": 30,
+      "nome": "Junho"
+    },
+    {
+      "chave": "JULHO",
+      "numero": 7,
+      "dias": 31,
+      "nome": "Julho"
+    },
+    {
+      "chave": "AGOSTO",
+      "numero": 8,
+      "dias": 31,
+      "nome": "Agosto"
+    },
+    {
+      "chave": "SETEMBRO",
+      "numero": 9,
+      "dias": 30,
+      "nome": "Setembro"
+    },
+    {
+      "chave": "OUTUBRO",
+      "numero": 10,
+      "dias": 31,
+      "nome": "Outubro"
+    },
+    {
+      "chave": "NOVEMBRO",
+      "numero": 11,
+      "dias": 30,
+      "nome": "Novembro"
+    },
+    {
+      "chave": "DEZEMBRO",
+      "numero": 12,
+      "dias": 31,
+      "nome": "Dezembro"
+    }
+  ],
+  "colaboradores": [
+    {
+      "nome": "EDER TEODORO NUNES",
+      "grupo": "LIDER DE TURNO",
+      "papel": "A",
+      "papelNormalizado": "Turno A",
+      "escala": {
+        "MARÇO": "WWWWWWWWWWOOWWWWWWOOWWWWWWOOWWW",
+        "ABRIL": "WWWOOWWWWWWOOWWWWWWOOWWWWWWOOW",
+        "MAIO": "WWWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
+        "JUNHO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWW",
+        "JULHO": "OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW",
+        "AGOSTO": "WOOWWWWWWOOWWWWWWOOWWWWWWOOWWWW",
+        "SETEMBRO": "WWOOWWWWWWOOWWWWWWOOWWWWWWOOWW",
+        "OUTUBRO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW",
+        "NOVEMBRO": "WWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
+        "DEZEMBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO"
+      },
+      "matricula": 27224,
+      "telefone": "(99)99155-2518"
+    },
+    {
+      "nome": "EMERSON LUIS FURTADO TABUAS",
+      "grupo": "LIDER DE TURNO",
+      "papel": "B",
+      "papelNormalizado": "Turno B",
+      "escala": {
+        "MARÇO": "WWWWWWWWWWWWOOWWWWWWOOWWWWWWOOW",
+        "ABRIL": "WWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
+        "MAIO": "OWWWWWWOOWWWWWWOOWWWWWWOOWWWWWW",
+        "JUNHO": "OOWWWWWWOOWWWWWWOOWWWWWWOOWWWW",
+        "JULHO": "WWOOWWWWWWOOWWWWWWOOWWWWWWOOWWW",
+        "AGOSTO": "WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW",
+        "SETEMBRO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
+        "OUTUBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
+        "NOVEMBRO": "OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW",
+        "DEZEMBRO": "OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"
+      },
+      "matricula": 27488,
+      "telefone": "(99)99155-4575"
+    },
+    {
+      "nome": "ADAO JOSE SOARES",
+      "grupo": "LIDER DE TURNO",
+      "papel": "Apoio A",
+      "papelNormalizado": "Apoio A",
+      "escala": {
+        "MARÇO": "WWWWWWWWWWWWOOWWWWWWOOWWWWWWOOW",
+        "ABRIL": "WWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
+        "AGOSTO": "WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW",
+        "SETEMBRO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
+        "OUTUBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
+        "NOVEMBRO": "OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"
+      },
+      "matricula": null
+    },
+    {
+      "nome": "PAULO HENRIQUE BORGES DA SILVA",
+      "grupo": "LIDER DE TURNO",
+      "papel": "C",
+      "papelNormalizado": "Turno C",
+      "escala": {
+        "MARÇO": "WWWWWWWWWWWWWWOOWWWWWWOOWWWWWWO",
+        "ABRIL": "OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW",
+        "MAIO": "WOOWWWWWWOOWWWWWWOOWWWWWWOOWWWW",
+        "JUNHO": "WWOOWWWWWWOOWWWWWWOOWWWWWWOOWW",
+        "JULHO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW",
+        "AGOSTO": "WWWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
+        "SETEMBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWW",
+        "OUTUBRO": "OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW",
+        "NOVEMBRO": "WOOWWWWWWOOWWWWWWOOWWWWWWOOWWW"
+      },
+      "matricula": 27483,
+      "telefone": "(67)998950179"
+    },
+    {
+      "nome": "WEMBER RODRIGUES LOURA",
+      "grupo": "LIDER DE TURNO",
+      "papel": "FOLGUISTA",
+      "papelNormalizado": "Folguista",
+      "escala": {
+        "MARÇO": "WWWWWWWWOOWWWWWWOOWWWWWWOOWWWWW",
+        "ABRIL": "WOOWWWWWWOOWWWWWWOOWWWWWWOOWWW",
+        "MAIO": "WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW",
+        "JUNHO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
+        "JULHO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
+        "AGOSTO": "OWWWWWWOOWWWWWWOOWWWWWWOOWWWWWW",
+        "SETEMBRO": "OOWWWWWWOOWWWWWWOOWWWWWWOOWWWW",
+        "OUTUBRO": "WWOOWWWWWWOOWWWWWWOOWWWWWWOOWWW",
+        "NOVEMBRO": "WWWOOWWWWWWOOWWWWWWOOWWWWWWOOW",
+        "DEZEMBRO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW"
+      },
+      "matricula": 27377,
+      "telefone": "(67)998095372"
+    },
+    {
+      "nome": "ANDRE FERREIRA RODRIGUES",
+      "grupo": "LIDER DE TURNO",
+      "papel": "APOIO B-C",
+      "papelNormalizado": "Apoio B-C",
+      "escala": {
+        "MARÇO": "WWWWWWWWOOWWWWWWOOWWWWWWOOWWWWW",
+        "ABRIL": "WOOWWWWWWOOWWWWWWOOWWWWWWOOWWW",
+        "MAIO": "WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW",
+        "JUNHO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
+        "JULHO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO"
+      },
+      "matricula": 27399
+    }
+  ]
+}
