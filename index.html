@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T04-00-00Z -->
+<!-- APP_BUILD:2026-08-09T05-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -512,6 +512,8 @@
       <div class="subtab-bar" id="subtabs-heavy" style="display:none;">
         <div class="subtab active" data-view="heavydash">Painel</div>
         <div class="subtab" data-view="heavyfleet">Cadastro de veículos</div>
+        <div class="subtab" data-view="heavysinistros">Acidente de Trânsito</div>
+        <div class="subtab" data-view="heavydocs">Documentos (Cronotacógrafo/AET)</div>
         <div class="subtab" data-view="heavyfines">Multas</div>
       </div>
       <div class="subtab-bar" id="subtabs-conjuntos" style="display:none;">
@@ -1341,6 +1343,13 @@
           <tbody id="tbl-crlv-alert"></tbody></table>
         </div>
 
+        <div class="card" id="card-heavydocs-alert">
+          <div class="card-head"><div class="card-title">Alerta de vencimento — Cronotacógrafo / AET</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Documentos vencidos ou vencendo em até 30 dias.</div>
+          <table><thead><tr><th>Placa</th><th>Frota</th><th>Tipo</th><th>Nº</th><th>Vencimento</th><th>Situação</th></tr></thead>
+          <tbody id="heavydash-docs-alerta"></tbody></table>
+        </div>
+
         <div class="card">
           <div class="card-head"><div class="card-title">Lançamentos (Multas)</div></div>
           <table><thead><tr><th>Data</th><th>UO</th><th>Veículo</th><th>Tipo</th><th>Valor</th><th>Descrição</th></tr></thead>
@@ -1368,8 +1377,8 @@
             </div>
           </div>
           <div class="field-grid-4">
-            <div class="field"><label>KM inicial</label><input id="hf-km" placeholder="0"></div>
-            <div class="field"><label>Data inicial</label><input type="date" id="hf-data-inicial"></div>
+            <div class="field"><label>KM de cadastro</label><input id="hf-km" placeholder="0"></div>
+            <div class="field"><label>Data de cadastro</label><input type="date" id="hf-data-inicial"></div>
             <div class="field"><label>Nº TAG</label><input id="hf-tag" placeholder="Ex: TAG-00123"></div>
             <div class="field"><label>Filial de origem</label><input id="hf-filial" placeholder="Ex: Matriz Cuiabá"></div>
           </div>
@@ -1377,7 +1386,7 @@
             <div class="field"><label>Responsável do ativo</label>
               <select id="hf-responsavel">
                 <option value="LOTS">LOTS</option>
-                <option value="ATIVOS">ATIVOS</option>
+                <option value="ATVOS">ATVOS</option>
                 <option value="ADIANTE">ADIANTE</option>
               </select>
             </div>
@@ -1549,6 +1558,44 @@
         </div>
       </div>
 
+      <!-- HEAVY DOCS: Cronotacógrafo / AET Federal / AET Estadual -->
+      <div class="view" id="view-heavydocs">
+        <div class="topbar">
+          <div><div class="page-title">Documentos — Cronotacógrafo / AET</div><div class="page-sub">Cronotacógrafo, AET Federal e AET Estadual, vinculados à placa do veículo</div></div>
+        </div>
+        <div class="card reg-card">
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo</label><select id="hd-vehicle"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Tipo de documento</label>
+              <select id="hd-tipo">
+                <option value="Cronotacógrafo">Cronotacógrafo</option>
+                <option value="AET Federal">AET Federal</option>
+                <option value="AET Estadual">AET Estadual</option>
+              </select>
+            </div>
+            <div class="field"><label>Nº do documento</label><input id="hd-numero" placeholder="Ex: 123456"></div>
+            <div class="field"><label>Data de vencimento</label><input type="date" id="hd-vencimento"></div>
+          </div>
+          <button class="btn-primary reg-submit" id="btn-register-heavydoc">Cadastrar documento</button>
+          <div class="err-msg" id="hd-err"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Alerta de vencimento (30 dias)</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Documentos vencidos ou vencendo em até 30 dias.</div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Placa</th><th>Frota</th><th>Tipo</th><th>Nº</th><th>Vencimento</th><th>Situação</th></tr></thead>
+            <tbody id="tbl-heavydocs-alerta"></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Documentos cadastrados</div></div>
+          <div class="table-scroll-y" style="max-height:520px; overflow-y:auto;">
+            <table><thead><tr><th>Placa</th><th>Frota</th><th>Tipo</th><th>Nº</th><th>Vencimento</th><th></th></tr></thead>
+            <tbody id="tbl-heavydocs"></tbody></table>
+          </div>
+        </div>
+      </div>
+
       <!-- HEAVY FINES -->
       <div class="view" id="view-heavyfines">
         <div class="topbar">
@@ -1598,7 +1645,7 @@
           </div>
           <div class="field-grid-4">
             <div class="field"><label>UO</label>
-              <select id="cj-uo">${UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('')}</select>
+              <select id="cj-uo"></select>
             </div>
             <div class="field"><label>Tara do conjunto (kg)</label><input id="cj-tara" placeholder="Ex: 6500"></div>
             <div class="field"><label>PBT (kg)</label><input id="cj-pbt" placeholder="Ex: 41000"></div>
@@ -1629,6 +1676,15 @@
                 <option value="inativo">Inativo</option>
               </select>
             </div>
+          </div>
+
+          <div class="field">
+            <label>📁 Pasta dos CRLVs — vale pra TODAS as frotas (leve, pesada e conjuntos)</label>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn-ghost btn-sm" id="btn-pick-onedrive-conjunto">📁 Selecionar / trocar pasta</button>
+              <span class="page-sub" id="onedrive-folder-name-conjunto" style="margin:0;">Nenhuma pasta selecionada ainda.</span>
+            </div>
+            <div class="page-sub" style="margin-top:6px;">É a mesma pasta usada pela Frota Leve e Frota Pesada — mudar aqui muda em todo o sistema. Nomeie os PDFs como Frota_Placa (ex: CJ-0123_ABC1D23.pdf).</div>
           </div>
           <button class="btn-primary reg-submit" id="btn-register-conjunto">Cadastrar conjunto</button>
           <div class="err-msg" id="cj-err"></div>
@@ -1691,7 +1747,7 @@
       sel.innerHTML = '<option value="">Todas</option>' + UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('');
       if(UO_LIST.includes(keep)) sel.value = keep;
     });
-    ['rf-uo','lgb-uo','hf-uo'].forEach(id=>{
+    ['rf-uo','lgb-uo','hf-uo','cj-uo'].forEach(id=>{
       const sel = document.getElementById(id);
       if(!sel) return;
       const keep = sel.value;
@@ -1749,7 +1805,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T04-00-00Z';
+  const APP_VERSION = '2026-08-09T05-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1909,7 +1965,7 @@
   let state = {
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
     heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{}, premiacaoBudget:{}, auditLog:[],
-    transfers:[], fornecedores:[], tires:[], conjuntos:[],
+    transfers:[], fornecedores:[], tires:[], conjuntos:[], heavyDocs:[],
     currentProfile:null
   };
 
@@ -1939,6 +1995,7 @@
     setLoadingProgress(66, 'Carregando frota pesada…');
     state.heavyVehicles = await loadShared('lots-heavy-vehicles', []);
     state.conjuntos = await loadShared('lots-conjuntos', []);
+    state.heavyDocs = await loadShared('lots-heavy-docs', []);
     setLoadingProgress(76, 'Carregando custos (pesada)…');
     state.heavyCosts = await loadShared('lots-heavy-costs', []);
     setLoadingProgress(86, 'Carregando multas (pesada)…');
@@ -1999,6 +2056,7 @@
     sinistros: () => saveShared('lots-sinistros', state.sinistros),
     heavyVehicles: () => saveShared('lots-heavy-vehicles', state.heavyVehicles),
     conjuntos: () => saveShared('lots-conjuntos', state.conjuntos),
+    heavyDocs: () => saveShared('lots-heavy-docs', state.heavyDocs),
     heavyCosts: () => saveShared('lots-heavy-costs', state.heavyCosts),
     heavyFines: () => saveShared('lots-heavy-fines', state.heavyFines),
     heavySinistros: () => saveShared('lots-heavy-sinistros', state.heavySinistros),
@@ -2303,7 +2361,7 @@
         <td class="mono">${kmLimite}</td>
         <td>${statusBadge}</td>
         <td><div class="action-links">
-          <button class="icon-btn" onclick="LOTS.verCRLV('${v.id}',false)">ver CRLV</button>
+          <button class="icon-btn" onclick="LOTS.verCRLV('${v.id}')">ver CRLV</button>
           ${canManageVehicle(v.unidade) ? `<button class="icon-btn" onclick="LOTS.editVehicle('${v.id}')">editar</button>` : ''}
           ${canEditUO(v.unidade) ? `<button class="icon-btn danger" onclick="LOTS.deleteVehicle('${v.id}')">excluir</button>` : ''}
         </div></td>
@@ -3084,6 +3142,8 @@
     if(el3) el3.textContent = text;
     const el4 = document.getElementById('onedrive-folder-name-heavy');
     if(el4) el4.textContent = text;
+    const el5 = document.getElementById('onedrive-folder-name-conjunto');
+    if(el5) el5.textContent = text;
   }
   async function pickOneDriveFolder(){
     if(!('showDirectoryPicker' in window)){
@@ -3104,6 +3164,7 @@
   document.getElementById('btn-pick-onedrive-sin')?.addEventListener('click', pickOneDriveFolder);
   document.getElementById('btn-pick-onedrive-veh')?.addEventListener('click', pickOneDriveFolder);
   document.getElementById('btn-pick-onedrive-heavy')?.addEventListener('click', pickOneDriveFolder);
+  document.getElementById('btn-pick-onedrive-conjunto')?.addEventListener('click', pickOneDriveFolder);
   async function restoreOneDriveFolder(){
     if(!('indexedDB' in window)) return;
     try{
@@ -3381,10 +3442,13 @@
   // procura na pasta de CRLVs selecionada um arquivo cujo nome contenha "Frota_Placa"
   // (ex: 4823-MNS_ABC1D23) e abre ele numa aba nova. Não depende de nada ter sido
   // anexado pelo cadastro — é uma busca direta na pasta pelo nome do arquivo.
-  LOTS.verCRLV = async (vehicleId, isHeavy)=>{
-    const v = isHeavy ? state.heavyVehicles.find(x=>x.id===vehicleId) : vehicleById(vehicleId);
+  LOTS.verCRLV = async (vehicleId, tipo)=>{
+    // tipo: 'heavy' (frota pesada), 'conjunto' ou nada (frota leve) — todos usam a MESMA pasta compartilhada
+    const v = tipo==='heavy' ? state.heavyVehicles.find(x=>x.id===vehicleId)
+            : tipo==='conjunto' ? state.conjuntos.find(x=>x.id===vehicleId)
+            : vehicleById(vehicleId);
     if(!v){ toast('Veículo não encontrado.'); return; }
-    if(!onedriveDirHandle){ toast('Selecione a pasta onde ficam os CRLVs primeiro (botão "Selecionar pasta" no Cadastro de Veículos).'); return; }
+    if(!onedriveDirHandle){ toast('Selecione a pasta onde ficam os CRLVs primeiro (botão "Selecionar pasta" no Cadastro de Veículos, Frota Pesada ou Conjuntos).'); return; }
     if(!v.frota || !v.plate){ toast('Esse veículo precisa ter Frota e Placa cadastrados pra buscar o CRLV.'); return; }
     const alvo1 = normKey(`${v.frota}_${v.plate}`);
     const alvo2 = normKey(`${v.plate}_${v.frota}`); // tenta nos dois sentidos, por segurança
@@ -3740,7 +3804,7 @@
     document.getElementById('hf-data-inicial').value = v?.dataInicial || todayISO();
     document.getElementById('hf-tag').value = v?.tag || '';
     document.getElementById('hf-filial').value = v?.filial || '';
-    document.getElementById('hf-responsavel').value = v?.responsavel || 'LOTS';
+    document.getElementById('hf-responsavel').value = (v?.responsavel==='ATIVOS' ? 'ATVOS' : v?.responsavel) || 'LOTS';
     document.getElementById('hf-chassis').value = v?.chassis || '';
     document.getElementById('hf-crlv').value = v?.crlv || '';
     document.getElementById('hf-crlv-venc').value = v?.crlvVencimento || '';
@@ -3980,9 +4044,99 @@
         <td>${c.kitLona==='sim'?'Sim':'Não'}</td>
         <td>${badge}</td>
         <td><div class="action-links">
+          <button class="icon-btn" onclick="LOTS.verCRLV('${c.id}','conjunto')">ver CRLV</button>
           <button class="icon-btn" onclick="LOTS.editConjunto('${c.id}')">editar</button>
           <button class="icon-btn danger" onclick="LOTS.deleteConjunto('${c.id}')">excluir</button>
         </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---------------- DOCUMENTOS (Cronotacógrafo / AET Federal / AET Estadual) — frota pesada ---------------- */
+  function populateHeavyDocsVehicleSelect(){
+    const sel = document.getElementById('hd-vehicle');
+    if(!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Selecione</option>' + state.heavyVehicles
+      .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')))
+      .map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+  }
+  function heavyDocsVencendoList(){
+    const hoje = new Date(todayISO());
+    return state.heavyDocs
+      .filter(d=>d.vencimento)
+      .map(d=>{
+        const venc = new Date(d.vencimento);
+        const diasRestantes = Math.round((venc-hoje)/86400000);
+        return {d, diasRestantes};
+      })
+      .filter(r=>r.diasRestantes<=30)
+      .sort((a,b)=>a.diasRestantes-b.diasRestantes);
+  }
+  document.getElementById('btn-register-heavydoc')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('hd-err');
+    const vehicleId = document.getElementById('hd-vehicle').value;
+    if(!vehicleId){ errEl.textContent='Selecione o veículo.'; return; }
+    const vencimento = document.getElementById('hd-vencimento').value;
+    if(!vencimento){ errEl.textContent='Informe a data de vencimento.'; return; }
+    errEl.textContent='';
+    state.heavyDocs.push({
+      id: uid(), vehicleId,
+      tipo: document.getElementById('hd-tipo').value,
+      numero: document.getElementById('hd-numero').value.trim(),
+      vencimento,
+      dataCadastro: todayISO()
+    });
+    await save.heavyDocs();
+    document.getElementById('hd-numero').value='';
+    document.getElementById('hd-vencimento').value='';
+    renderView('heavydocs');
+    logAudit('Documento (frota pesada) cadastrado', `${document.getElementById('hd-tipo').value} — venc. ${vencimento}`);
+    toast('Documento cadastrado.');
+  });
+  LOTS.deleteHeavyDoc = async (id)=>{
+    const d = state.heavyDocs.find(x=>x.id===id);
+    state.heavyDocs = state.heavyDocs.filter(x=>x.id!==id);
+    await save.heavyDocs();
+    renderView('heavydocs');
+    logAudit('Documento (frota pesada) excluído', d ? `${d.tipo} — venc. ${d.vencimento}` : id);
+  };
+  function renderHeavyDocs(){
+    populateHeavyDocsVehicleSelect();
+    const alertTbl = document.getElementById('tbl-heavydocs-alerta');
+    if(alertTbl){
+      const alertas = heavyDocsVencendoList();
+      if(alertas.length===0){
+        alertTbl.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum documento vencido ou perto do vencimento.</td></tr>';
+      } else {
+        alertTbl.innerHTML = alertas.map(({d,diasRestantes})=>{
+          const v = state.heavyVehicles.find(x=>x.id===d.vehicleId);
+          const situacao = diasRestantes<0 ? `<span class="badge badge-danger">Vencido há ${Math.abs(diasRestantes)} dia(s)</span>` : `<span class="badge badge-pending">Vence em ${diasRestantes} dia(s)</span>`;
+          return `<tr>
+            <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+            <td class="mono">${v?.frota||'—'}</td>
+            <td>${d.tipo}</td>
+            <td class="mono">${d.numero||'—'}</td>
+            <td class="mono">${fmtDate(d.vencimento)}</td>
+            <td>${situacao}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+    const tbl = document.getElementById('tbl-heavydocs');
+    if(!tbl) return;
+    if(state.heavyDocs.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum documento cadastrado ainda.</td></tr>'; return; }
+    const sorted = state.heavyDocs.slice().sort((a,b)=>a.vencimento.localeCompare(b.vencimento));
+    tbl.innerHTML = sorted.map(d=>{
+      const v = state.heavyVehicles.find(x=>x.id===d.vehicleId);
+      return `<tr>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td class="mono">${v?.frota||'—'}</td>
+        <td>${d.tipo}</td>
+        <td class="mono">${d.numero||'—'}</td>
+        <td class="mono">${fmtDate(d.vencimento)}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteHeavyDoc('${d.id}')">excluir</button></div></td>
       </tr>`;
     }).join('');
   }
@@ -4029,12 +4183,12 @@
         <td>${v.model}</td>
         <td>${v.unidade||'—'}</td>
         <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
-        <td>${v.responsavel||'—'}</td>
+        <td>${(v.responsavel==='ATIVOS'?'ATVOS':v.responsavel)||'—'}</td>
         <td class="mono">${v.crlv||'—'}</td>
         <td class="mono">${v.crlvVencimento?fmtDate(v.crlvVencimento):'—'}</td>
         <td>${badge}</td>
         <td><div class="action-links">
-          <button class="icon-btn" onclick="LOTS.verCRLV('${v.id}',true)">ver CRLV</button>
+          <button class="icon-btn" onclick="LOTS.verCRLV('${v.id}','heavy')">ver CRLV</button>
           <button class="icon-btn" onclick="LOTS.editHeavy('${v.id}')">editar</button>
           <button class="icon-btn danger" onclick="LOTS.deleteHeavy('${v.id}')">excluir</button>
         </div></td>
@@ -5181,7 +5335,8 @@
       {label:'Veículos ativos', val: state.heavyVehicles.filter(v=>(!uo||v.unidade===uo)&&v.status==='ativo').length},
       {label:'Veículos inativos', val: state.heavyVehicles.filter(v=>(!uo||v.unidade===uo)&&v.status==='inativo').length},
       {label:'Multas', val: fmtMoney(fines.reduce((s,f)=>s+f.value,0))},
-      {label:'CRLV vencendo/vencido', val: crlvVencendoList().filter(({v})=>!uo||v.unidade===uo).length}
+      {label:'CRLV vencendo/vencido', val: crlvVencendoList().filter(({v})=>!uo||v.unidade===uo).length},
+      {label:'Cronotacógrafo/AET vencendo', val: heavyDocsVencendoList().filter(({d})=>{ if(!uo) return true; const v=state.heavyVehicles.find(x=>x.id===d.vehicleId); return v && v.unidade===uo; }).length}
     ].map(k=>`<div class="kpi"><div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
 
     const crlvTbl = document.getElementById('tbl-crlv-alert');
@@ -5198,6 +5353,31 @@
             <td>${v.unidade||'—'}</td>
             <td class="mono">${v.crlv||'—'}</td>
             <td class="mono">${fmtDate(v.crlvVencimento)}</td>
+            <td>${situacao}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    const docsAlertTbl = document.getElementById('heavydash-docs-alerta');
+    if(docsAlertTbl){
+      const alertasDocs = heavyDocsVencendoList().filter(({d})=>{
+        if(!uo) return true;
+        const v = state.heavyVehicles.find(x=>x.id===d.vehicleId);
+        return v && v.unidade===uo;
+      });
+      if(alertasDocs.length===0){
+        docsAlertTbl.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum documento vencido ou perto do vencimento.</td></tr>';
+      } else {
+        docsAlertTbl.innerHTML = alertasDocs.map(({d,diasRestantes})=>{
+          const v = state.heavyVehicles.find(x=>x.id===d.vehicleId);
+          const situacao = diasRestantes<0 ? `<span class="badge badge-danger">Vencido há ${Math.abs(diasRestantes)} dia(s)</span>` : `<span class="badge badge-pending">Vence em ${diasRestantes} dia(s)</span>`;
+          return `<tr>
+            <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+            <td class="mono">${v?.frota||'—'}</td>
+            <td>${d.tipo}</td>
+            <td class="mono">${d.numero||'—'}</td>
+            <td class="mono">${fmtDate(d.vencimento)}</td>
             <td>${situacao}</td>
           </tr>`;
         }).join('');
@@ -5711,11 +5891,12 @@
     else if(name==='heavyranking') renderHeavyRanking();
     else if(name==='conjuntodash') renderConjuntoDash();
     else if(name==='conjuntocadastro') renderConjuntoCadastro();
+    else if(name==='heavydocs') renderHeavyDocs();
   }
   function renderAll(){
     ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','bu','tires','users',
      'heavyfleet','heavydash','heavycosts','heavysinistros','heavyfines','heavyranking',
-     'conjuntodash','conjuntocadastro'].forEach(renderView);
+     'conjuntodash','conjuntocadastro','heavydocs'].forEach(renderView);
     wrapTablesForScroll();
   }
 
@@ -5755,6 +5936,7 @@
   listenShared('lots-sinistros', d => state.sinistros = d);
   listenShared('lots-heavy-vehicles', d => state.heavyVehicles = d);
   listenShared('lots-conjuntos', d => state.conjuntos = d);
+  listenShared('lots-heavy-docs', d => state.heavyDocs = d);
   listenShared('lots-heavy-costs', d => state.heavyCosts = d);
   listenShared('lots-heavy-fines', d => state.heavyFines = d);
   listenShared('lots-heavy-sinistros', d => state.heavySinistros = d);
