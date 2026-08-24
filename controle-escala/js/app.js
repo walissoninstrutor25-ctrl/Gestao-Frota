@@ -11,6 +11,16 @@ const TABS = [
   { id: 'master_driver', label: 'Master Driver', tag: '5x1', dataVar: 'DATA_MASTER_DRIVER', hasGroups: false, hasUnits: true },
 ];
 
+// Tipos de escala disponíveis no filtro do topo. 'adm5x2' não tem nenhuma
+// planilha/aba associada ainda (nenhuma das 3 recebidas cobre esse tipo) —
+// fica visível como opção, mas mostra um aviso em vez de dados até que uma
+// planilha oficial nesse formato seja enviada.
+const ESCALA_TYPES = [
+  { id: '5x1', label: '5x1' },
+  { id: '6x2', label: '6x2' },
+  { id: 'adm5x2', label: 'ADM 5x2' },
+];
+
 const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 const PAPEL_PRIORITY = { 'Turno A': 1, 'Turno B': 2, 'Turno C': 3 };
 function papelPriority(p) {
@@ -27,6 +37,7 @@ function papelPriority(p) {
 
 const state = {
   activeTab: localStorage.getItem('escala:lastTab') || 'motoristas',
+  tipoEscala: null, // definido em boot(), ver initTipoEscala()
   month: {},      // tabId -> chave do mes selecionado
   unit: {},        // tabId -> 'MNS' | 'PRA'
   view: {},        // tabId -> 'escala' | 'equipe'
@@ -177,7 +188,11 @@ function loadDataset(tab) {
 }
 
 function boot() {
-  renderTabs();
+  // Sem valor salvo, o tipo inicial acompanha a última aba aberta (em vez
+  // de sempre cair em '5x1'), pra essa mudança não "esconder" a aba que a
+  // pessoa já estava usando.
+  state.tipoEscala = localStorage.getItem('escala:tipoEscala') || (TABS.find((t) => t.id === state.activeTab) || {}).tag || '5x1';
+
   const results = TABS.map((t) => loadDataset(t));
   TABS.forEach((t, i) => { datasets[t.id] = results[i]; });
   applyStoredEditsToDatasets();
@@ -191,12 +206,45 @@ function boot() {
     state.view[t.id] = 'escala';
   });
 
-  activateTab(state.activeTab, true);
+  renderTypeSwitch();
+  renderTabsForType();
 }
 
-function renderTabs() {
+function tabsForType(tipo) {
+  return TABS.filter((t) => t.tag === tipo);
+}
+
+function renderTypeSwitch() {
+  const el = document.getElementById('escalaTypeSwitch');
+  el.innerHTML = ESCALA_TYPES.map((t) => `
+    <button class="type-btn ${state.tipoEscala === t.id ? 'active' : ''}" data-type="${t.id}">${t.label}</button>
+  `).join('');
+  el.querySelectorAll('.type-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.type === state.tipoEscala) return;
+      state.tipoEscala = btn.dataset.type;
+      localStorage.setItem('escala:tipoEscala', state.tipoEscala);
+      renderTypeSwitch();
+      renderTabsForType();
+    });
+  });
+}
+
+function renderTabsForType() {
   const nav = document.getElementById('tabs');
-  nav.innerHTML = TABS.map((t) => `
+  const visible = tabsForType(state.tipoEscala);
+
+  if (!visible.length) {
+    nav.innerHTML = '';
+    document.getElementById('app').innerHTML = `
+      <div class="empty-state">
+        Ainda não há uma planilha de Escala ADM 5x2 cadastrada.
+        <br><small style="display:block;margin-top:8px;opacity:.7">Assim que a planilha oficial desse tipo for enviada (mesmo padrão das outras: abas NOMES e MESTRE + uma aba por mês, com a cor de preenchimento da célula indicando trabalho ou folga), essa opção passa a mostrar os dados aqui.</small>
+      </div>`;
+    return;
+  }
+
+  nav.innerHTML = visible.map((t) => `
     <button class="tab" data-tab="${t.id}">
       ${t.label} <span class="tab-tag">${t.tag}</span>
     </button>
@@ -204,6 +252,9 @@ function renderTabs() {
   nav.querySelectorAll('.tab').forEach((btn) => {
     btn.addEventListener('click', () => activateTab(btn.dataset.tab, false));
   });
+
+  const activeStillVisible = visible.some((t) => t.id === state.activeTab);
+  activateTab(activeStillVisible ? state.activeTab : visible[0].id, true);
 }
 
 function activateTab(tabId, isBoot) {

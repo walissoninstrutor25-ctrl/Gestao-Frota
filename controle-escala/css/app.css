@@ -70,6 +70,18 @@ button{font-family:inherit;}
 @media (min-width:640px){
   .topbar-clock{display:block;}
 }
+.type-switch{
+  max-width:1440px; margin:0 auto; display:flex; gap:6px; padding:10px 16px 0;
+}
+.type-btn{
+  appearance:none; cursor:pointer; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:999px; padding:5px 14px; font-size:12px; font-weight:700; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.03em; font-family:'Roboto Mono',monospace;
+  transition:color .15s ease, border-color .15s ease, background .15s ease;
+}
+.type-btn:hover{color:var(--text); border-color:var(--accent-dim);}
+.type-btn.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+
 .tabs{
   max-width:1440px; margin:0 auto;
   display:flex; gap:4px; padding:0 16px; overflow-x:auto;
