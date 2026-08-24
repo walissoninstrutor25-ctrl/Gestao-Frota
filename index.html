@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T06-30-00Z -->
+<!-- APP_BUILD:2026-08-09T07-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -784,6 +784,19 @@
             <div class="field"><button class="btn-primary" id="btn-save-fuelparams" style="width:100%;">Salvar</button></div>
           </div>
           <div class="err-msg" id="fp-msg"></div>
+
+          <div class="lane" style="margin:18px 0 14px;"></div>
+          <div class="card-title" style="margin-bottom:10px;">Metas cadastradas</div>
+          <div class="filter-bar">
+            <div class="filter-field"><label>UO</label><select id="fpfilter-uo"><option value="">Todas</option></select></div>
+            <div class="filter-field"><label>Placa</label><select id="fpfilter-vehicle"><option value="">Todas</option></select></div>
+            <div class="filter-field"><label>Só sem meta cadastrada</label><select id="fpfilter-semmeta"><option value="">Não</option><option value="sim">Sim</option></select></div>
+            <button class="btn-ghost" id="btn-clear-fpfilter">Limpar</button>
+          </div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>Modelo</th><th>Consumo esperado (km/L)</th><th></th></tr></thead>
+            <tbody id="tbl-fuelparams"></tbody></table>
+          </div>
         </div>
 
         <div class="lane accent"></div>
@@ -1843,7 +1856,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T06-30-00Z';
+  const APP_VERSION = '2026-08-09T07-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2758,6 +2771,61 @@
     renderView('fuel');
   });
 
+  function populateFuelParamsFilters(){
+    const uoSel = document.getElementById('fpfilter-uo');
+    const vSel = document.getElementById('fpfilter-vehicle');
+    if(!uoSel || !vSel) return;
+    const list = visibleVehicles();
+    const keepUo = uoSel.value;
+    const uosNaLista = [...new Set(list.map(v=>v.unidade).filter(Boolean))].sort();
+    uoSel.innerHTML = '<option value="">Todas</option>' + uosNaLista.map(u=>`<option value="${u}">${u}</option>`).join('');
+    uoSel.value = uosNaLista.includes(keepUo) ? keepUo : '';
+
+    const keepV = vSel.value;
+    vSel.innerHTML = '<option value="">Todas</option>' + list
+      .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')))
+      .map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    vSel.value = list.some(v=>v.id===keepV) ? keepV : '';
+  }
+  function renderFuelParamsTable(){
+    const tbl = document.getElementById('tbl-fuelparams');
+    if(!tbl) return;
+    populateFuelParamsFilters();
+    const uo = document.getElementById('fpfilter-uo').value;
+    const vehicleFilter = document.getElementById('fpfilter-vehicle').value;
+    const soSemMeta = document.getElementById('fpfilter-semmeta').value==='sim';
+    const list = visibleVehicles()
+      .filter(v=>!uo || v.unidade===uo)
+      .filter(v=>!vehicleFilter || v.id===vehicleFilter)
+      .filter(v=>!soSemMeta || !v.consumoEsperado)
+      .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')));
+    if(list.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum veículo encontrado para os filtros selecionados.</td></tr>'; return; }
+    tbl.innerHTML = list.map(v=>{
+      const semMeta = !v.consumoEsperado;
+      return `<tr>
+        <td class="mono">${v.frota||'—'}</td>
+        <td><span class="plate">${v.plate}</span></td>
+        <td>${v.unidade||'—'}</td>
+        <td>${v.model||'—'}</td>
+        <td class="mono" style="${semMeta?'color:var(--danger); font-weight:600;':''}">${semMeta ? 'Sem meta cadastrada' : Number(v.consumoEsperado).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2})+' km/L'}</td>
+        <td><button class="icon-btn" onclick="LOTS.editarMetaConsumo('${v.id}')">editar</button></td>
+      </tr>`;
+    }).join('');
+  }
+  LOTS.editarMetaConsumo = (vehicleId)=>{
+    document.getElementById('fp-vehicle').value = vehicleId;
+    fillFuelParams();
+    document.getElementById('fp-consumo').focus();
+    document.getElementById('fp-vehicle').closest('.card').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+  ['fpfilter-uo','fpfilter-vehicle','fpfilter-semmeta'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderFuelParamsTable(); });
+  });
+  document.getElementById('btn-clear-fpfilter')?.addEventListener('click', ()=>{
+    ['fpfilter-uo','fpfilter-vehicle','fpfilter-semmeta'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderFuelParamsTable();
+  });
+
   // filtro compartilhado do BI de combustível (usado no KPI, no histórico e nos rankings)
   function getFuelBIFiltered(){
     const start = document.getElementById('bifuel-start')?.value || '';
@@ -2782,6 +2850,7 @@
 
   function renderFuel(){
     populateFuelParamsSelect();
+    renderFuelParamsTable();
     populateFuelBIFilters();
     renderFuelBI();
     // só inicializa a planilha de lançamento na primeira vez (não apaga o que o usuário está digitando a cada re-render)
