@@ -69,7 +69,10 @@ const state = {
   papel: 'todos',
   collapsed: {},   // tabId -> Set(grupo)
   editMode: false,
-  page: 'app',     // 'app' | 'dashboard'
+  page: 'app',     // 'app' | 'dashboard' | 'efetivos'
+  dashUnit: 'todos', // 'todos' | 'MNS' | 'PRA' — filtro de UO no Dashboard
+  efetivosUnit: 'MNS', // UO selecionada na aba Motoristas Efetivos
+  role: null,      // 'adm' | 'visualizador' — definido no login, ver showLoginGate()
 };
 
 const datasets = {}; // tabId -> parsed json
@@ -501,42 +504,54 @@ const DASHBOARD_ROLES = [
   { tabId: 'master_driver', label: 'Master Driver' },
   { tabId: 'adm5x2', label: 'Administrativo', turnos: ['ADM'] }, // 5x2 fixo, sem turno A/B/C — uma linha só por UO
 ];
-const DASHBOARD_TURNOS = ['A', 'B', 'C'];
 
-function metaKey(tabId, turno, unidade) {
-  return `${tabId}|${turno}|${unidade}`;
+function metaKey(tabId, papel, unidade) {
+  return `${tabId}|${papel}|${unidade}`;
 }
 
-function contagemAtual(tabId, turno, unidade) {
+function contagemAtual(tabId, papel, unidade) {
   const ds = datasets[tabId];
   if (!ds) return 0;
-  if (turno === 'ADM') return ds.colaboradores.filter((p) => p.unidade === unidade).length;
-  return ds.colaboradores.filter((p) => p.unidade === unidade && p.papelNormalizado === `Turno ${turno}`).length;
+  if (papel === 'ADM') return ds.colaboradores.filter((p) => p.unidade === unidade).length;
+  return ds.colaboradores.filter((p) => p.unidade === unidade && p.papelNormalizado === papel).length;
+}
+
+// Papéis que existem de verdade nos dados dessa aba (Turno A/B/C, mas
+// também Folguista/Apoio quando existirem) — em vez de uma lista fixa,
+// pra nenhuma categoria real ficar de fora da contagem do Dashboard.
+function papeisPresentes(tabId) {
+  const ds = datasets[tabId];
+  if (!ds) return [];
+  const set = new Set();
+  ds.colaboradores.forEach((p) => { if (p.papelNormalizado) set.add(p.papelNormalizado); });
+  return [...set].sort((a, b) => papelPriority(a) - papelPriority(b));
 }
 
 function renderDashboardRoleTable(role) {
   const ds = datasets[role.tabId];
   if (!ds) return '';
-  const unidades = ds.unidades || [];
+  const unidades = (ds.unidades || []).filter((u) => state.dashUnit === 'todos' || u.codigo === state.dashUnit);
+  const papeis = role.turnos || papeisPresentes(role.tabId);
   let totalAtual = 0, totalMeta = 0, totalVagas = 0;
   const rows = [];
   unidades.forEach((u) => {
-    (role.turnos || DASHBOARD_TURNOS).forEach((t) => {
-      const atual = contagemAtual(role.tabId, t, u.codigo);
-      const key = metaKey(role.tabId, t, u.codigo);
+    papeis.forEach((papel) => {
+      const atual = contagemAtual(role.tabId, papel, u.codigo);
+      const key = metaKey(role.tabId, papel, u.codigo);
       const meta = edits.metas[key] || 0;
       const vagas = Math.max(meta - atual, 0);
       totalAtual += atual; totalMeta += meta; totalVagas += vagas;
       rows.push(`
         <tr>
           <td>${u.label}</td>
-          <td>${t === 'ADM' ? 'ADM' : 'Turno ' + t}</td>
+          <td>${papel}</td>
           <td class="num">${atual}</td>
           <td class="num">${state.editMode ? `<input type="number" min="0" class="meta-input" data-key="${key}" value="${meta}">` : meta}</td>
           <td class="num vagas ${vagas > 0 ? 'vagas-aberta' : 'vagas-ok'}">${vagas}</td>
         </tr>`);
     });
   });
+  if (!rows.length) return `<div class="dash-role"><h3>${role.label}</h3><p class="dash-driverdb-empty">Sem colaboradores cadastrados${state.dashUnit !== 'todos' ? ' nessa UO' : ''}.</p></div>`;
   return `
     <div class="dash-role">
       <h3>${role.label}</h3>
@@ -598,14 +613,74 @@ function wireMatriculaLookup(matriculaEl, nomeEl) {
   matriculaEl.addEventListener('blur', lookup);
 }
 
-function renderDriverDbSection() {
-  const count = Object.keys(edits.driversDb).length;
-  return `
-    <div class="dash-role dash-driverdb">
-      <h3>🗄 Banco de motoristas</h3>
-      <p>${count} matrícula${count === 1 ? '' : 's'} cadastrada${count === 1 ? '' : 's'}. Ao digitar uma matrícula cadastrada aqui — no cadastro de colaborador ou em "Ver equipe" — o nome preenche sozinho.</p>
-      ${state.editMode ? `<label class="icon-btn" id="driverDbImportLabel">📥 Importar planilha (Nome;Matrícula;UO)<input type="file" accept=".csv,text/csv" id="driverDbImportInput" hidden></label>` : ''}
-    </div>`;
+function renderEfetivos() {
+  const app = document.getElementById('app');
+  const unidadesRef = (Object.values(datasets).find((d) => d && d.unidades) || {}).unidades || [];
+  const entries = Object.entries(edits.driversDb).filter(([, v]) => v.unidade === state.efetivosUnit);
+  entries.sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+
+  app.innerHTML = `
+    <div class="panel-head">
+      <h2>Motoristas Efetivos</h2>
+      <p>Cadastro central de motoristas por matrícula — usado pra preencher o nome sozinho ao digitar a matrícula em qualquer aba.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra cadastrar, importar ou remover.'}</p>
+    </div>
+    <div class="unit-switch" id="efetivosUnitSwitch">
+      ${unidadesRef.map((u) => `<button class="unit-btn ${state.efetivosUnit === u.codigo ? 'active' : ''}" data-unit="${u.codigo}">${u.label}</button>`).join('')}
+    </div>
+    ${state.editMode ? `
+      <div class="toolbar-tools efetivos-add">
+        <div class="field"><input type="text" id="efNome" placeholder="Nome do motorista"></div>
+        <div class="field"><input type="text" id="efMatricula" placeholder="Matrícula"></div>
+        <button class="icon-btn primary" id="efAddBtn">+ Adicionar</button>
+        <label class="icon-btn" id="driverDbImportLabel">📥 Importar planilha (Nome;Matrícula;UO)<input type="file" accept=".csv,text/csv" id="driverDbImportInput" hidden></label>
+      </div>` : ''}
+    <table class="dash-table efetivos-table">
+      <thead><tr><th>Nome</th><th>Matrícula</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+      <tbody>
+        ${entries.length ? entries.map(([mat, v]) => `
+          <tr>
+            <td>${v.nome}</td>
+            <td>${mat}</td>
+            ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button></td>` : ''}
+          </tr>`).join('') : `<tr><td colspan="${state.editMode ? 3 : 2}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`}
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('efetivosUnitSwitch').querySelectorAll('.unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => { state.efetivosUnit = btn.dataset.unit; renderEfetivos(); });
+  });
+
+  if (state.editMode) {
+    document.getElementById('efAddBtn').addEventListener('click', () => {
+      const nome = document.getElementById('efNome').value.trim();
+      const matricula = document.getElementById('efMatricula').value.trim();
+      if (!nome || !matricula) { alert('Preencha nome e matrícula.'); return; }
+      edits.driversDb[matricula] = { nome, unidade: state.efetivosUnit };
+      persistEdits();
+      renderEfetivos();
+    });
+    app.querySelectorAll('.ef-remove-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const nomeRemover = btn.closest('tr').querySelector('td').textContent;
+        const ok = await showConfirmModal(`Remover "${nomeRemover}" do cadastro de efetivos?`, { confirmLabel: 'Remover', danger: true });
+        if (!ok) return;
+        delete edits.driversDb[btn.dataset.mat];
+        persistEdits();
+        renderEfetivos();
+      });
+    });
+    const driverImportInput = document.getElementById('driverDbImportInput');
+    if (driverImportInput) driverImportInput.addEventListener('change', async () => {
+      const file = driverImportInput.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const count = importDriversDbText(text);
+      driverImportInput.value = '';
+      alert(count ? `${count} motorista(s) cadastrado(s) no banco.` : 'Nenhuma linha válida encontrada (confira se o cabeçalho é Nome;Matrícula;UO).');
+      if (count) renderEfetivos();
+    });
+  }
 }
 
 function renderLimpoWarnings() {
@@ -644,6 +719,8 @@ function renderDashboard() {
     porTipo[cfg.tag] = (porTipo[cfg.tag] || 0) + ds.colaboradores.length;
   });
 
+  const unidadesRef = (Object.values(datasets).find((d) => d && d.unidades) || {}).unidades || [];
+
   app.innerHTML = `
     <div class="panel-head">
       <h2>Dashboard</h2>
@@ -653,9 +730,17 @@ function renderDashboard() {
       <div class="card accent"><b>${totalGeral}</b><span>Colaboradores no total</span></div>
       ${Object.entries(porTipo).map(([tag, n]) => `<div class="card"><b>${n}</b><span>${escalaTypeLabel(tag)}</span></div>`).join('')}
     </div>
+    <div class="unit-switch" id="dashUnitSwitch">
+      <button class="unit-btn ${state.dashUnit === 'todos' ? 'active' : ''}" data-unit="todos">Todas as UO</button>
+      ${unidadesRef.map((u) => `<button class="unit-btn ${state.dashUnit === u.codigo ? 'active' : ''}" data-unit="${u.codigo}">${u.label}</button>`).join('')}
+    </div>
     ${renderLimpoWarnings()}
-    <div class="dash-roles">${renderDriverDbSection()}${DASHBOARD_ROLES.map(renderDashboardRoleTable).join('')}</div>
+    <div class="dash-roles">${DASHBOARD_ROLES.map(renderDashboardRoleTable).join('')}</div>
   `;
+
+  document.getElementById('dashUnitSwitch').querySelectorAll('.unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => { state.dashUnit = btn.dataset.unit; renderDashboard(); });
+  });
 
   if (state.editMode) {
     app.querySelectorAll('.meta-input').forEach((input) => {
@@ -673,16 +758,6 @@ function renderDashboard() {
         persistEdits();
         location.reload();
       });
-    });
-    const driverImportInput = document.getElementById('driverDbImportInput');
-    if (driverImportInput) driverImportInput.addEventListener('change', async () => {
-      const file = driverImportInput.files[0];
-      if (!file) return;
-      const text = await file.text();
-      const count = importDriversDbText(text);
-      driverImportInput.value = '';
-      alert(count ? `${count} motorista(s) cadastrado(s) no banco.` : 'Nenhuma linha válida encontrada (confira se o cabeçalho é Nome;Matrícula;UO).');
-      if (count) renderDashboard();
     });
   }
 }
@@ -1103,20 +1178,23 @@ function renderTodayStrip(ds, cfg, monthMeta) {
   const day = now.getDate();
   const pool = visiblePeople();
   let work = 0, off = 0, nodata = 0;
-  const workingNames = [];
+  const workingPeople = [], offPeople = [];
   pool.forEach((p) => {
     const sched = p.escala[curKey];
     const status = sched ? sched[day - 1] : undefined;
-    if (status === 'W') { work++; workingNames.push(p.nome.split(' ')[0]); }
-    else if (status === 'O') off++;
+    if (status === 'W') { work++; workingPeople.push(p); }
+    else if (status === 'O') { off++; offPeople.push(p); }
     else nodata++;
   });
-  const showNames = pool.length <= 12 && workingNames.length;
+  const showNames = pool.length <= 12 && (workingPeople.length || offPeople.length);
+  const fmtPessoa = (p) => `${p.nome}${p.matricula ? ` (Mat. ${p.matricula})` : ''}`;
   const filtroLabel = [cfg.hasUnits ? 'UO ' + state.unit[cfg.id] : '', state.papel !== 'todos' ? state.papel : '', state.grupo !== 'todos' ? state.grupo : ''].filter(Boolean).join(' · ');
   el.innerHTML = `
     <div class="today-strip">
       <div class="ts-date">Hoje · ${fmtLongDate(now)}
-        ${showNames ? `<small>Trabalhando: ${workingNames.join(', ')}</small>` : `<small>${cfg.label}${filtroLabel ? ' · ' + filtroLabel : ''}</small>`}
+        ${showNames
+          ? `${workingPeople.length ? `<small>Trabalhando: ${workingPeople.map(fmtPessoa).join(', ')}</small>` : ''}${offPeople.length ? `<small>De folga: ${offPeople.map(fmtPessoa).join(', ')}</small>` : ''}`
+          : `<small>${cfg.label}${filtroLabel ? ' · ' + filtroLabel : ''}</small>`}
       </div>
       <div class="ts-stats">
         <div class="ts-stat"><b>${work}</b><span>Trabalhando</span></div>
@@ -1421,42 +1499,40 @@ function showConfirmModal(message, opts) {
   });
 }
 
-// Senha padrão pra entrar no modo de edição (e, por consequência, pra
-// tudo que só existe dentro dele: Limpar dados, Restaurar, etc.).
-const EDIT_PASSWORD = '112233';
+// Duas senhas: ADM (acesso completo) e Visualizador (só olhar, nunca
+// consegue nem ver o botão de editar). Fica salvo no navegador até
+// alguém clicar em "Sair" — não pede de novo a cada visita.
+const ROLE_PASSWORDS = { adm: 'lots112233', visualizador: 'lots654321' };
+const ROLE_STORAGE_KEY = 'escala:role';
 
-function showPasswordModal() {
-  return new Promise((resolve) => {
-    const backdrop = document.getElementById('modalBackdrop');
-    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
-    const render = (errorMsg) => {
-      backdrop.innerHTML = `
-        <div class="modal confirm-modal">
-          <div class="modal-body">
-            <p class="confirm-msg">Digite a senha pra entrar no modo de edição:</p>
-            <input type="password" class="modal-input" id="pwInput" autocomplete="off" inputmode="numeric">
-            ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
-          </div>
-          <div class="modal-actions">
-            <button class="icon-btn" id="pwCancelBtn">Cancelar</button>
-            <button class="icon-btn primary" id="pwOkBtn">Entrar</button>
-          </div>
-        </div>
-      `;
-      backdrop.classList.add('open');
-      const input = document.getElementById('pwInput');
-      input.focus();
-      const trySubmit = () => {
-        if (input.value === EDIT_PASSWORD) finish(true);
-        else render('Senha incorreta. Tente de novo.');
-      };
-      document.getElementById('pwCancelBtn').addEventListener('click', () => finish(false));
-      document.getElementById('pwOkBtn').addEventListener('click', trySubmit);
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); trySubmit(); } });
-      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(false); }, { once: true });
+function showLoginGate(onSuccess) {
+  const gate = document.getElementById('loginGate');
+  const render = (errorMsg) => {
+    gate.innerHTML = `
+      <div class="login-card">
+        <img src="assets/lots-logo.png" alt="LOTS" class="login-logo">
+        <h2>Controle de Escala</h2>
+        <p>Digite a senha de acesso:</p>
+        <input type="password" id="loginPwInput" autocomplete="off" placeholder="Senha">
+        ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+        <button class="icon-btn primary" id="loginBtn">Entrar</button>
+      </div>`;
+    gate.style.display = 'flex';
+    const input = document.getElementById('loginPwInput');
+    input.focus();
+    const trySubmit = () => {
+      const role = Object.keys(ROLE_PASSWORDS).find((r) => ROLE_PASSWORDS[r] === input.value);
+      if (!role) { render('Senha incorreta. Tente de novo.'); return; }
+      localStorage.setItem(ROLE_STORAGE_KEY, role);
+      state.role = role;
+      gate.style.display = 'none';
+      gate.innerHTML = '';
+      onSuccess();
     };
-    render(null);
-  });
+    document.getElementById('loginBtn').addEventListener('click', trySubmit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); trySubmit(); } });
+  };
+  render(null);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1468,7 +1544,7 @@ function tickClock() {
   el.innerHTML = `<strong>${fmtLongDate(now)}</strong><span class="clock-time">${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function startApp() {
   try {
     boot();
   } catch (err) {
@@ -1486,27 +1562,42 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  document.getElementById('editModeBtn').addEventListener('click', async () => {
-    if (!state.editMode) {
-      const ok = await showPasswordModal();
-      if (!ok) return;
-    }
-    state.editMode = !state.editMode;
-    const btn = document.getElementById('editModeBtn');
-    btn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';
-    document.body.classList.toggle('edit-mode', state.editMode);
-    if (state.page === 'dashboard') renderDashboard();
-    else if (datasets[state.activeTab]) renderPanel();
-  });
-  document.getElementById('dashboardBtn').addEventListener('click', () => {
-    state.page = state.page === 'dashboard' ? 'app' : 'dashboard';
+  function switchPage(page) {
+    state.page = state.page === page ? 'app' : page;
     const isDash = state.page === 'dashboard';
-    document.getElementById('escalaTypeSwitch').style.display = isDash ? 'none' : '';
-    document.getElementById('tabs').style.display = isDash ? 'none' : '';
+    const isEf = state.page === 'efetivos';
+    document.getElementById('escalaTypeSwitch').style.display = (isDash || isEf) ? 'none' : '';
+    document.getElementById('tabs').style.display = (isDash || isEf) ? 'none' : '';
     document.getElementById('dashboardBtn').textContent = isDash ? '📅 Ver escalas' : '📊 Dashboard';
+    document.getElementById('efetivosBtn').textContent = isEf ? '📅 Ver escalas' : '🪪 Efetivos';
     if (isDash) renderDashboard();
+    else if (isEf) renderEfetivos();
     else if (datasets[state.activeTab]) renderPanel();
+  }
+
+  // Visualizador nunca vê o botão de editar — sem ele, state.editMode
+  // nunca vira true, e todo o resto do app já esconde as ferramentas de
+  // edição com base nesse mesmo estado (não precisa repetir a checagem
+  // em cada botão individualmente).
+  const editBtn = document.getElementById('editModeBtn');
+  if (state.role === 'visualizador') {
+    editBtn.style.display = 'none';
+  } else {
+    editBtn.addEventListener('click', () => {
+      state.editMode = !state.editMode;
+      editBtn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';
+      document.body.classList.toggle('edit-mode', state.editMode);
+      if (state.page === 'dashboard') renderDashboard();
+      else if (state.page === 'efetivos') renderEfetivos();
+      else if (datasets[state.activeTab]) renderPanel();
+    });
+  }
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem(ROLE_STORAGE_KEY);
+    location.reload();
   });
+  document.getElementById('dashboardBtn').addEventListener('click', () => switchPage('dashboard'));
+  document.getElementById('efetivosBtn').addEventListener('click', () => switchPage('efetivos'));
   document.getElementById('installAppBtn').addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
@@ -1514,4 +1605,14 @@ document.addEventListener('DOMContentLoaded', () => {
     deferredInstallPrompt = null;
     document.getElementById('installAppBtn').style.display = 'none';
   });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
+  if (savedRole && Object.prototype.hasOwnProperty.call(ROLE_PASSWORDS, savedRole)) {
+    state.role = savedRole;
+    startApp();
+  } else {
+    showLoginGate(startApp);
+  }
 });

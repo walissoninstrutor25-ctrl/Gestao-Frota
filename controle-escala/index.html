@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:20260825-15 -->
+<!-- APP_BUILD:20260825-16 -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -13,9 +13,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=20260825-15">
+<link rel="stylesheet" href="css/app.css?v=20260825-16">
 </head>
 <body>
+
+<div class="login-gate" id="loginGate" style="display:none"></div>
 
 <header class="topbar">
   <div class="topbar-inner">
@@ -30,7 +32,9 @@
       <button class="icon-btn primary" id="installAppBtn" title="Instalar o app neste dispositivo" style="display:none">⬇️ Baixar App</button>
       <div class="topbar-clock" id="clock"></div>
       <button class="icon-btn" id="dashboardBtn" title="Visão geral e controle de vagas">📊 Dashboard</button>
+      <button class="icon-btn" id="efetivosBtn" title="Cadastro de motoristas efetivos">🪪 Efetivos</button>
       <button class="icon-btn" id="editModeBtn" title="Ativar edição">✏️ Editar</button>
+      <button class="icon-btn" id="logoutBtn" title="Sair">🚪 Sair</button>
     </div>
   </div>
   <div class="type-switch" id="escalaTypeSwitch"></div>
@@ -52,19 +56,19 @@
   igual aberto direto do disco (duplo-clique) ou hospedado. Cada arquivo só
   define uma variável window.* — ver scripts/gerar_dados.py.
 -->
-<script src="data/motoristas.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_01.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_02.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_03.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_04.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_05.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_06.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_07.js?v=20260825-15"></script>
-<script src="data/motoristas/grupo_08.js?v=20260825-15"></script>
-<script src="data/lideres_turno.js?v=20260825-15"></script>
-<script src="data/lideres_patio.js?v=20260825-15"></script>
-<script src="data/master_driver.js?v=20260825-15"></script>
-<script src="data/adm5x2.js?v=20260825-15"></script>
-<script src="js/app.js?v=20260825-15"></script>
+<script src="data/motoristas.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_01.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_02.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_03.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_04.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_05.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_06.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_07.js?v=20260825-16"></script>
+<script src="data/motoristas/grupo_08.js?v=20260825-16"></script>
+<script src="data/lideres_turno.js?v=20260825-16"></script>
+<script src="data/lideres_patio.js?v=20260825-16"></script>
+<script src="data/master_driver.js?v=20260825-16"></script>
+<script src="data/adm5x2.js?v=20260825-16"></script>
+<script src="js/app.js?v=20260825-16"></script>
 </body>
 </html>
