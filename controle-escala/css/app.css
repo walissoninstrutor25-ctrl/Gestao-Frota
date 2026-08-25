@@ -220,8 +220,18 @@ table.dash-table tfoot td{font-weight:700; border-bottom:none; border-top:2px so
 .dash-warn ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
 .dash-warn li{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px;}
 .efetivos-add{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:14px 0;}
-table.efetivos-table{max-width:640px;}
+table.efetivos-table{max-width:860px;}
 table.efetivos-table td.num{text-align:right;}
+table.efetivos-table tr.ef-row-afastado{background:var(--danger-dim);}
+.ef-status-cell{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.ef-afastado-toggle{display:flex; align-items:center; gap:5px; font-size:12.5px; cursor:pointer; white-space:nowrap;}
+.ef-motivo-input{
+  border:1px solid var(--line); border-radius:6px; padding:3px 8px; font-size:12.5px;
+  font-family:'Inter',sans-serif; color:var(--text); background:var(--surface); width:170px;
+}
+.ef-badge{font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap;}
+.ef-badge-ativo{background:var(--accent-tint); color:var(--accent-strong);}
+.ef-badge-afastado{background:var(--danger-dim); color:var(--danger); border:1px solid var(--danger);}
 .efetivos-select{max-width:480px; margin-top:22px;}
 .efetivos-select h3{margin:0 0 4px; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.02em; font-size:14.5px; color:var(--accent-strong);}
 .efetivos-select p{margin:0 0 10px; font-size:12.5px; color:var(--text-muted);}

@@ -625,11 +625,17 @@ function renderEfetivosTable() {
   const table = document.querySelector('.efetivos-table tbody');
   if (!table) return;
   table.innerHTML = entries.length ? entries.map(([mat, v]) => `
-    <tr>
+    <tr class="${v.afastado ? 'ef-row-afastado' : ''}">
       <td>${v.nome}</td>
       <td>${mat}</td>
+      <td class="ef-status-cell">
+        ${state.editMode ? `
+          <label class="ef-afastado-toggle"><input type="checkbox" class="ef-afastado-check" data-mat="${mat}" ${v.afastado ? 'checked' : ''}> Afastado</label>
+          ${v.afastado ? `<input type="text" class="ef-motivo-input" data-mat="${mat}" placeholder="Motivo (opcional)" value="${(v.motivo || '').replace(/"/g, '&quot;')}">` : ''}
+        ` : (v.afastado ? `<span class="ef-badge ef-badge-afastado">🏥 Afastado${v.motivo ? ' — ' + v.motivo : ''}</span>` : `<span class="ef-badge ef-badge-ativo">Ativo</span>`)}
+      </td>
       ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button></td>` : ''}
-    </tr>`).join('') : `<tr><td colspan="${state.editMode ? 3 : 2}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="${state.editMode ? 4 : 3}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
   table.querySelectorAll('.ef-remove-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const nomeRemover = btn.closest('tr').querySelector('td').textContent;
@@ -641,6 +647,24 @@ function renderEfetivosTable() {
       const cb = document.querySelector(`.ef-select-check[data-mat="${CSS.escape(mat)}"]`);
       if (cb) cb.checked = false;
       renderEfetivosTable();
+    });
+  });
+  table.querySelectorAll('.ef-afastado-check').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      const mat = cb.dataset.mat;
+      if (!edits.driversDb[mat]) return;
+      edits.driversDb[mat].afastado = cb.checked;
+      if (!cb.checked) delete edits.driversDb[mat].motivo;
+      persistEdits();
+      renderEfetivosTable();
+    });
+  });
+  table.querySelectorAll('.ef-motivo-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      const mat = input.dataset.mat;
+      if (!edits.driversDb[mat]) return;
+      edits.driversDb[mat].motivo = input.value.trim();
+      persistEdits();
     });
   });
 }
@@ -678,7 +702,7 @@ function renderEfetivos() {
         <label class="icon-btn" id="driverDbImportLabel">📥 Importar planilha (Nome;Matrícula;UO)<input type="file" accept=".csv,text/csv" id="driverDbImportInput" hidden></label>
       </div>` : ''}
     <table class="dash-table efetivos-table">
-      <thead><tr><th>Nome</th><th>Matrícula</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+      <thead><tr><th>Nome</th><th>Matrícula</th><th>Status</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
       <tbody></tbody>
     </table>
     ${state.editMode ? `
