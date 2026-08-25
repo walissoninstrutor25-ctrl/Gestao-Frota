@@ -187,6 +187,28 @@ main{max-width:1440px; margin:0 auto; padding:18px 20px 60px;}
 .card.accent{border-color:var(--accent-dim); background:var(--accent-tint);}
 .card.accent b{color:var(--accent-strong);}
 
+/* ---------------- dashboard ---------------- */
+.dash-roles{display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px; margin-top:4px;}
+.dash-role{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; box-shadow:var(--shadow-sm);
+}
+.dash-role h3{
+  margin:0 0 10px; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.02em;
+  font-size:14.5px; color:var(--accent-strong);
+}
+table.dash-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+table.dash-table th, table.dash-table td{padding:6px 8px; border-bottom:1px solid var(--line-soft); text-align:left;}
+table.dash-table thead th{font-size:10.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
+table.dash-table td.num{text-align:right; font-family:'Roboto Mono',monospace;}
+table.dash-table tfoot td{font-weight:700; border-bottom:none; border-top:2px solid var(--line);}
+.meta-input{
+  width:52px; text-align:right; border:1px solid var(--line); border-radius:6px;
+  padding:2px 6px; font-family:'Roboto Mono',monospace; font-size:12.5px; color:var(--text);
+}
+.vagas.vagas-aberta{color:var(--danger); font-weight:700;}
+.vagas.vagas-ok{color:var(--accent-strong); font-weight:700;}
+
 /* ---------------- legend ---------------- */
 .legend{display:flex; align-items:center; gap:18px; margin-bottom:10px; font-size:12px; color:var(--text-muted); flex-wrap:wrap;}
 .legend .sw{display:inline-flex; align-items:center; gap:7px; font-weight:600;}

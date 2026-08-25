@@ -69,6 +69,7 @@ const state = {
   papel: 'todos',
   collapsed: {},   // tabId -> Set(grupo)
   editMode: false,
+  page: 'app',     // 'app' | 'dashboard'
 };
 
 const datasets = {}; // tabId -> parsed json
@@ -95,9 +96,10 @@ function loadEdits() {
       limpo: raw.limpo || {}, // "tabId" ou "tabId|UO" -> true (colaboradores originais da planilha escondidos)
       rotacao: raw.rotacao || {}, // pk -> epochDay âncora (dia de folga) do padrão 5x1/6x2 dessa pessoa
       renumeracoes: raw.renumeracoes || {}, // numero antigo -> numero novo (equipamento renomeado)
+      metas: raw.metas || {}, // "tabId|turno|UO" -> meta de vagas (controle de vagas do dashboard)
     };
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {} };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {}, metas: {} };
   }
 }
 
@@ -567,6 +569,99 @@ function exportCsv(ds, cfg) {
   URL.revokeObjectURL(url);
 }
 
+/* ------------------------------------------------------------------ */
+/*  Dashboard — visão geral e controle de vagas por turno/UO           */
+/* ------------------------------------------------------------------ */
+
+// adm5x2 fica de fora: não tem turno A/B/C fixo (o "Turno" de lá é texto
+// livre digitado na hora de cadastrar, ex. "Comercial"), então não dá pra
+// controlar vaga por turno do mesmo jeito que as escalas rotativas.
+const DASHBOARD_ROLES = [
+  { tabId: 'motoristas', label: 'Motoristas Canavieiros' },
+  { tabId: 'lideres_turno', label: 'Líder de Turno' },
+  { tabId: 'lideres_patio', label: 'Líder de Pátio' },
+  { tabId: 'master_driver', label: 'Master Driver' },
+];
+const DASHBOARD_TURNOS = ['A', 'B', 'C'];
+
+function metaKey(tabId, turno, unidade) {
+  return `${tabId}|${turno}|${unidade}`;
+}
+
+function contagemAtual(tabId, turno, unidade) {
+  const ds = datasets[tabId];
+  if (!ds) return 0;
+  return ds.colaboradores.filter((p) => p.unidade === unidade && p.papelNormalizado === `Turno ${turno}`).length;
+}
+
+function renderDashboardRoleTable(role) {
+  const ds = datasets[role.tabId];
+  if (!ds) return '';
+  const unidades = ds.unidades || [];
+  let totalAtual = 0, totalMeta = 0, totalVagas = 0;
+  const rows = [];
+  unidades.forEach((u) => {
+    DASHBOARD_TURNOS.forEach((t) => {
+      const atual = contagemAtual(role.tabId, t, u.codigo);
+      const key = metaKey(role.tabId, t, u.codigo);
+      const meta = edits.metas[key] || 0;
+      const vagas = Math.max(meta - atual, 0);
+      totalAtual += atual; totalMeta += meta; totalVagas += vagas;
+      rows.push(`
+        <tr>
+          <td>${u.label}</td>
+          <td>Turno ${t}</td>
+          <td class="num">${atual}</td>
+          <td class="num">${state.editMode ? `<input type="number" min="0" class="meta-input" data-key="${key}" value="${meta}">` : meta}</td>
+          <td class="num vagas ${vagas > 0 ? 'vagas-aberta' : 'vagas-ok'}">${vagas}</td>
+        </tr>`);
+    });
+  });
+  return `
+    <div class="dash-role">
+      <h3>${role.label}</h3>
+      <table class="dash-table">
+        <thead><tr><th>UO</th><th>Turno</th><th>Atual</th><th>Meta</th><th>Vagas</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+        <tfoot><tr><td colspan="2">Total</td><td class="num">${totalAtual}</td><td class="num">${totalMeta}</td><td class="num">${totalVagas}</td></tr></tfoot>
+      </table>
+    </div>`;
+}
+
+function renderDashboard() {
+  const app = document.getElementById('app');
+  let totalGeral = 0;
+  const porTipo = {};
+  TABS.forEach((cfg) => {
+    const ds = datasets[cfg.id];
+    if (!ds) return;
+    totalGeral += ds.colaboradores.length;
+    porTipo[cfg.tag] = (porTipo[cfg.tag] || 0) + ds.colaboradores.length;
+  });
+
+  app.innerHTML = `
+    <div class="panel-head">
+      <h2>Dashboard</h2>
+      <p>Visão geral de todas as escalas e controle de vagas por turno e UO.${state.editMode ? ' Modo de edição ativo: os campos "Meta" abaixo são editáveis.' : ''}</p>
+    </div>
+    <div class="cards">
+      <div class="card accent"><b>${totalGeral}</b><span>Colaboradores no total</span></div>
+      ${Object.entries(porTipo).map(([tag, n]) => `<div class="card"><b>${n}</b><span>${escalaTypeLabel(tag)}</span></div>`).join('')}
+    </div>
+    <div class="dash-roles">${DASHBOARD_ROLES.map(renderDashboardRoleTable).join('')}</div>
+  `;
+
+  if (state.editMode) {
+    app.querySelectorAll('.meta-input').forEach((input) => {
+      input.addEventListener('change', () => {
+        edits.metas[input.dataset.key] = Math.max(0, parseInt(input.value, 10) || 0);
+        persistEdits();
+        renderDashboard();
+      });
+    });
+  }
+}
+
 function renderPanel() {
   const cfg = currentTabConfig();
   const ds = currentDataset();
@@ -662,7 +757,7 @@ function renderPanel() {
   const clearBtn = document.getElementById('clearDataBtn');
   if (clearBtn) clearBtn.addEventListener('click', async () => {
     const escopo = cfg.hasUnits ? `da UO ${state.unit[cfg.id]}` : 'desta aba';
-    const ok = await showConfirmModal(`Isso apaga TODOS os colaboradores ${escopo} (inclusive os da planilha original) pra você cadastrar outros do zero. Só volta com "Restaurar original" no topo.`, { confirmLabel: 'Limpar dados', danger: true });
+    const ok = await showConfirmModal(`Isso apaga TODOS os colaboradores ${escopo} (inclusive os da planilha original) pra você cadastrar outros do zero. Essa ação não tem volta pelo app.`, { confirmLabel: 'Limpar dados', danger: true });
     if (!ok) return;
     clearTabData(ds, cfg);
     renderPanel();
@@ -1323,7 +1418,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('editModeBtn');
     btn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';
     document.body.classList.toggle('edit-mode', state.editMode);
-    if (datasets[state.activeTab]) renderPanel();
+    if (state.page === 'dashboard') renderDashboard();
+    else if (datasets[state.activeTab]) renderPanel();
+  });
+  document.getElementById('dashboardBtn').addEventListener('click', () => {
+    state.page = state.page === 'dashboard' ? 'app' : 'dashboard';
+    const isDash = state.page === 'dashboard';
+    document.getElementById('escalaTypeSwitch').style.display = isDash ? 'none' : '';
+    document.getElementById('tabs').style.display = isDash ? 'none' : '';
+    document.getElementById('dashboardBtn').textContent = isDash ? '📅 Ver escalas' : '📊 Dashboard';
+    if (isDash) renderDashboard();
+    else if (datasets[state.activeTab]) renderPanel();
   });
   document.getElementById('installAppBtn').addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
