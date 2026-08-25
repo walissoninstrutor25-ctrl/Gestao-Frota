@@ -688,6 +688,7 @@ function renderPanel() {
         ${mestre ? `<button class="icon-btn" id="equipeBtn">${isEquipe ? '📅 Ver escala' : '👥 Ver equipe'}</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="icon-btn danger" id="clearDataBtn">🗑 Limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
+        ${!isEquipe && state.editMode && edits.limpo[clearKey(cfg, cfg.hasUnits ? state.unit[cfg.id] : undefined)] ? `<button class="icon-btn" id="restoreClearedBtn">↺ Restaurar dados originais${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${!isEquipe ? `<button class="icon-btn" id="exportCsvBtn">⬇ Exportar CSV</button>` : ''}
         ${!isEquipe && state.editMode ? `<label class="icon-btn import-csv-btn" id="importCsvLabel" title="Importar planilha CSV (mesmo formato do Exportar CSV; linhas com UO preenchem as duas UO de uma vez)">📥<input type="file" accept=".csv,text/csv" id="importCsvInput" hidden></label>` : ''}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
@@ -757,10 +758,20 @@ function renderPanel() {
   const clearBtn = document.getElementById('clearDataBtn');
   if (clearBtn) clearBtn.addEventListener('click', async () => {
     const escopo = cfg.hasUnits ? `da UO ${state.unit[cfg.id]}` : 'desta aba';
-    const ok = await showConfirmModal(`Isso apaga TODOS os colaboradores ${escopo} (inclusive os da planilha original) pra você cadastrar outros do zero. Essa ação não tem volta pelo app.`, { confirmLabel: 'Limpar dados', danger: true });
+    const ok = await showConfirmModal(`Isso apaga TODOS os colaboradores ${escopo} (inclusive os da planilha original) pra você cadastrar outros do zero. Dá pra restaurar depois pelo botão "↺ Restaurar dados originais" que aparece aqui do lado.`, { confirmLabel: 'Limpar dados', danger: true });
     if (!ok) return;
     clearTabData(ds, cfg);
     renderPanel();
+  });
+  const restoreBtn = document.getElementById('restoreClearedBtn');
+  if (restoreBtn) restoreBtn.addEventListener('click', async () => {
+    const escopo = cfg.hasUnits ? `da UO ${state.unit[cfg.id]}` : 'desta aba';
+    const ok = await showConfirmModal(`Isso traz de volta os colaboradores originais da planilha ${escopo} que tinham sido apagados em "Limpar dados". Colaboradores cadastrados manualmente depois disso continuam.`, { confirmLabel: 'Restaurar', danger: false });
+    if (!ok) return;
+    const unidade = cfg.hasUnits ? state.unit[cfg.id] : undefined;
+    delete edits.limpo[clearKey(cfg, unidade)];
+    persistEdits();
+    location.reload();
   });
   const equipeBtn = document.getElementById('equipeBtn');
   if (equipeBtn) equipeBtn.addEventListener('click', () => {
