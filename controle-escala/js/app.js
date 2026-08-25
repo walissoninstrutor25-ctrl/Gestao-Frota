@@ -71,9 +71,10 @@ function loadEdits() {
       newGrupos: raw.newGrupos || [], // grupos criados do zero (podem estar vazios)
       novosColaboradores: raw.novosColaboradores || {}, // tabId -> [{__pk, nome, matricula, grupo, papelNormalizado, lider, telefone}]
       limpo: raw.limpo || {}, // "tabId" ou "tabId|UO" -> true (colaboradores originais da planilha escondidos)
+      rotacao: raw.rotacao || {}, // pk -> epochDay âncora (dia de folga) do padrão 5x1/6x2 dessa pessoa
     };
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {} };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {} };
   }
 }
 
@@ -88,7 +89,7 @@ function hasAnyEdits() {
   return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0
     || Object.keys(edits.moves).length > 0 || Object.keys(edits.newEquip).length > 0 || edits.newGrupos.length > 0
     || Object.values(edits.novosColaboradores).some((arr) => arr.length > 0)
-    || Object.keys(edits.limpo).length > 0;
+    || Object.keys(edits.limpo).length > 0 || Object.keys(edits.rotacao).length > 0;
 }
 
 function updateResetBtnVisibility() {
@@ -108,6 +109,41 @@ function personKey(cfgId, p) {
   return p.__pk || computeOriginalKey(cfgId, p.nome, p.grupo);
 }
 
+// Dia como inteiro contínuo (dias desde a época Unix) — permite comparar
+// dias entre meses/anos diferentes sem se preocupar com quantos dias cada
+// mês tem.
+function epochDay(year, monthNumero, day) {
+  return Math.floor(Date.UTC(year, monthNumero - 1, day) / 86400000);
+}
+
+// 5x1 = 5 dias de trabalho + 1 de folga (ciclo de 6); 6x2 = 6 + 2 (ciclo
+// de 8) — é o padrão real observado nas planilhas (ex.: "OWWWWWOWWWWWO...").
+// ADM 5x2 não é uma rotação pessoal (é o calendário: fim de semana fixo),
+// então não entra aqui — ver buildAutoEscala.
+function rotationParamsFor(cfg) {
+  if (cfg.tag === '5x1') return { workDays: 5, offDays: 1 };
+  if (cfg.tag === '6x2') return { workDays: 6, offDays: 2 };
+  return null;
+}
+
+// Regenera a escala inteira (todos os meses) de uma pessoa a partir de um
+// único dia-âncora de folga, repetindo o ciclo de trabalho/folga do tipo
+// de escala da aba pra sempre (passado e futuro) — assim o padrão
+// continua igual de um mês pro outro, sem "emenda".
+function applyRotation(ds, cfg, p, anchorEpoch) {
+  const rot = rotationParamsFor(cfg);
+  if (!rot) return;
+  const cycleLen = rot.workDays + rot.offDays;
+  ds.meses.forEach((m) => {
+    let s = '';
+    for (let d = 1; d <= m.dias; d++) {
+      const offset = ((epochDay(ds.ano, m.numero, d) - anchorEpoch) % cycleLen + cycleLen) % cycleLen;
+      s += offset < rot.offDays ? 'O' : 'W';
+    }
+    p.escala[m.chave] = s;
+  });
+}
+
 function applyStoredEditsToDatasets() {
   TABS.forEach((cfg) => {
     const ds = datasets[cfg.id];
@@ -121,6 +157,9 @@ function applyStoredEditsToDatasets() {
       const pk = p.__pk;
       const contato = edits.contato[pk];
       if (contato) Object.assign(p, contato);
+      // O padrão de rotação (se essa pessoa tiver um) é a base — os
+      // ajustes de dia avulso (dias, abaixo) entram como remendo por cima.
+      if (edits.rotacao[pk] !== undefined) applyRotation(ds, cfg, p, edits.rotacao[pk]);
       const dias = edits.dias[pk];
       if (dias) {
         Object.keys(dias).forEach((monthKey) => {
@@ -924,10 +963,29 @@ function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   const idx = day - 1;
   if (idx < 0 || idx >= chars.length) return;
   const next = chars[idx] === 'W' ? 'O' : 'W';
+  const pk = personKey(cfg.id, p);
+
+  const rot = rotationParamsFor(cfg);
+  if (next === 'O' && rot) {
+    const aplicar = confirm(
+      `Marcar este dia como folga e repetir o padrão ${cfg.tag} (${rot.workDays} dias de trabalho + ${rot.offDays} de folga) a partir dele, preenchendo sozinho o resto do calendário deste colaborador em todos os meses?\n\n` +
+      `Isso substitui a escala inteira dele (mantém só o líder/telefone/etc.). Clique em Cancelar para marcar só este dia.`
+    );
+    if (aplicar) {
+      const anchorEpoch = epochDay(ds.ano, monthMeta.numero, day);
+      applyRotation(ds, cfg, p, anchorEpoch);
+      edits.rotacao[pk] = anchorEpoch;
+      delete edits.dias[pk]; // um novo padrão substitui remendos avulsos antigos
+      persistEdits();
+      renderGrid(ds, cfg, monthMeta);
+      renderCards(ds, cfg, monthMeta);
+      renderTodayStrip(ds, cfg, monthMeta);
+      return;
+    }
+  }
+
   chars[idx] = next;
   p.escala[monthKey] = chars.join('');
-
-  const pk = personKey(cfg.id, p);
   edits.dias[pk] = edits.dias[pk] || {};
   edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
   edits.dias[pk][monthKey][idx] = next;
