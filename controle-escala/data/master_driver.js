@@ -56,6 +56,12 @@ window.DATA_MASTER_DRIVER = {
       "numero": 11,
       "dias": 30,
       "nome": "Novembro"
+    },
+    {
+      "chave": "DEZEMBRO",
+      "numero": 12,
+      "dias": 31,
+      "nome": "Dezembro"
     }
   ],
   "unidades": [

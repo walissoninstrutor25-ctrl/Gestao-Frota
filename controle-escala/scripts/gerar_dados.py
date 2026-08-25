@@ -175,12 +175,19 @@ def parse_all_months(path, section_marker_fn, expect_title_contains=None, skip_m
         if skip_months and mname in skip_months:
             continue
         ws = wb[mname]
+        ndays = calendar.monthrange(YEAR, mnum)[1]
         if expect_title_contains:
             title = clean(ws.cell(row=1, column=1).value) or ''
             if expect_title_contains.upper() not in title.upper():
-                print(f'  ! aviso: {mname} ignorado, titulo inesperado {title!r} (esperava conter {expect_title_contains!r})', file=sys.stderr)
+                # A aba existe mas com o conteúdo errado (ex.: Dezembro do
+                # Master Driver veio com uma cópia da escala de Líder de
+                # Turno/Pátio). Em vez de descartar o mês inteiro, ele é
+                # mantido com 0 linhas: aparece no app com os dias em
+                # branco, prontos para preenchimento manual (modo de
+                # edição) em vez de sumir ou mostrar dado errado.
+                print(f'  ! aviso: {mname} com titulo inesperado {title!r} (esperava conter {expect_title_contains!r}) — mantido em branco para preencher manualmente', file=sys.stderr)
+                result[mname] = {'mes_num': mnum, 'dias': ndays, 'linhas': []}
                 continue
-        ndays = calendar.monthrange(YEAR, mnum)[1]
         rows = parse_month_sheet(ws, ndays, section_marker_fn)
         result[mname] = {'mes_num': mnum, 'dias': ndays, 'linhas': rows}
     return result
@@ -566,8 +573,10 @@ def build_file3(path, out_path):
     # Dezembro in this workbook was accidentally overwritten with a copy of
     # the Líder de Turno/Pátio (6x2) sheet — its title says "ESCALA 6X2 -
     # DEZEMBRO" instead of "ESCALA 5X1", and its rows are Eder/Emerson/etc,
-    # not master drivers. Rather than show that wrong data, that month is
-    # skipped here (see expect_title_contains).
+    # not master drivers. Rather than show that wrong data (or hide the
+    # month entirely), expect_title_contains makes parse_all_months keep
+    # Dezembro with 0 linhas — the app shows it with blank days, ready to
+    # fill in by hand until a corrected sheet is provided.
     monthly = parse_all_months(path, marker_file3, expect_title_contains='5X1')
     unidade, unidade_by_name = parse_nomes_file3(path)
     people = consolidate(monthly, unidade_lookup=unidade, unidade_lookup_by_name=unidade_by_name)
@@ -598,6 +607,35 @@ def build_file3(path, out_path):
     return data
 
 
+def build_adm5x2(out_path):
+    """Nenhuma das 3 planilhas recebidas cobre uma escala 'ADM 5x2' (5
+    dias de trabalho + 2 de folga por semana, o padrão comum de horário
+    administrativo) — a planilha de Motorista Canavieiro/MESTRE que foi
+    enviada era só um exemplo de estrutura, não dados reais desse tipo.
+    Em vez de inventar colaboradores, esta aba nasce vazia — mesma
+    estrutura de mês/dias das outras (Março a Dezembro) e as mesmas duas
+    UO do Master Driver (único par de UO que existe nos dados recebidos)
+    — pronta para colaboradores serem adicionados pelo próprio app (modo
+    de edição, botão "+ Adicionar colaborador"), que já preenche os fins
+    de semana como folga automaticamente para esse tipo de escala.
+    """
+    meses = [{'chave': mname, 'numero': mnum, 'dias': calendar.monthrange(YEAR, mnum)[1], 'nome': MONTH_LABEL[mnum]} for mname, mnum in MONTHS]
+    data = {
+        'titulo': 'Escala ADM 5x2 — Administrativo',
+        'tipoEscala': 'adm5x2',
+        'ano': YEAR,
+        'meses': meses,
+        'unidades': [
+            {'codigo': 'MNS', 'uo': '4824', 'label': 'UO 4824 · MNS'},
+            {'codigo': 'PRA', 'uo': '4823', 'label': 'UO 4823 · PRA'},
+        ],
+        'colaboradores': [],
+    }
+    write_js_data(out_path, 'DATA_ADM5X2', data)
+    print(f'{out_path}: aba em branco (2 UO), pronta para preencher no app')
+    return data
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -612,3 +650,4 @@ if __name__ == '__main__':
     build_file1(args.motoristas, os.path.join(args.outdir, 'motoristas.js'))
     build_file2(args.lideres, os.path.join(args.outdir, 'lideres_turno.js'), os.path.join(args.outdir, 'lideres_patio.js'))
     build_file3(args.master, os.path.join(args.outdir, 'master_driver.js'))
+    build_adm5x2(os.path.join(args.outdir, 'adm5x2.js'))

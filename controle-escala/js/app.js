@@ -9,17 +9,18 @@ const TABS = [
   { id: 'lideres_turno', label: 'Líder de Turno', tag: '6x2', dataVar: 'DATA_LIDERES_TURNO', hasGroups: false, hasUnits: false },
   { id: 'lideres_patio', label: 'Líder de Pátio', tag: '6x2', dataVar: 'DATA_LIDERES_PATIO', hasGroups: false, hasUnits: false },
   { id: 'master_driver', label: 'Master Driver', tag: '5x1', dataVar: 'DATA_MASTER_DRIVER', hasGroups: false, hasUnits: true },
+  { id: 'adm5x2', label: 'Administrativo', tag: 'adm5x2', dataVar: 'DATA_ADM5X2', hasGroups: false, hasUnits: true },
 ];
 
-// Tipos de escala disponíveis no filtro do topo. 'adm5x2' não tem nenhuma
-// planilha/aba associada ainda (nenhuma das 3 recebidas cobre esse tipo) —
-// fica visível como opção, mas mostra um aviso em vez de dados até que uma
-// planilha oficial nesse formato seja enviada.
+// Tipos de escala disponíveis no filtro do topo.
 const ESCALA_TYPES = [
   { id: '5x1', label: '5x1' },
   { id: '6x2', label: '6x2' },
   { id: 'adm5x2', label: 'ADM 5x2' },
 ];
+function escalaTypeLabel(tag) {
+  return (ESCALA_TYPES.find((t) => t.id === tag) || {}).label || tag;
+}
 
 const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 const PAPEL_PRIORITY = { 'Turno A': 1, 'Turno B': 2, 'Turno C': 3 };
@@ -68,9 +69,10 @@ function loadEdits() {
       moves: raw.moves || {},        // numero equipamento -> grupo de destino
       newEquip: raw.newEquip || {},  // numero equipamento (criado do zero) -> grupo
       newGrupos: raw.newGrupos || [], // grupos criados do zero (podem estar vazios)
+      novosColaboradores: raw.novosColaboradores || {}, // tabId -> [{__pk, nome, matricula, grupo, papelNormalizado, lider, telefone}]
     };
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [] };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {} };
   }
 }
 
@@ -83,7 +85,8 @@ function persistEdits() {
 
 function hasAnyEdits() {
   return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0
-    || Object.keys(edits.moves).length > 0 || Object.keys(edits.newEquip).length > 0 || edits.newGrupos.length > 0;
+    || Object.keys(edits.moves).length > 0 || Object.keys(edits.newEquip).length > 0 || edits.newGrupos.length > 0
+    || Object.values(edits.novosColaboradores).some((arr) => arr.length > 0);
 }
 
 function updateResetBtnVisibility() {
@@ -107,21 +110,58 @@ function applyStoredEditsToDatasets() {
   TABS.forEach((cfg) => {
     const ds = datasets[cfg.id];
     if (!ds) return;
+    materializeNovosColaboradores(ds, cfg);
     ds.colaboradores.forEach((p) => {
-      p.__pk = computeOriginalKey(cfg.id, p.nome, p.grupo);
+      // Uma pessoa criada do zero (ver materializeNovosColaboradores) já
+      // chega com __pk definido — preservado aqui, não recalculado, para
+      // continuar batendo com a chave usada em edits.contato/edits.dias.
+      p.__pk = p.__pk || computeOriginalKey(cfg.id, p.nome, p.grupo);
       const pk = p.__pk;
       const contato = edits.contato[pk];
       if (contato) Object.assign(p, contato);
       const dias = edits.dias[pk];
       if (dias) {
         Object.keys(dias).forEach((monthKey) => {
-          if (!p.escala[monthKey]) return;
+          if (!p.escala[monthKey]) {
+            const meta = ds.meses.find((m) => m.chave === monthKey);
+            if (!meta) return;
+            p.escala[monthKey] = 'O'.repeat(meta.dias); // mês sem dados na planilha: começa como "tudo folga" até editar
+          }
           const chars = p.escala[monthKey].split('');
           Object.keys(dias[monthKey]).forEach((dayIdx) => { chars[dayIdx] = dias[monthKey][dayIdx]; });
           p.escala[monthKey] = chars.join('');
         });
       }
     });
+  });
+}
+
+// Escala automática para uma pessoa nova: em 'adm5x2' já cai certo (5x2 é
+// um padrão fixo de calendário — fim de semana é folga), nos outros tipos
+// (rotações 5x1/6x2) não dá pra adivinhar o turno de folga de alguém
+// recém-criado, então começa tudo como trabalho e a pessoa marca as folgas
+// clicando nos dias (modo de edição).
+function buildAutoEscala(ds, cfg) {
+  const escala = {};
+  ds.meses.forEach((m) => {
+    if (cfg.tag === 'adm5x2') {
+      let s = '';
+      for (let d = 1; d <= m.dias; d++) {
+        const wd = new Date(ds.ano, m.numero - 1, d).getDay();
+        s += (wd === 0 || wd === 6) ? 'O' : 'W';
+      }
+      escala[m.chave] = s;
+    } else {
+      escala[m.chave] = 'W'.repeat(m.dias);
+    }
+  });
+  return escala;
+}
+
+function materializeNovosColaboradores(ds, cfg) {
+  (edits.novosColaboradores[cfg.id] || []).forEach((nc) => {
+    if (ds.colaboradores.some((p) => p.__pk === nc.__pk)) return;
+    ds.colaboradores.push({ ...nc, escala: buildAutoEscala(ds, cfg) });
   });
 }
 
@@ -307,7 +347,7 @@ function renderTabsForType() {
 
   nav.innerHTML = visible.map((t) => `
     <button class="tab" data-tab="${t.id}">
-      ${t.label} <span class="tab-tag">${t.tag}</span>
+      ${t.label} <span class="tab-tag">${escalaTypeLabel(t.tag)}</span>
     </button>
   `).join('');
   nav.querySelectorAll('.tab').forEach((btn) => {
@@ -354,6 +394,36 @@ function visiblePeople() {
   return people;
 }
 
+// Exporta exatamente o que está filtrado/visível na tela (busca, grupo,
+// turno e — quando a aba tem UO — a UO selecionada), então pra baixar só
+// os dados de uma UO basta selecioná-la antes de exportar.
+function csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCsv(ds, cfg) {
+  const people = visiblePeople();
+  const headers = ['Nome', 'Matrícula', 'Grupo', 'Turno', 'Líder', 'Telefone'];
+  if (cfg.hasUnits) headers.push('UO');
+  const rows = people.map((p) => {
+    const row = [p.nome, p.matricula ?? '', p.grupo ?? '', p.papelNormalizado ?? '', p.lider ?? '', p.telefone ?? ''];
+    if (cfg.hasUnits) row.push(p.unidade ?? '');
+    return row;
+  });
+  const csv = '﻿' + [headers, ...rows].map((r) => r.map(csvEscape).join(';')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const unitSuffix = cfg.hasUnits ? `_UO${state.unit[cfg.id]}` : '';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `escala_${cfg.id}${unitSuffix}_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function renderPanel() {
   const cfg = currentTabConfig();
   const ds = currentDataset();
@@ -378,6 +448,8 @@ function renderPanel() {
         ${isEquipe ? '' : renderPapelSelect(ds, cfg)}
         ${!isEquipe && cfg.hasGroups ? `<button class="icon-btn" id="toggleGroups">Recolher grupos</button>` : ''}
         ${mestre ? `<button class="icon-btn" id="equipeBtn">${isEquipe ? '📅 Ver escala' : '👥 Ver equipe'}</button>` : ''}
+        ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
+        ${!isEquipe ? `<button class="icon-btn" id="exportCsvBtn">⬇ Exportar CSV</button>` : ''}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
       </div>
     </div>
@@ -426,6 +498,10 @@ function renderPanel() {
   }
 
   document.getElementById('printBtn').addEventListener('click', () => window.print());
+  const exportBtn = document.getElementById('exportCsvBtn');
+  if (exportBtn) exportBtn.addEventListener('click', () => exportCsv(ds, cfg));
+  const addColaboradorBtn = document.getElementById('addColaboradorBtn');
+  if (addColaboradorBtn) addColaboradorBtn.addEventListener('click', () => openModal(null, monthMeta, cfg, ds, true));
   const equipeBtn = document.getElementById('equipeBtn');
   if (equipeBtn) equipeBtn.addEventListener('click', () => {
     state.view[cfg.id] = isEquipe ? 'escala' : 'equipe';
@@ -449,8 +525,18 @@ function currentMestre(ds, cfg) {
   return ds.mestre;
 }
 
+// Verdadeiro só quando já existem colaboradores na aba mas nenhum tem
+// dados pra esse mês (ex.: Dezembro do Master Driver, cuja aba de origem
+// veio com o conteúdo errado). Numa aba recém-criada e ainda vazia (ex.:
+// ADM 5x2 sem ninguém cadastrado) isso não deve disparar — por isso o
+// `length > 0` antes do every().
+function monthHasNoData(ds, mesChave) {
+  return ds.colaboradores.length > 0 && ds.colaboradores.every((p) => !p.escala[mesChave]);
+}
+
 function renderUnitSwitch(ds, cfg) {
-  const missingDec = ds.meses.every((m) => m.numero !== 12);
+  const dez = ds.meses.find((m) => m.numero === 12);
+  const dezBlank = dez && monthHasNoData(ds, dez.chave);
   return `
     <div class="unit-switch" id="unitSwitch">
       ${ds.unidades.map((u) => `
@@ -458,7 +544,7 @@ function renderUnitSwitch(ds, cfg) {
           <span class="uo-code">UO ${u.uo}</span>${u.codigo}
         </button>`).join('')}
     </div>
-    ${missingDec ? `<div class="unit-note" style="display:block">⚠ Dezembro não está disponível para o Master Driver — a planilha de origem trazia, nessa aba, os dados de Líder de Turno/Pátio por engano. Assim que a planilha for corrigida, o mês pode ser adicionado.</div>` : ''}
+    ${dezBlank ? `<div class="unit-note" style="display:block">⚠ Dezembro está com os dias em branco — a planilha de origem trazia, nesse mês, os dados de outra escala (Líder de Turno/Pátio) por engano. ${state.editMode ? 'Clique nos dias do calendário abaixo para preencher manualmente.' : 'Ative o modo de edição (✏️ Editar no topo) pra preencher os dias manualmente, ou envie a planilha corrigida.'}</div>` : ''}
   `;
 }
 
@@ -695,7 +781,7 @@ function renderCards(ds, cfg, monthMeta) {
     <div class="card accent"><b>${people.length}</b><span>Colaboradores</span></div>
     <div class="card"><b>${monthMeta.dias}</b><span>Dias em ${monthMeta.nome}</span></div>
     <div class="card"><b>${avgW}</b><span>Média dias trabalhados</span></div>
-    <div class="card"><b>${cfg.tag}</b><span>Padrão de escala</span></div>
+    <div class="card"><b>${escalaTypeLabel(cfg.tag)}</b><span>Padrão de escala</span></div>
   `;
 }
 
@@ -783,9 +869,12 @@ function renderGrid(ds, cfg, monthMeta) {
 
 function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   const monthKey = monthMeta.chave;
-  const chars = (p.escala[monthKey] || '').split('');
+  // Mês sem dados na planilha de origem (ex.: Dezembro do Master Driver)
+  // começa em branco — o primeiro clique inicializa o mês como "tudo
+  // folga" e então marca só o dia clicado, em vez de não fazer nada.
+  const chars = (p.escala[monthKey] || 'O'.repeat(monthMeta.dias)).split('');
   const idx = day - 1;
-  if (!chars[idx]) return;
+  if (idx < 0 || idx >= chars.length) return;
   const next = chars[idx] === 'W' ? 'O' : 'W';
   chars[idx] = next;
   p.escala[monthKey] = chars.join('');
@@ -796,7 +885,7 @@ function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   edits.dias[pk][monthKey][idx] = next;
   persistEdits();
 
-  cellEl.classList.remove('work', 'off');
+  cellEl.classList.remove('work', 'off', 'nodata');
   cellEl.classList.add(next === 'W' ? 'work' : 'off');
   renderCards(ds, cfg, monthMeta);
   renderTodayStrip(ds, cfg, monthMeta);
@@ -825,8 +914,9 @@ function personRowHtml(p, days, monthMeta, ds, todayDay) {
 /*  Person modal                                                       */
 /* ------------------------------------------------------------------ */
 
-function openModal(p, monthMeta, cfg, ds) {
-  if (!p) return;
+function openModal(p, monthMeta, cfg, ds, isNew) {
+  if (!p && !isNew) return;
+  if (isNew) p = { nome: '', matricula: null, grupo: '', papelNormalizado: '', lider: null, telefone: null, escala: {} };
   const { w, o } = countWorkOff(p.escala[monthMeta.chave]);
   const backdrop = document.getElementById('modalBackdrop');
 
@@ -837,8 +927,8 @@ function openModal(p, monthMeta, cfg, ds) {
       <div class="modal">
         <div class="modal-head">
           <button class="modal-close" id="modalClose">✕</button>
-          <h3>Editar colaborador</h3>
-          <span>${p.grupo || ''}${p.grupo && p.papelNormalizado ? ' · ' : ''}${p.papelNormalizado || ''}</span>
+          <h3>${isNew ? 'Adicionar colaborador' : 'Editar colaborador'}</h3>
+          <span>${cfg.hasUnits ? (ds.unidades.find((u) => u.codigo === state.unit[cfg.id]) || {}).label || '' : `${p.grupo || ''}${p.grupo && p.papelNormalizado ? ' · ' : ''}${p.papelNormalizado || ''}`}</span>
         </div>
         <div class="modal-body">
           <div class="modal-row edit"><span class="k">Nome</span><input class="modal-input" id="editNome" value="${p.nome || ''}"></div>
@@ -862,18 +952,29 @@ function openModal(p, monthMeta, cfg, ds) {
     document.getElementById('modalCancel').addEventListener('click', close);
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
     document.getElementById('modalSave').addEventListener('click', () => {
-      const pk = personKey(cfg.id, p);
       const values = {
-        nome: document.getElementById('editNome').value.trim() || p.nome,
+        nome: document.getElementById('editNome').value.trim(),
         matricula: as_int_or_null(document.getElementById('editMatricula').value.trim()),
         papelNormalizado: document.getElementById('editTurno').value.trim() || null,
         grupo: document.getElementById('editGrupo').value.trim() || null,
         lider: document.getElementById('editLider').value.trim() || null,
         telefone: document.getElementById('editTelefone').value.trim() || null,
       };
-      Object.assign(p, values);
-      edits.contato[pk] = { ...edits.contato[pk], ...values };
-      persistEdits();
+      if (isNew) {
+        if (!values.nome) { alert('Informe o nome do colaborador.'); return; }
+        if (cfg.hasUnits) values.unidade = state.unit[cfg.id];
+        const novo = { ...values, __pk: `${cfg.id}|novo|${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, escala: buildAutoEscala(ds, cfg) };
+        ds.colaboradores.push(novo);
+        edits.novosColaboradores[cfg.id] = edits.novosColaboradores[cfg.id] || [];
+        edits.novosColaboradores[cfg.id].push({ __pk: novo.__pk, nome: novo.nome, matricula: novo.matricula, papelNormalizado: novo.papelNormalizado, grupo: novo.grupo, lider: novo.lider, telefone: novo.telefone, unidade: novo.unidade });
+        persistEdits();
+      } else {
+        values.nome = values.nome || p.nome;
+        const pk = personKey(cfg.id, p);
+        Object.assign(p, values);
+        edits.contato[pk] = { ...edits.contato[pk], ...values };
+        persistEdits();
+      }
       close();
       renderPanel();
     });

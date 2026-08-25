@@ -18,7 +18,8 @@ const FILES = [
   "./data/motoristas/grupo_08.js",
   "./data/lideres_turno.js",
   "./data/lideres_patio.js",
-  "./data/master_driver.js"
+  "./data/master_driver.js",
+  "./data/adm5x2.js"
 ];
 
 self.addEventListener("install", event => {
