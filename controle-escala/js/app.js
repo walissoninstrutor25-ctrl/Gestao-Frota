@@ -1763,12 +1763,11 @@ function startApp() {
 function bootstrapFirebaseSync() {
   const onReady = async () => {
     if (!window.__firebaseSync || !window.__firebaseSync.ready) return;
+    const stable = window.__firebaseSync.stableStringify;
     const remote = await window.__firebaseSync.fetchInitial();
     if (remote) {
-      const localJson = localStorage.getItem(EDIT_STORAGE_KEY) || '{}';
-      const remoteJson = JSON.stringify(remote);
-      if (remoteJson !== localJson) {
-        localStorage.setItem(EDIT_STORAGE_KEY, remoteJson);
+      if (stable(remote) !== stable(edits)) {
+        localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(remote));
         location.reload();
         return;
       }
