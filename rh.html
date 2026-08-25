@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-20T15-30-00Z -->
+<!-- APP_BUILD:2026-08-25T18-10-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -187,10 +187,20 @@
   .org-unit-title{font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:14px; letter-spacing:0.03em; margin:18px 0 10px 0; color:var(--accent);}
   .org-unit-title:first-child{margin-top:0;}
   .org-tree, .org-tree ul{list-style:none; margin:0; padding-left:0;}
-  .org-tree ul{margin:6px 0 6px 12px; padding-left:18px; border-left:2px dashed var(--line);}
-  .org-node{background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin:5px 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
-  .org-node-name{font-weight:700; font-size:13px;}
-  .org-node-role{color:var(--text-muted); font-size:11.5px;}
+  .org-tree{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-start;}
+  .org-tree ul{display:flex; flex-wrap:wrap; gap:14px; margin:14px 0 0 0; padding:14px 0 0 0; border-top:2px dashed var(--accent-dim); position:relative;}
+  .org-branch{display:flex; flex-direction:column; align-items:center;}
+  .org2-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:8px 10px; display:flex; align-items:center; gap:9px; width:196px;
+    cursor:pointer; transition:border-color .12s ease, transform .08s ease; text-align:left;
+  }
+  .org2-card:hover{border-color:var(--accent); transform:translateY(-1px);}
+  .org2-avatar{width:38px; height:38px; border-radius:50%; object-fit:cover; flex-shrink:0; background:var(--surface-2); border:1px solid var(--line);}
+  .org2-avatar-fallback{width:38px; height:38px; border-radius:50%; flex-shrink:0; background:var(--accent-dim); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-weight:700; font-size:14px;}
+  .org2-info{min-width:0;}
+  .org2-name{font-weight:700; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .org2-role{color:var(--text-muted); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
   /* ---------- checklist de processos ---------- */
   .checklist-progress{height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden; margin:12px 0 16px 0;}
@@ -351,6 +361,12 @@
           <tbody id="rh-dash-headcount"></tbody></table>
         </div>
 
+        <div class="card" id="card-rh-quadro-desejado">
+          <div class="card-head"><div class="card-title">Vagas em aberto por setor (quadro x efetivo)</div></div>
+          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Desejado</th><th>Ativos</th><th>Faltando</th></tr></thead>
+          <tbody id="rh-dash-quadro-desejado"></tbody></table>
+        </div>
+
         <div class="card">
           <div class="card-head"><div class="card-title">Processos de admissão/desligamento em andamento</div></div>
           <table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Progresso</th><th></th></tr></thead>
@@ -367,6 +383,17 @@
 
         <div class="card reg-card">
           <div class="card-head"><div class="card-title" id="rc-form-title">Novo colaborador</div></div>
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+            <img id="rc-foto-preview" src="" alt="" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--line); background:var(--surface-2); display:none;">
+            <div id="rc-foto-fallback" style="width:56px; height:56px; border-radius:50%; background:var(--accent-dim); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-weight:700; font-size:20px;">?</div>
+            <div>
+              <label style="margin-bottom:4px;">Foto (opcional, pro organograma)</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="file" id="rc-foto-file" accept="image/*" style="width:auto;">
+                <button type="button" class="btn-ghost btn-sm" id="btn-remove-foto" style="display:none;">remover</button>
+              </div>
+            </div>
+          </div>
           <div class="field-grid-4">
             <div class="field"><label>Matrícula</label><input id="rc-matricula" placeholder="Ex: 1024"></div>
             <div class="field"><label>Nome completo</label><input id="rc-nome" placeholder="Nome completo"></div>
@@ -376,8 +403,15 @@
           <div class="field-grid-4">
             <div class="field"><label>Telefone</label><input id="rc-telefone" placeholder="(00) 00000-0000"></div>
             <div class="field"><label>E-mail</label><input id="rc-email" placeholder="nome@empresa.com"></div>
-            <div class="field"><label>Cargo</label><input id="rc-cargo" placeholder="Ex: Motorista, Analista..."></div>
-            <div class="field"><label>Departamento/Setor</label><input id="rc-depto" placeholder="Ex: Operações"></div>
+            <div class="field"><label>Cargo</label><input id="rc-cargo" list="cargos-existentes" placeholder="Ex: Motorista, Analista..."></div>
+            <div class="field"><label>Departamento/Setor</label>
+              <select id="rc-depto">
+                <option value="Operação">Operação</option>
+                <option value="Manutenção">Manutenção</option>
+                <option value="Drivers">Drivers</option>
+                <option value="ADM">ADM</option>
+              </select>
+            </div>
           </div>
           <div class="field-grid-4">
             <div class="field"><label>Unidade</label>
@@ -394,10 +428,9 @@
             <div class="field"><label>Data de admissão</label><input type="date" id="rc-admissao"></div>
             <div class="field"><label>Tipo de contrato</label>
               <select id="rc-tipocontrato">
-                <option value="CLT">CLT</option>
-                <option value="PJ">PJ</option>
-                <option value="Estágio">Estágio</option>
-                <option value="Temporário">Temporário</option>
+                <option value="Safra">Safra</option>
+                <option value="Determinado">Determinado</option>
+                <option value="Indeterminado">Indeterminado</option>
               </select>
             </div>
           </div>
@@ -441,6 +474,17 @@
               <option value="desligado">Desligado</option>
             </select>
           </div>
+          <div class="filter-field"><label>Departamento</label>
+            <select id="rcfilter-departamento">
+              <option value="">Todos</option>
+              <option value="Operação">Operação</option>
+              <option value="Manutenção">Manutenção</option>
+              <option value="Drivers">Drivers</option>
+              <option value="ADM">ADM</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>Admissão de</label><input type="date" id="rcfilter-data-inicio"></div>
+          <div class="filter-field"><label>Admissão até</label><input type="date" id="rcfilter-data-fim"></div>
           <button class="btn-ghost" id="btn-clear-rcfilter">Limpar</button>
         </div>
         <div class="kpi-grid" id="rc-kpi-grid"></div>
@@ -487,8 +531,9 @@
             </div>
             <div class="field"><label>Tipo de contrato</label>
               <select id="rv-tipocontrato">
-                <option value="CLT">CLT</option><option value="PJ">PJ</option>
-                <option value="Estágio">Estágio</option><option value="Temporário">Temporário</option>
+                <option value="Safra">Safra</option>
+                <option value="Determinado">Determinado</option>
+                <option value="Indeterminado">Indeterminado</option>
               </select>
             </div>
           </div>
@@ -536,6 +581,36 @@
         <div class="card">
           <table><thead><tr><th>Vaga</th><th>Unidade</th><th>Contrato</th><th>Qtd</th><th>Motivo</th><th>Aberta em</th><th>Status</th><th></th></tr></thead>
           <tbody id="tbl-vagas"></tbody></table>
+        </div>
+
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin:6px 0 12px 2px;">Quadro desejado por setor</div>
+        <div class="page-sub" style="margin:-6px 0 14px 2px;">Cadastre quantas pessoas cada setor deveria ter. O sistema compara com os colaboradores ativos de hoje e calcula quantas vagas ainda faltam preencher.</div>
+        <div class="card reg-card">
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field" style="margin-bottom:0;"><label>Unidade</label>
+              <select id="qd-unidade">
+                <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
+                <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+                <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;"><label>Departamento</label>
+              <select id="qd-departamento">
+                <option value="Operação">Operação</option>
+                <option value="Manutenção">Manutenção</option>
+                <option value="Drivers">Drivers</option>
+                <option value="ADM">ADM</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;"><label>Quantidade desejada</label><input type="number" min="0" id="qd-quantidade" placeholder="Ex: 12"></div>
+            <div class="field" style="margin-bottom:0;"><button class="btn-primary" id="btn-save-quadro" style="width:100%;">Salvar</button></div>
+          </div>
+          <div class="err-msg" id="qd-err"></div>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Desejado</th><th>Ativos</th><th>Faltando</th><th></th></tr></thead>
+          <tbody id="tbl-quadro-desejado"></tbody></table>
         </div>
       </div>
 
@@ -589,6 +664,8 @@
               <option value="concluido">Concluído</option>
             </select>
           </div>
+          <div class="filter-field"><label>De</label><input type="date" id="rffilter-data-inicio"></div>
+          <div class="filter-field"><label>Até</label><input type="date" id="rffilter-data-fim"></div>
           <button class="btn-ghost" id="btn-clear-rffilter">Limpar</button>
         </div>
         <div class="kpi-grid" id="rf2-kpi-grid"></div>
@@ -649,6 +726,7 @@
 
 <div class="modal-bg" id="modal-bg"><div class="modal" id="modal-body"></div></div>
 <div class="toast" id="toast"></div>
+<datalist id="cargos-existentes"></datalist>
 
 <script>
   /* ---------------------------------------------------------
@@ -699,7 +777,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-20T15-30-00Z';
+  const APP_VERSION = '2026-08-25T18-10-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -724,6 +802,46 @@
 
   const COLLECTION = 'lots-rh';
   const PROFILES = 'lots-rh-profiles';
+  // fotos ficam numa coleção própria (um documento pequeno por pessoa), em vez de dentro
+  // do JSON grande de colaboradores — assim, mesmo com milhares de colaboradores, o
+  // documento principal nunca chega perto do limite de 1MB do Firestore.
+  const FOTOS_COLLECTION = 'lots-rh-fotos';
+  async function salvarFotoColaborador(id, dataUrl){
+    try{ await db.collection(FOTOS_COLLECTION).doc(id).set({data: dataUrl}); }
+    catch(e){ console.error('foto save fail', e); toast('Não foi possível salvar a foto.'); }
+  }
+  async function removerFotoColaborador(id){
+    try{ await db.collection(FOTOS_COLLECTION).doc(id).delete(); }catch(e){ console.error('foto delete fail', e); }
+  }
+  async function loadAllFotos(){
+    try{
+      const snap = await db.collection(FOTOS_COLLECTION).get();
+      const map = {};
+      snap.docs.forEach(d=>{ map[d.id] = d.data().data; });
+      return map;
+    }catch(e){ console.error('fotos load fail', e); return {}; }
+  }
+  // recorta a imagem em quadrado e reduz o tamanho antes de salvar (evita fotos gigantes)
+  function resizeImageToDataUrl(file, maxSize){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const lado = Math.min(img.width, img.height);
+          const sx = (img.width-lado)/2, sy = (img.height-lado)/2;
+          const canvas = document.createElement('canvas');
+          canvas.width = maxSize; canvas.height = maxSize;
+          canvas.getContext('2d').drawImage(img, sx, sy, lado, lado, 0, 0, maxSize, maxSize);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
   const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
   const secondaryAuth = secondaryApp.auth();
 
@@ -846,19 +964,22 @@
 
   /* ---------------- estado ---------------- */
   let state = {
-    users:[], colaboradores:[], ferias:[], vagas:[], processos:[], auditLog:[],
+    users:[], colaboradores:[], ferias:[], vagas:[], processos:[], auditLog:[], quadroDesejado:[], fotos:{},
     currentProfile:null
   };
 
   async function loadAll(){
-    setLoadingProgress(20, 'Carregando colaboradores…');
+    setLoadingProgress(15, 'Carregando colaboradores…');
     state.colaboradores = await loadShared('colaboradores', []);
-    setLoadingProgress(45, 'Carregando férias e afastamentos…');
+    setLoadingProgress(35, 'Carregando férias e afastamentos…');
     state.ferias = await loadShared('ferias', []);
-    setLoadingProgress(65, 'Carregando vagas…');
+    setLoadingProgress(50, 'Carregando vagas…');
     state.vagas = await loadShared('vagas', []);
-    setLoadingProgress(85, 'Carregando processos…');
+    setLoadingProgress(65, 'Carregando processos…');
     state.processos = await loadShared('processos', []);
+    state.quadroDesejado = await loadShared('quadro-desejado', []);
+    setLoadingProgress(80, 'Carregando fotos…');
+    state.fotos = await loadAllFotos();
     state.auditLog = await loadShared('audit-log', []);
     setLoadingProgress(100, 'Pronto');
   }
@@ -869,6 +990,7 @@
     ferias: () => saveShared('ferias', state.ferias),
     vagas: () => saveShared('vagas', state.vagas),
     processos: () => saveShared('processos', state.processos),
+    quadroDesejado: () => saveShared('quadro-desejado', state.quadroDesejado),
     auditLog: () => saveShared('audit-log', state.auditLog)
   };
 
@@ -1149,6 +1271,11 @@
       filtroSel.innerHTML = '<option value="">Todos</option>' + visibleColaboradores().map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
       filtroSel.value = keep;
     }
+    const cargosDatalist = document.getElementById('cargos-existentes');
+    if(cargosDatalist){
+      const cargos = [...new Set(visibleColaboradores().filter(c=>c.status==='ativo' && c.cargo).map(c=>c.cargo))].sort();
+      cargosDatalist.innerHTML = cargos.map(c=>`<option value="${c}">`).join('');
+    }
   }
   function applyColabFormPermissions(){
     const u = currentUser();
@@ -1170,14 +1297,47 @@
     document.getElementById('rc-depto').value = c?.departamento || '';
     document.getElementById('rc-unidade').value = c?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4824-MNS');
     document.getElementById('rc-admissao').value = c?.dataAdmissao || todayISO();
-    document.getElementById('rc-tipocontrato').value = c?.tipoContrato || 'CLT';
+    document.getElementById('rc-tipocontrato').value = c?.tipoContrato || 'Indeterminado';
     document.getElementById('rc-obs').value = c?.observacoes || '';
     populateColabSelects();
     document.getElementById('rc-supervisor').value = c?.supervisorId || '';
     document.getElementById('btn-save-colab').textContent = c ? 'Salvar alterações' : 'Cadastrar colaborador';
     document.getElementById('btn-cancel-edit-colab').style.display = c ? 'inline-block' : 'none';
     document.getElementById('rc-err').textContent = '';
+    LOTS._novaFotoDataUrl = null;
+    LOTS._fotoRemovida = false;
+    document.getElementById('rc-foto-file').value = '';
+    atualizarPreviewFoto((c && state.fotos[c.id]) || null, c?.nome);
   }
+  function atualizarPreviewFoto(dataUrl, nome){
+    const img = document.getElementById('rc-foto-preview');
+    const fallback = document.getElementById('rc-foto-fallback');
+    const btnRemove = document.getElementById('btn-remove-foto');
+    if(dataUrl){
+      img.src = dataUrl; img.style.display = 'block'; fallback.style.display = 'none';
+      btnRemove.style.display = 'inline-block';
+    } else {
+      img.style.display = 'none'; fallback.style.display = 'flex';
+      fallback.textContent = (nome||'?').trim().charAt(0).toUpperCase();
+      btnRemove.style.display = 'none';
+    }
+  }
+  document.getElementById('rc-foto-file')?.addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      const dataUrl = await resizeImageToDataUrl(file, 128);
+      LOTS._novaFotoDataUrl = dataUrl;
+      LOTS._fotoRemovida = false;
+      atualizarPreviewFoto(dataUrl);
+    }catch(err){ console.error(err); toast('Não foi possível ler essa imagem.'); }
+  });
+  document.getElementById('btn-remove-foto')?.addEventListener('click', ()=>{
+    LOTS._novaFotoDataUrl = null;
+    LOTS._fotoRemovida = true;
+    document.getElementById('rc-foto-file').value = '';
+    atualizarPreviewFoto(null, document.getElementById('rc-nome').value);
+  });
   LOTS.editColaborador = (id)=>{
     const c = colaboradorById(id);
     if(!c) return;
@@ -1208,18 +1368,28 @@
       tipoContrato: document.getElementById('rc-tipocontrato').value,
       observacoes: document.getElementById('rc-obs').value.trim()
     };
+    let colaboradorId;
     if(LOTS._editingColabId){
       const c = colaboradorById(LOTS._editingColabId);
       if(!canManageColaborador(c.unidade)){ errEl.textContent='Você não tem permissão para editar este colaborador.'; return; }
       Object.assign(c, dados);
+      colaboradorId = c.id;
       await save.colaboradores();
       logAudit('Colaborador editado', dados.nome);
       toast('Colaborador atualizado.');
     } else {
-      state.colaboradores.push({ id: uid(), ...dados, status:'ativo', dataCadastro: todayISO() });
+      colaboradorId = uid();
+      state.colaboradores.push({ id: colaboradorId, ...dados, status:'ativo', dataCadastro: todayISO() });
       await save.colaboradores();
       logAudit('Colaborador cadastrado', dados.nome);
       toast('Colaborador cadastrado.');
+    }
+    if(LOTS._novaFotoDataUrl){
+      await salvarFotoColaborador(colaboradorId, LOTS._novaFotoDataUrl);
+      state.fotos[colaboradorId] = LOTS._novaFotoDataUrl;
+    } else if(LOTS._fotoRemovida){
+      await removerFotoColaborador(colaboradorId);
+      delete state.fotos[colaboradorId];
     }
     fillColabForm(null);
     renderView('rhcolab'); renderView('rhorg'); renderView('rhdash');
@@ -1231,12 +1401,13 @@
     state.colaboradores.forEach(x=>{ if(x.supervisorId===id) x.supervisorId=null; });
     state.colaboradores = state.colaboradores.filter(x=>x.id!==id);
     await save.colaboradores();
+    if(state.fotos[id]){ await removerFotoColaborador(id); delete state.fotos[id]; }
     if(LOTS._editingColabId===id) fillColabForm(null);
     renderView('rhcolab'); renderView('rhorg'); renderView('rhdash');
     logAudit('Colaborador excluído', c.nome);
     toast('Colaborador removido.');
   };
-  ['rcfilter-busca','rcfilter-unidade','rcfilter-status'].forEach(id=>{
+  ['rcfilter-busca','rcfilter-unidade','rcfilter-status','rcfilter-departamento','rcfilter-data-inicio','rcfilter-data-fim'].forEach(id=>{
     document.addEventListener('input', e=>{ if(e.target && e.target.id===id) renderColaboradores(); });
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderColaboradores(); });
   });
@@ -1244,6 +1415,9 @@
     document.getElementById('rcfilter-busca').value='';
     document.getElementById('rcfilter-unidade').value='';
     document.getElementById('rcfilter-status').value='';
+    document.getElementById('rcfilter-departamento').value='';
+    document.getElementById('rcfilter-data-inicio').value='';
+    document.getElementById('rcfilter-data-fim').value='';
     renderColaboradores();
   });
   document.getElementById('btn-export-colab')?.addEventListener('click', ()=>{
@@ -1302,10 +1476,10 @@
   const UO_LIST_IMPORT = ['4824-MNS','4823-PRA','4818-NRAV','4813-NRA','4830-PPAV','4812-PPA'];
   function mapTipoContrato(valBruto){
     const s = normalizarCabecalho(valBruto);
-    if(s.includes('ESTAGI')) return 'Estágio';
-    if(s.includes('TEMPOR')) return 'Temporário';
-    if(s.includes('PJ')) return 'PJ';
-    return 'CLT';
+    if(s.includes('SAFRA')) return 'Safra';
+    if(s.includes('INDETERMINADO')) return 'Indeterminado';
+    if(s.includes('DETERMINADO')) return 'Determinado';
+    return 'Indeterminado';
   }
   function mapStatusColaborador(valBruto){
     const s = normalizarCabecalho(valBruto);
@@ -1409,9 +1583,15 @@
     const busca = (document.getElementById('rcfilter-busca')?.value||'').trim().toLowerCase();
     const uoF = document.getElementById('rcfilter-unidade')?.value || '';
     const stF = document.getElementById('rcfilter-status')?.value || '';
+    const deptoF = document.getElementById('rcfilter-departamento')?.value || '';
+    const dataIni = document.getElementById('rcfilter-data-inicio')?.value || '';
+    const dataFim = document.getElementById('rcfilter-data-fim')?.value || '';
     let list = visibleColaboradores()
       .filter(c=>!uoF || c.unidade===uoF)
       .filter(c=>!stF || c.status===stF)
+      .filter(c=>!deptoF || c.departamento===deptoF)
+      .filter(c=>!dataIni || (c.dataAdmissao||'')>=dataIni)
+      .filter(c=>!dataFim || (c.dataAdmissao||'')<=dataFim)
       .filter(c=>!busca || [c.nome,c.cargo,c.matricula].join(' ').toLowerCase().includes(busca))
       .sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
     LOTS._colabSnapshot = list;
@@ -1455,11 +1635,27 @@
     document.getElementById('rgfilter-unidade').value='';
     renderOrganograma();
   });
+  LOTS.editColaboradorFromOrg = (id)=>{
+    switchView('rhcolab');
+    setTimeout(()=>LOTS.editColaborador(id), 60);
+  };
   function buildOrgNode(c, lista){
     const filhos = lista.filter(x=>x.supervisorId===c.id);
+    const foto = state.fotos && state.fotos[c.id];
+    const avatar = foto
+      ? `<img class="org2-avatar" src="${foto}" alt="">`
+      : `<div class="org2-avatar-fallback">${(c.nome||'?').trim().charAt(0).toUpperCase()}</div>`;
     return `<li>
-      <div class="org-node"><span class="org-node-name">${c.nome}</span><span class="org-node-role">${c.cargo||'—'}</span>${rhStatusBadge(c.status)}</div>
-      ${filhos.length ? `<ul>${filhos.map(f=>buildOrgNode(f,lista)).join('')}</ul>` : ''}
+      <div class="org-branch">
+        <div class="org2-card" onclick="LOTS.editColaboradorFromOrg('${c.id}')" title="Clique para editar">
+          ${avatar}
+          <div class="org2-info">
+            <div class="org2-name">${c.nome}</div>
+            <div class="org2-role">${c.cargo||'—'}</div>
+          </div>
+        </div>
+        ${filhos.length ? `<ul>${filhos.map(f=>buildOrgNode(f,lista)).join('')}</ul>` : ''}
+      </div>
     </li>`;
   }
   function renderOrganograma(){
@@ -1493,7 +1689,7 @@
     document.getElementById('rv-titulo').value = v?.titulo || '';
     document.getElementById('rv-depto').value = v?.departamento || '';
     document.getElementById('rv-unidade').value = v?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4824-MNS');
-    document.getElementById('rv-tipocontrato').value = v?.tipoContrato || 'CLT';
+    document.getElementById('rv-tipocontrato').value = v?.tipoContrato || 'Indeterminado';
     document.getElementById('rv-qtd').value = v?.quantidade || 1;
     document.getElementById('rv-motivo').value = v?.motivoAbertura || 'aumento_quadro';
     document.getElementById('rv-abertura').value = v?.dataAbertura || todayISO();
@@ -1586,24 +1782,88 @@
     }
 
     const tbl = document.getElementById('tbl-vagas');
+    if(tbl){
+      if(list.length===0){
+        tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhuma vaga cadastrada.</td></tr>';
+      } else {
+        tbl.innerHTML = list.map(v=>`<tr>
+          <td>${v.titulo}</td>
+          <td>${v.unidade||'—'}</td>
+          <td>${v.tipoContrato||'—'}</td>
+          <td class="mono">${v.quantidade||1}</td>
+          <td>${RH_MOTIVO_VAGA_LABEL[v.motivoAbertura]||'—'}</td>
+          <td class="mono">${fmtDate(v.dataAbertura)}</td>
+          <td>${vagaBadge(v.status)}</td>
+          <td><div class="action-links">
+            <button class="icon-btn" onclick="LOTS.editVaga('${v.id}')">editar</button>
+            ${v.status==='aberta'?`<button class="icon-btn" onclick="LOTS.setVagaStatus('${v.id}','em_selecao')">em seleção</button>`:''}
+            ${v.status!=='encerrada'&&v.status!=='cancelada'?`<button class="icon-btn" onclick="LOTS.setVagaStatus('${v.id}','encerrada')">encerrar</button>`:''}
+            ${v.status!=='cancelada'&&v.status!=='encerrada'?`<button class="icon-btn danger" onclick="LOTS.setVagaStatus('${v.id}','cancelada')">cancelar</button>`:''}
+            <button class="icon-btn danger" onclick="LOTS.deleteVaga('${v.id}')">excluir</button>
+          </div></td>
+        </tr>`).join('');
+      }
+    }
+
+    renderQuadroDesejado();
+  }
+
+  /* ---------------- QUADRO DESEJADO POR SETOR ---------------- */
+  function visibleQuadroDesejado(){
+    const u = currentUser();
+    if(u.role==='gestor') return state.quadroDesejado.filter(q=>q.unidade===u.uoResponsavel);
+    return state.quadroDesejado;
+  }
+  function calcQuadro(q){
+    const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento).length;
+    return { ativos, faltando: Math.max((Number(q.quantidade)||0) - ativos, 0) };
+  }
+  document.getElementById('btn-save-quadro')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('qd-err');
+    const unidade = document.getElementById('qd-unidade').value;
+    const departamento = document.getElementById('qd-departamento').value;
+    const quantidade = Number(document.getElementById('qd-quantidade').value);
+    if(!document.getElementById('qd-quantidade').value){ errEl.textContent='Informe a quantidade desejada.'; return; }
+    if(!canManageColaborador(unidade)){ errEl.textContent='Você não tem permissão para esta unidade.'; return; }
+    errEl.textContent='';
+    // uma unidade+departamento só tem um registro — se já existe, atualiza a quantidade em vez de duplicar
+    const existente = state.quadroDesejado.find(q=>q.unidade===unidade && q.departamento===departamento);
+    if(existente){
+      existente.quantidade = quantidade;
+    } else {
+      state.quadroDesejado.push({ id: uid(), unidade, departamento, quantidade });
+    }
+    await save.quadroDesejado();
+    document.getElementById('qd-quantidade').value = '';
+    renderView('rhvagas'); renderView('rhdash');
+    toast('Quadro atualizado.');
+    logAudit('Quadro desejado atualizado', `${departamento} — ${unidade} — ${quantidade}`);
+  });
+  LOTS.deleteQuadroDesejado = async (id)=>{
+    const q = state.quadroDesejado.find(x=>x.id===id);
+    if(!q) return;
+    if(!canManageColaborador(q.unidade)){ toast('Sem permissão para excluir este quadro.'); return; }
+    state.quadroDesejado = state.quadroDesejado.filter(x=>x.id!==id);
+    await save.quadroDesejado();
+    renderView('rhvagas'); renderView('rhdash');
+    logAudit('Quadro desejado excluído', `${q.departamento} — ${q.unidade}`);
+  };
+  function renderQuadroDesejado(){
+    const tbl = document.getElementById('tbl-quadro-desejado');
     if(!tbl) return;
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhuma vaga cadastrada.</td></tr>'; return; }
-    tbl.innerHTML = list.map(v=>`<tr>
-      <td>${v.titulo}</td>
-      <td>${v.unidade||'—'}</td>
-      <td>${v.tipoContrato||'—'}</td>
-      <td class="mono">${v.quantidade||1}</td>
-      <td>${RH_MOTIVO_VAGA_LABEL[v.motivoAbertura]||'—'}</td>
-      <td class="mono">${fmtDate(v.dataAbertura)}</td>
-      <td>${vagaBadge(v.status)}</td>
-      <td><div class="action-links">
-        <button class="icon-btn" onclick="LOTS.editVaga('${v.id}')">editar</button>
-        ${v.status==='aberta'?`<button class="icon-btn" onclick="LOTS.setVagaStatus('${v.id}','em_selecao')">em seleção</button>`:''}
-        ${v.status!=='encerrada'&&v.status!=='cancelada'?`<button class="icon-btn" onclick="LOTS.setVagaStatus('${v.id}','encerrada')">encerrar</button>`:''}
-        ${v.status!=='cancelada'&&v.status!=='encerrada'?`<button class="icon-btn danger" onclick="LOTS.setVagaStatus('${v.id}','cancelada')">cancelar</button>`:''}
-        <button class="icon-btn danger" onclick="LOTS.deleteVaga('${v.id}')">excluir</button>
-      </div></td>
-    </tr>`).join('');
+    const list = visibleQuadroDesejado().sort((a,b)=>(a.unidade+a.departamento).localeCompare(b.unidade+b.departamento));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum quadro cadastrado ainda.</td></tr>'; return; }
+    tbl.innerHTML = list.map(q=>{
+      const {ativos, faltando} = calcQuadro(q);
+      return `<tr>
+        <td>${q.unidade}</td>
+        <td>${q.departamento}</td>
+        <td class="mono">${q.quantidade}</td>
+        <td class="mono">${ativos}</td>
+        <td class="mono" style="${faltando>0?'color:var(--danger); font-weight:700;':''}">${faltando}</td>
+        <td><div class="action-links">${canManageColaborador(q.unidade)?`<button class="icon-btn danger" onclick="LOTS.deleteQuadroDesejado('${q.id}')">excluir</button>`:''}</div></td>
+      </tr>`;
+    }).join('');
   }
 
   /* ---------------- FÉRIAS E AFASTAMENTOS ---------------- */
@@ -1657,13 +1917,15 @@
     renderView('rhferias'); renderView('rhcolab'); renderView('rhdash');
     logAudit('Férias/afastamento excluído', c?.nome||id);
   };
-  ['rffilter-colab','rffilter-tipo','rffilter-status'].forEach(id=>{
+  ['rffilter-colab','rffilter-tipo','rffilter-status','rffilter-data-inicio','rffilter-data-fim'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderFeriasAfastamentos(); });
   });
   document.getElementById('btn-clear-rffilter')?.addEventListener('click', ()=>{
     document.getElementById('rffilter-colab').value='';
     document.getElementById('rffilter-tipo').value='';
     document.getElementById('rffilter-status').value='';
+    document.getElementById('rffilter-data-inicio').value='';
+    document.getElementById('rffilter-data-fim').value='';
     renderFeriasAfastamentos();
   });
   function renderFeriasAfastamentos(){
@@ -1672,9 +1934,13 @@
     const colabF = document.getElementById('rffilter-colab')?.value || '';
     const tipoF = document.getElementById('rffilter-tipo')?.value || '';
     const stF = document.getElementById('rffilter-status')?.value || '';
+    const dataIni = document.getElementById('rffilter-data-inicio')?.value || '';
+    const dataFim = document.getElementById('rffilter-data-fim')?.value || '';
     let list = state.ferias.filter(f=>okIds.includes(f.colaboradorId))
       .filter(f=>!colabF||f.colaboradorId===colabF)
       .filter(f=>!tipoF||f.tipo===tipoF)
+      .filter(f=>!dataIni || (f.dataFim||f.dataInicio) >= dataIni)
+      .filter(f=>!dataFim || (f.dataInicio) <= dataFim)
       .map(f=>({...f, _status: feriasStatus(f)}))
       .filter(f=>!stF||f._status===stF)
       .sort((a,b)=>(b.dataInicio||'').localeCompare(a.dataInicio||''));
@@ -1747,7 +2013,7 @@
       <div class="modal-title">Novo processo de admissão</div>
       <div class="field"><label>Nome do candidato</label><input id="np-nome" placeholder="Nome completo"></div>
       <div class="field-row">
-        <div class="field"><label>Cargo</label><input id="np-cargo" placeholder="Ex: Motorista, Analista..."></div>
+        <div class="field"><label>Cargo</label><input id="np-cargo" list="cargos-existentes" placeholder="Ex: Motorista, Analista..."></div>
         <div class="field"><label>Unidade</label>
           <select id="np-unidade">
             <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
@@ -1757,11 +2023,19 @@
         </div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Departamento/Setor</label><input id="np-depto" placeholder="Ex: Operações"></div>
+        <div class="field"><label>Departamento/Setor</label>
+          <select id="np-depto">
+            <option value="Operação">Operação</option>
+            <option value="Manutenção">Manutenção</option>
+            <option value="Drivers">Drivers</option>
+            <option value="ADM">ADM</option>
+          </select>
+        </div>
         <div class="field"><label>Tipo de contrato</label>
           <select id="np-tipocontrato">
-            <option value="CLT">CLT</option><option value="PJ">PJ</option>
-            <option value="Estágio">Estágio</option><option value="Temporário">Temporário</option>
+            <option value="Safra">Safra</option>
+            <option value="Determinado">Determinado</option>
+            <option value="Indeterminado">Indeterminado</option>
           </select>
         </div>
       </div>
@@ -1772,7 +2046,7 @@
         <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
       </div>`;
   }
-  document.getElementById('btn-new-admissao')?.addEventListener('click', ()=> openModal(novoProcessoForm('admissao')));
+  document.getElementById('btn-new-admissao')?.addEventListener('click', ()=>{ populateColabSelects(); openModal(novoProcessoForm('admissao')); });
   document.getElementById('btn-new-desligamento')?.addEventListener('click', ()=> openModal(novoProcessoForm('desligamento')));
   LOTS.saveNovoProcesso = async (tipo)=>{
     const errEl = document.getElementById('np-err');
@@ -1880,7 +2154,7 @@
       dataNascimento: '', telefone: '', email: '',
       cargo: p.cargo || '', departamento: p.departamento || '', unidade: p.unidade,
       supervisorId: document.getElementById('pp-supervisor').value || null,
-      dataAdmissao, tipoContrato: p.tipoContrato || 'CLT',
+      dataAdmissao, tipoContrato: p.tipoContrato || 'Indeterminado',
       observacoes: p.observacoes || '', status: 'ativo', dataCadastro: todayISO()
     };
     state.colaboradores.push(novoColaborador);
@@ -2049,6 +2323,19 @@
           <td class="mono">${grupo.length}</td>
         </tr>`;
       }).join('') : '<tr class="empty-row"><td colspan="5">Nenhum colaborador cadastrado.</td></tr>';
+    }
+
+    const qdTbl = document.getElementById('rh-dash-quadro-desejado');
+    if(qdTbl){
+      const comGap = visibleQuadroDesejado().map(q=>({q, ...calcQuadro(q)})).filter(x=>x.faltando>0)
+        .sort((a,b)=>b.faltando-a.faltando);
+      qdTbl.innerHTML = comGap.length ? comGap.map(x=>`<tr>
+        <td>${x.q.unidade}</td>
+        <td>${x.q.departamento}</td>
+        <td class="mono">${x.q.quantidade}</td>
+        <td class="mono">${x.ativos}</td>
+        <td class="mono" style="color:var(--danger); font-weight:700;">${x.faltando}</td>
+      </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Nenhuma vaga em aberto no quadro cadastrado.</td></tr>';
     }
 
     const procTbl = document.getElementById('rh-dash-processos');
