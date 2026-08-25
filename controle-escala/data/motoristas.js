@@ -195,7 +195,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 31890,
           "nome": "ELIEL DA SILVA NUNES PEREIRA"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 02",
@@ -299,7 +300,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 31438,
           "nome": "CLAUDSON PEREIRA BISPO DE SOUZA"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 03",
@@ -399,7 +401,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 32015,
           "nome": "SEBASTIAO BELO DE OLIVEIRA FILHO"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 04",
@@ -503,7 +506,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 32018,
           "nome": "HELIO LUIS MALAQUIAS SILVA"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 05",
@@ -607,7 +611,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 31844,
           "nome": "JOSE GILDO DA SILVA NORBERTO"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 06",
@@ -699,7 +704,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 31494,
           "nome": "DIOGO JOSE DOS SANTOS SILVA"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 07",
@@ -752,7 +758,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 31492,
           "nome": "WELLINGTON FRANCA DE SOUZA"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 08",
@@ -839,7 +846,8 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 31466,
           "nome": "JOSE GILVAN SANTOS CONCEICAO"
         }
-      }
+      },
+      "unidade": "MNS"
     },
     {
       "grupo": "GRUPO 09",
@@ -865,7 +873,8 @@ window.DATA_MOTORISTAS_META = {
           "status": "Reserva"
         }
       ],
-      "folguistas": {}
+      "folguistas": {},
+      "unidade": "MNS"
     }
   ]
 };

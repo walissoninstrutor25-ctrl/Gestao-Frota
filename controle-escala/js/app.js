@@ -1,6 +1,28 @@
 'use strict';
 
 /* ------------------------------------------------------------------ */
+/*  Instalar como app (PWA)                                            */
+/*  O navegador só dispara esse evento se o site puder ser instalado   */
+/*  (manifest + service worker, https) e ainda não tiver sido           */
+/*  instalado — por isso o botão nasce escondido e só aparece aqui.    */
+/*  Não existe em iOS/Safari (lá é "Adicionar à Tela de Início" manual  */
+/*  no menu de compartilhar, sem essa API).                            */
+/* ------------------------------------------------------------------ */
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('installAppBtn');
+  if (btn) btn.style.display = '';
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('installAppBtn');
+  if (btn) btn.style.display = 'none';
+});
+
+/* ------------------------------------------------------------------ */
 /*  Config                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -72,9 +94,10 @@ function loadEdits() {
       novosColaboradores: raw.novosColaboradores || {}, // tabId -> [{__pk, nome, matricula, grupo, papelNormalizado, lider, telefone}]
       limpo: raw.limpo || {}, // "tabId" ou "tabId|UO" -> true (colaboradores originais da planilha escondidos)
       rotacao: raw.rotacao || {}, // pk -> epochDay âncora (dia de folga) do padrão 5x1/6x2 dessa pessoa
+      renumeracoes: raw.renumeracoes || {}, // numero antigo -> numero novo (equipamento renomeado)
     };
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {} };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {} };
   }
 }
 
@@ -89,7 +112,7 @@ function hasAnyEdits() {
   return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0
     || Object.keys(edits.moves).length > 0 || Object.keys(edits.newEquip).length > 0 || edits.newGrupos.length > 0
     || Object.values(edits.novosColaboradores).some((arr) => arr.length > 0)
-    || Object.keys(edits.limpo).length > 0 || Object.keys(edits.rotacao).length > 0;
+    || Object.keys(edits.limpo).length > 0 || Object.keys(edits.rotacao).length > 0 || Object.keys(edits.renumeracoes).length > 0;
 }
 
 function updateResetBtnVisibility() {
@@ -249,7 +272,7 @@ function equipeEditSet(path, field, value) {
 // criando o grupo de destino se ainda não existir. numero é global e
 // único entre grupos (garantido no momento de criar/mover), então não
 // precisa saber o grupo de origem para achar o equipamento.
-function moveEquipamentoToGrupo(ds, numero, targetGrupo) {
+function moveEquipamentoToGrupo(ds, numero, targetGrupo, unidade) {
   let equip = null;
   for (const g of ds.mestre) {
     const idx = g.equipamentos.findIndex((e) => e.numero === numero);
@@ -260,9 +283,9 @@ function moveEquipamentoToGrupo(ds, numero, targetGrupo) {
     }
   }
   if (!equip) return false;
-  let alvo = ds.mestre.find((g) => g.grupo === targetGrupo);
+  let alvo = ds.mestre.find((g) => g.grupo === targetGrupo && (unidade === undefined || g.unidade === unidade));
   if (!alvo) {
-    alvo = { grupo: targetGrupo, equipamentos: [], folguistas: {} };
+    alvo = { grupo: targetGrupo, equipamentos: [], folguistas: {}, unidade };
     ds.mestre.push(alvo);
   }
   alvo.equipamentos.push(equip);
@@ -281,8 +304,19 @@ function ordenarMestre(ds) {
 // criados do zero e as trocas de grupo feitas em modo de edição — chamado
 // uma vez no boot, antes de renderizar.
 function applyStoredMestreOps(ds) {
-  edits.newGrupos.forEach((nome) => {
-    if (!ds.mestre.find((g) => g.grupo === nome)) ds.mestre.push({ grupo: nome, equipamentos: [], folguistas: {} });
+  // Precisa rodar antes de newEquip/moves: esses já foram migrados pro
+  // número novo no momento da renomeação (ver renameEquipamento), então o
+  // equipamento de origem (que ainda está com o número antigo, vindo puro
+  // da planilha) tem que ser renumerado primeiro pra bater com eles.
+  Object.keys(edits.renumeracoes).forEach((numeroAntigo) => {
+    const novo = edits.renumeracoes[numeroAntigo];
+    for (const g of ds.mestre) {
+      const eq = g.equipamentos.find((x) => x.numero === numeroAntigo);
+      if (eq) { eq.numero = novo; break; }
+    }
+  });
+  edits.newGrupos.forEach(({ nome, unidade }) => {
+    if (!ds.mestre.find((g) => g.grupo === nome && g.unidade === unidade)) ds.mestre.push({ grupo: nome, equipamentos: [], folguistas: {}, unidade });
   });
   Object.keys(edits.newEquip).forEach((numero) => {
     if (equipamentoExiste(ds, numero)) return;
@@ -471,6 +505,59 @@ function csvEscape(v) {
   return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
+// Lê uma planilha no mesmo formato do Exportar CSV (mesmos cabeçalhos,
+// ';' como separador) e adiciona uma linha por colaborador — reconhece a
+// coluna UO quando presente, então uma única planilha com linhas MNS e
+// PRA misturadas povoa as duas UO de uma vez. Cada linha vira uma pessoa
+// nova (mesmo mecanismo do "+ Adicionar colaborador"); pra substituir o
+// que já existe, use "Limpar dados" antes de importar.
+function parseCsvLine(line) {
+  const out = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = false; } }
+      else cur += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ';') { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+function importCsvText(text, ds, cfg) {
+  const clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  const lines = clean.split(/\r\n|\n|\r/).filter((l) => l.trim() !== '');
+  if (lines.length < 2) return 0;
+  const header = parseCsvLine(lines[0]).map((h) => h.trim());
+  const col = (name) => header.indexOf(name);
+  const iNome = col('Nome'), iMat = col('Matrícula'), iGrupo = col('Grupo'), iTurno = col('Turno'), iLider = col('Líder'), iTel = col('Telefone'), iUO = col('UO');
+  let count = 0;
+  for (let li = 1; li < lines.length; li++) {
+    const cols = parseCsvLine(lines[li]);
+    const nome = (cols[iNome] || '').trim();
+    if (!nome) continue;
+    const novo = {
+      __pk: `${cfg.id}|novo|${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${count}`,
+      nome,
+      matricula: as_int_or_null((cols[iMat] || '').trim()),
+      grupo: (cols[iGrupo] || '').trim() || null,
+      papelNormalizado: (cols[iTurno] || '').trim() || null,
+      lider: (cols[iLider] || '').trim() || null,
+      telefone: (cols[iTel] || '').trim() || null,
+    };
+    if (cfg.hasUnits) novo.unidade = (iUO !== -1 && (cols[iUO] || '').trim()) || state.unit[cfg.id];
+    ds.colaboradores.push({ ...novo, escala: buildAutoEscala(ds, cfg) });
+    edits.novosColaboradores[cfg.id] = edits.novosColaboradores[cfg.id] || [];
+    edits.novosColaboradores[cfg.id].push(novo);
+    count++;
+  }
+  if (count) persistEdits();
+  return count;
+}
+
 function exportCsv(ds, cfg) {
   const people = visiblePeople();
   const headers = ['Nome', 'Matrícula', 'Grupo', 'Turno', 'Líder', 'Telefone'];
@@ -520,6 +607,7 @@ function renderPanel() {
         ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="icon-btn danger" id="clearDataBtn">🗑 Limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${!isEquipe ? `<button class="icon-btn" id="exportCsvBtn">⬇ Exportar CSV</button>` : ''}
+        ${!isEquipe && state.editMode ? `<label class="icon-btn import-csv-btn" id="importCsvLabel" title="Importar planilha CSV (mesmo formato do Exportar CSV; linhas com UO preenchem as duas UO de uma vez)">📥<input type="file" accept=".csv,text/csv" id="importCsvInput" hidden></label>` : ''}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
       </div>
     </div>
@@ -533,7 +621,7 @@ function renderPanel() {
     viewBody.innerHTML = renderEquipeHtml(ds, cfg, mestre);
     if (state.editMode) {
       wireEquipeEdits(viewBody);
-      if (cfg.id === 'motoristas') wireEquipeStructure(viewBody, ds);
+      if (cfg.id === 'motoristas') wireEquipeStructure(viewBody, ds, cfg);
     }
   } else {
     document.getElementById('viewBody').innerHTML = `
@@ -572,12 +660,23 @@ function renderPanel() {
   document.getElementById('printBtn').addEventListener('click', () => window.print());
   const exportBtn = document.getElementById('exportCsvBtn');
   if (exportBtn) exportBtn.addEventListener('click', () => exportCsv(ds, cfg));
+  const importInput = document.getElementById('importCsvInput');
+  if (importInput) importInput.addEventListener('change', async () => {
+    const file = importInput.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const count = importCsvText(text, ds, cfg);
+    importInput.value = '';
+    alert(count ? `${count} colaborador(es) importado(s).` : 'Nenhuma linha válida encontrada nesse arquivo (confira se o cabeçalho é o mesmo do Exportar CSV).');
+    if (count) renderPanel();
+  });
   const addColaboradorBtn = document.getElementById('addColaboradorBtn');
   if (addColaboradorBtn) addColaboradorBtn.addEventListener('click', () => openModal(null, monthMeta, cfg, ds, true));
   const clearBtn = document.getElementById('clearDataBtn');
-  if (clearBtn) clearBtn.addEventListener('click', () => {
+  if (clearBtn) clearBtn.addEventListener('click', async () => {
     const escopo = cfg.hasUnits ? `da UO ${state.unit[cfg.id]}` : 'desta aba';
-    if (!confirm(`Isso apaga TODOS os colaboradores ${escopo} (inclusive os da planilha original) pra você cadastrar outros do zero. Só volta com "Restaurar original" no topo. Continuar?`)) return;
+    const ok = await showConfirmModal(`Isso apaga TODOS os colaboradores ${escopo} (inclusive os da planilha original) pra você cadastrar outros do zero. Só volta com "Restaurar original" no topo.`, { confirmLabel: 'Limpar dados', danger: true });
+    if (!ok) return;
     clearTabData(ds, cfg);
     renderPanel();
   });
@@ -599,13 +698,23 @@ function renderPanel() {
 
 function currentMestre(ds, cfg) {
   if (!ds.mestre) return null;
-  if (Array.isArray(ds.mestre)) return ds.mestre.length ? ds.mestre : null;
+  if (Array.isArray(ds.mestre)) {
+    // Grupos de equipamentos (Motoristas): cada grupo carrega sua própria
+    // UO — mostra só os da UO selecionada. Continua um array (mesmo
+    // vazio) pra manter o botão "Ver equipe" visível e permitir cadastrar
+    // do zero (+ Adicionar grupo/equipamento) numa UO que ainda não tem
+    // nada, em vez de emprestar dados de outra UO.
+    return cfg.hasUnits ? ds.mestre.filter((g) => g.unidade === state.unit[cfg.id]) : ds.mestre;
+  }
   // objeto dividido por UO (ex.: master_driver.mestre = {MNS:{...}, PRA:{...}})
-  // só é indexado por UO quando ele de fato tem essas chaves — a planilha
-  // de Líder de Turno/Pátio não separa o MESTRE por UO (só existe o lado
-  // MNS), então o mesmo objeto vale pras duas UO nessas abas.
   if (cfg.hasUnits && Object.prototype.hasOwnProperty.call(ds.mestre, state.unit[cfg.id])) {
     return ds.mestre[state.unit[cfg.id]] || null;
+  }
+  // objeto único, com sua própria UO (ex.: Líder de Turno/Pátio, cuja
+  // planilha só cobre o lado MNS) — só aparece na UO a que pertence, pra
+  // não mostrar o mesmo conteúdo como se fosse de outra UO.
+  if (cfg.hasUnits && ds.mestre.unidade) {
+    return ds.mestre.unidade === state.unit[cfg.id] ? ds.mestre : null;
   }
   return ds.mestre;
 }
@@ -706,7 +815,10 @@ function equipeGrupoHtml(g, allGrupos) {
   const rows = g.equipamentos.map((e) => `
     <tr>
       <td class="col-nome">
-        <span class="nome">Equip. ${e.numero}</span>${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}
+        ${state.editMode
+          ? `<span class="nome equip-numero-edit" data-equip="${e.numero}" title="Clique para editar o número">Equip. ${e.numero} ✎</span>`
+          : `<span class="nome">Equip. ${e.numero}</span>`}
+        ${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}
         ${state.editMode ? moveSelect(e.numero) : ''}
       </td>
       <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`)}</td>
@@ -735,6 +847,15 @@ function renderEquipeHtml(ds, cfg, mestre) {
   if (cfg.id === 'motoristas') {
     const visiveis = state.editMode ? mestre : mestre.filter((g) => g.equipamentos.length || Object.keys(g.folguistas).length);
     const allGrupos = mestre.map((g) => g.grupo);
+    if (!visiveis.length) {
+      const msg = state.editMode
+        ? 'Nenhum grupo cadastrado ainda para esta UO. Use "+ Adicionar novo grupo" abaixo pra começar.'
+        : 'Nenhuma equipe cadastrada ainda para esta UO. Ative o modo de edição (✏️ Editar, no topo) pra cadastrar.';
+      return `<div class="equipe-wrap">
+        ${state.editMode ? `<button class="icon-btn" id="addGrupoBtn">+ Adicionar novo grupo</button>` : ''}
+        <div class="empty-state">${msg}</div>
+      </div>`;
+    }
     return `<div class="equipe-wrap">
       ${state.editMode ? `<button class="icon-btn" id="addGrupoBtn">+ Adicionar novo grupo</button>` : ''}
       ${visiveis.map((g) => equipeGrupoHtml(g, allGrupos)).join('')}
@@ -761,7 +882,40 @@ function wireEquipeEdits(container) {
 
 // Controles de estrutura da Equipe (só motoristas): mover equipamento de
 // grupo, adicionar equipamento novo, adicionar grupo novo do zero.
-function wireEquipeStructure(container, ds) {
+// Troca o número de um equipamento (ex.: corrigir digitação, trocar o
+// veículo). Migra as edições já salvas (nome/matrícula por turno, grupo
+// de destino se foi movido, grupo se foi criado do zero) pra chave do
+// número novo, senão elas ficariam "perdidas" presas no número antigo.
+function renameEquipamento(ds, numeroAntigo, numeroNovo) {
+  for (const g of ds.mestre) {
+    const eq = g.equipamentos.find((x) => x.numero === numeroAntigo);
+    if (eq) { eq.numero = numeroNovo; break; }
+  }
+  ['A', 'B', 'C'].forEach((t) => {
+    const antigo = `motoristas|equip|${numeroAntigo}|${t}`;
+    const novo = `motoristas|equip|${numeroNovo}|${t}`;
+    if (edits.equipe[antigo]) { edits.equipe[novo] = edits.equipe[antigo]; delete edits.equipe[antigo]; }
+  });
+  if (edits.newEquip[numeroAntigo] !== undefined) { edits.newEquip[numeroNovo] = edits.newEquip[numeroAntigo]; delete edits.newEquip[numeroAntigo]; }
+  if (edits.moves[numeroAntigo] !== undefined) { edits.moves[numeroNovo] = edits.moves[numeroAntigo]; delete edits.moves[numeroAntigo]; }
+  edits.renumeracoes[numeroAntigo] = numeroNovo;
+  persistEdits();
+}
+
+function wireEquipeStructure(container, ds, cfg) {
+  const unidade = state.unit[cfg.id];
+
+  container.querySelectorAll('.equip-numero-edit').forEach((el) => {
+    el.addEventListener('click', () => {
+      const numeroAntigo = el.dataset.equip;
+      const numeroNovo = (prompt('Novo número para este equipamento:', numeroAntigo) || '').trim();
+      if (!numeroNovo || numeroNovo === numeroAntigo) return;
+      if (equipamentoExiste(ds, numeroNovo)) { alert(`Já existe um equipamento ${numeroNovo} cadastrado.`); return; }
+      renameEquipamento(ds, numeroAntigo, numeroNovo);
+      renderPanel();
+    });
+  });
+
   container.querySelectorAll('.equip-move-select').forEach((sel) => {
     const original = sel.value;
     sel.addEventListener('change', () => {
@@ -770,11 +924,12 @@ function wireEquipeStructure(container, ds) {
       if (target === '__novo__') {
         target = (prompt('Nome do novo grupo (ex.: GRUPO 09):') || '').trim().toUpperCase();
         if (!target) { sel.value = original; return; }
-        if (!edits.newGrupos.includes(target) && !ds.mestre.some((g) => g.grupo === target)) edits.newGrupos.push(target);
+        const jaExiste = edits.newGrupos.some((g) => g.nome === target && g.unidade === unidade) || ds.mestre.some((g) => g.grupo === target && g.unidade === unidade);
+        if (!jaExiste) edits.newGrupos.push({ nome: target, unidade });
       }
       edits.moves[numero] = target;
       persistEdits();
-      moveEquipamentoToGrupo(ds, numero, target);
+      moveEquipamentoToGrupo(ds, numero, target, unidade);
       ordenarMestre(ds);
       renderPanel();
     });
@@ -797,8 +952,8 @@ function wireEquipeStructure(container, ds) {
   if (addGrupoBtn) addGrupoBtn.addEventListener('click', () => {
     const nome = (prompt('Nome do novo grupo (ex.: GRUPO 09):') || '').trim().toUpperCase();
     if (!nome) return;
-    if (ds.mestre.some((g) => g.grupo === nome)) { alert(`O grupo "${nome}" já existe.`); return; }
-    edits.newGrupos.push(nome);
+    if (ds.mestre.some((g) => g.grupo === nome && g.unidade === unidade)) { alert(`O grupo "${nome}" já existe nesta UO.`); return; }
+    edits.newGrupos.push({ nome, unidade });
     persistEdits();
     applyStoredMestreOps(ds);
     renderPanel();
@@ -954,7 +1109,7 @@ function renderGrid(ds, cfg, monthMeta) {
   }
 }
 
-function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
+async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   const monthKey = monthMeta.chave;
   // Mês sem dados na planilha de origem (ex.: Dezembro do Master Driver)
   // começa em branco — o primeiro clique inicializa o mês como "tudo
@@ -967,9 +1122,10 @@ function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
 
   const rot = rotationParamsFor(cfg);
   if (next === 'O' && rot) {
-    const aplicar = confirm(
+    const aplicar = await showConfirmModal(
       `Marcar este dia como folga e repetir o padrão ${cfg.tag} (${rot.workDays} dias de trabalho + ${rot.offDays} de folga) a partir dele, preenchendo sozinho o resto do calendário deste colaborador em todos os meses?\n\n` +
-      `Isso substitui a escala inteira dele (mantém só o líder/telefone/etc.). Clique em Cancelar para marcar só este dia.`
+      `Isso substitui a escala inteira dele (mantém só o líder/telefone/etc.).`,
+      { confirmLabel: 'Aplicar padrão', cancelLabel: 'Só este dia' }
     );
     if (aplicar) {
       const anchorEpoch = epochDay(ds.ano, monthMeta.numero, day);
@@ -1120,13 +1276,41 @@ function as_int_or_null(s) {
 }
 function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); }
 
+// Confirmação com a cara do app (em vez do confirm() cru do navegador,
+// que mostra o domínio do site e não combina com o resto do visual).
+function showConfirmModal(message, opts) {
+  opts = opts || {};
+  const confirmLabel = opts.confirmLabel || 'Confirmar';
+  const cancelLabel = opts.cancelLabel || 'Cancelar';
+  const danger = !!opts.danger;
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('modalBackdrop');
+    backdrop.innerHTML = `
+      <div class="modal confirm-modal">
+        <div class="modal-body">
+          <p class="confirm-msg">${String(message).replace(/\n/g, '<br>')}</p>
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn" id="confirmCancelBtn">${cancelLabel}</button>
+          <button class="icon-btn primary ${danger ? 'danger' : ''}" id="confirmOkBtn">${confirmLabel}</button>
+        </div>
+      </div>
+    `;
+    backdrop.classList.add('open');
+    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
+    document.getElementById('confirmCancelBtn').addEventListener('click', () => finish(false));
+    document.getElementById('confirmOkBtn').addEventListener('click', () => finish(true));
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(false); }, { once: true });
+  });
+}
+
 /* ------------------------------------------------------------------ */
 
 function tickClock() {
   const el = document.getElementById('clock');
   if (!el) return;
   const now = new Date();
-  el.innerHTML = `<strong>${fmtLongDate(now)}</strong>${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  el.innerHTML = `<strong>${fmtLongDate(now)}</strong><span class="clock-time">${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1155,9 +1339,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.toggle('edit-mode', state.editMode);
     if (datasets[state.activeTab]) renderPanel();
   });
-  document.getElementById('resetEditsBtn').addEventListener('click', () => {
-    if (!confirm('Isso vai apagar todas as edições salvas neste navegador e voltar aos dados originais da planilha. Continuar?')) return;
+  document.getElementById('resetEditsBtn').addEventListener('click', async () => {
+    const ok = await showConfirmModal('Isso vai apagar todas as edições salvas neste navegador e voltar aos dados originais da planilha.', { confirmLabel: 'Restaurar original', danger: true });
+    if (!ok) return;
     localStorage.removeItem(EDIT_STORAGE_KEY);
     location.reload();
+  });
+  document.getElementById('installAppBtn').addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    document.getElementById('installAppBtn').style.display = 'none';
   });
 });

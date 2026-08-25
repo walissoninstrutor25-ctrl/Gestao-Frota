@@ -389,7 +389,8 @@ def parse_mestre_file1(path):
     while r <= ws.max_row:
         a = clean(ws.cell(row=r, column=1).value)
         if isinstance(a, str) and re.match(r'^GRUPO\s*\d+', a.strip()):
-            current = {'grupo': re.sub(r'\s+', ' ', a.strip()), 'equipamentos': [], 'folguistas': {}}
+            # Mesma UO única (MNS) das outras planilhas — ver UNIDADES_MNS_PRA.
+            current = {'grupo': re.sub(r'\s+', ' ', a.strip()), 'equipamentos': [], 'folguistas': {}, 'unidade': 'MNS'}
             grupos.append(current)
             r += 1
             continue
@@ -565,6 +566,11 @@ def build_file2(path, out_turno_path, out_patio_path):
     mestre_sections = parse_mestre_file2(path)
     mestre_turno = next((s for s in mestre_sections if s['titulo'] == 'Líder de Turno'), None)
     mestre_patio = next((s for s in mestre_sections if s['titulo'] == 'Líder de Pátio'), None)
+    # Mesma UO única (MNS) do resto da planilha — só aparece na UO MNS no app.
+    if mestre_turno is not None:
+        mestre_turno['unidade'] = 'MNS'
+    if mestre_patio is not None:
+        mestre_patio['unidade'] = 'MNS'
 
     data_turno = {
         'titulo': 'Escala 6x2 — Líder de Turno',

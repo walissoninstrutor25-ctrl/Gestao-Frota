@@ -223,6 +223,7 @@ window.DATA_LIDERES_TURNO = {
         "nome": "ANDRE FERREIRA RODRIGUES",
         "turno": "B"
       }
-    ]
+    ],
+    "unidade": "MNS"
   }
 };
