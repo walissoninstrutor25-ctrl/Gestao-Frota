@@ -875,6 +875,679 @@ window.DATA_MOTORISTAS_META = {
       ],
       "folguistas": {},
       "unidade": "MNS"
+    },
+    {
+      "grupo": "GRUPO 01",
+      "equipamentos": [
+        {
+          "numero": "94",
+          "turnos": {
+            "A": {
+              "matricula": 31770,
+              "nome": "JOSE CARLOS DA SILVA"
+            },
+            "B": {
+              "matricula": 32019,
+              "nome": "CARLOS LUCAS VILELA"
+            },
+            "C": {
+              "matricula": 31541,
+              "nome": "EDILSON HELENO DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "98",
+          "turnos": {
+            "A": {
+              "matricula": 31754,
+              "nome": "ANGELICA CAETANO FERREIRA PINHEIRO"
+            },
+            "B": {
+              "matricula": 31845,
+              "nome": "ANTONIO FRANCISCO ALVES DE OLIVEIRA"
+            },
+            "C": {
+              "matricula": 31542,
+              "nome": "ISMAEL JOSE MARQUES DO NASCIMENTO"
+            }
+          }
+        },
+        {
+          "numero": "110",
+          "turnos": {
+            "A": {
+              "matricula": 31903,
+              "nome": "SERGIO FERREIRA DA SILVA"
+            },
+            "B": {
+              "matricula": 31817,
+              "nome": "EDNALDO PEDRO DA SILVA"
+            },
+            "C": {
+              "matricula": 31930,
+              "nome": "EDMUNDO FRANCISCO DA SILVA NETO"
+            }
+          }
+        },
+        {
+          "numero": "107",
+          "turnos": {
+            "A": {
+              "matricula": 31470,
+              "nome": "JOSE VALDES CALADO DE LIMA FILHO"
+            },
+            "B": {
+              "matricula": 31769,
+              "nome": "JOSE ALAI DA SILVA"
+            },
+            "C": {
+              "matricula": 31790,
+              "nome": "WCLEVITON JOSE DOS SANTOS"
+            }
+          }
+        },
+        {
+          "numero": "100",
+          "turnos": {
+            "A": {
+              "matricula": 31772,
+              "nome": "JOSE LUIS DA SILVA FILHO"
+            },
+            "B": {
+              "matricula": 31762,
+              "nome": "EDSON JORGE DA SILVA"
+            },
+            "C": {
+              "matricula": 31899,
+              "nome": "LUIZ JOAO DOS SANTOS NETO"
+            }
+          }
+        }
+      ],
+      "folguistas": {
+        "A": {
+          "matricula": 31752,
+          "nome": "ADRIANO DE JESUS PERES"
+        },
+        "C": {
+          "matricula": 32472,
+          "nome": "HUMBERTO MIRANDA ARRUDA"
+        }
+      },
+      "unidade": "PRA"
+    },
+    {
+      "grupo": "GRUPO 02",
+      "equipamentos": [
+        {
+          "numero": "109",
+          "turnos": {
+            "B": {
+              "matricula": 31788,
+              "nome": "VALDENICIO COSME DA SILVA"
+            },
+            "C": {
+              "matricula": 31783,
+              "nome": "RICARDO GOMES DE OLIVEIRA"
+            }
+          }
+        },
+        {
+          "numero": "105",
+          "turnos": {
+            "A": {
+              "matricula": 31823,
+              "nome": "PAULO BARBOSA DA SILVA"
+            },
+            "B": {
+              "matricula": 31809,
+              "nome": "RENATO SOUZA NOGUEIRA"
+            },
+            "C": {
+              "matricula": 31778,
+              "nome": "MAURILIO ANDRE DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "106",
+          "turnos": {
+            "A": {
+              "matricula": 31519,
+              "nome": "ANTONIO PEREIRA DAS NEVES"
+            },
+            "B": {
+              "matricula": 31532,
+              "nome": "CLAYTON LUIZ DA SILVA"
+            },
+            "C": {
+              "matricula": 31785,
+              "nome": "SEBASTIAO DE CASTRO SANTOS"
+            }
+          }
+        },
+        {
+          "numero": "111",
+          "turnos": {
+            "A": {
+              "matricula": 31782,
+              "nome": "RAFAEL FERREIRA DA CRUZ"
+            },
+            "B": {
+              "matricula": 31550,
+              "nome": "JANDRE ANTONIO MARTINS"
+            },
+            "C": {
+              "matricula": 31531,
+              "nome": "CLAITON RODRIGUES SOUSA"
+            }
+          }
+        },
+        {
+          "numero": "113",
+          "turnos": {
+            "A": {
+              "matricula": 31827,
+              "nome": "JOSE NILSON DA SILVA"
+            },
+            "B": {
+              "matricula": 31777,
+              "nome": "MARCELO DA SILVA ARAUJO"
+            },
+            "C": {
+              "matricula": 31813,
+              "nome": "MARCOS ANTONIO DA SILVA SANTOS"
+            }
+          }
+        }
+      ],
+      "folguistas": {
+        "A": {
+          "matricula": 31824,
+          "nome": "CRISTEFANIO MORAES ALVES CABRAL"
+        },
+        "B": {
+          "matricula": 31846,
+          "nome": "JUANES BARBOSA DE OLIVEIRA"
+        },
+        "C": {
+          "matricula": 32207,
+          "nome": "DOMINGOS DE SOUZA ATAIDE"
+        }
+      },
+      "unidade": "PRA"
+    },
+    {
+      "grupo": "GRUPO 03",
+      "equipamentos": [
+        {
+          "numero": "104",
+          "turnos": {
+            "A": {
+              "matricula": 31787,
+              "nome": "SEBASTIAO PAIS NETO"
+            },
+            "B": {
+              "matricula": 31765,
+              "nome": "ISRAEL VICENTE DE SENA"
+            },
+            "C": {
+              "matricula": 31499,
+              "nome": "ELIXANDRE MARCIANO DE SILVA"
+            }
+          }
+        },
+        {
+          "numero": "96",
+          "turnos": {
+            "A": {
+              "matricula": 31883,
+              "nome": "MARCELO MANOEL DA SILVA"
+            },
+            "B": {
+              "matricula": 31756,
+              "nome": "AROLDO DA SILVA"
+            },
+            "C": {
+              "matricula": 31493,
+              "nome": "ALISON LIMA DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "115",
+          "turnos": {
+            "A": {
+              "matricula": 31560,
+              "nome": "WALAMY SOUZA COUTINHO"
+            },
+            "B": {
+              "matricula": 31554,
+              "nome": "MARTINIANO RAMOS DOS SANTOS"
+            },
+            "C": {
+              "matricula": 31802,
+              "nome": "KENNEDY RESENDE VILARINHO"
+            }
+          }
+        },
+        {
+          "numero": "112",
+          "turnos": {
+            "A": {
+              "matricula": 31902,
+              "nome": "UENDER SILVA SOUZA"
+            },
+            "B": {
+              "matricula": 31843,
+              "nome": "MANOEL LUIZ SOARES"
+            }
+          }
+        },
+        {
+          "numero": "103",
+          "turnos": {
+            "A": {
+              "matricula": 31768,
+              "nome": "JOAO RICARDO PERREIRA"
+            },
+            "B": {
+              "matricula": 31793,
+              "nome": "JOSE ROSINALDO FERRIRA DOS SANTOS"
+            },
+            "C": {
+              "matricula": 31497,
+              "nome": "ANTONIO MINERVINO DE FREITAS"
+            }
+          }
+        }
+      ],
+      "folguistas": {
+        "A": {
+          "matricula": 31796,
+          "nome": "UILHAS GOMES DE OLIVEIRA"
+        },
+        "B": {
+          "matricula": 31834,
+          "nome": "RONYEL DA SILVA FERREIRA"
+        },
+        "C": {
+          "matricula": 32302,
+          "nome": "IZAMAR DOS SANTOS LIMA"
+        }
+      },
+      "unidade": "PRA"
+    },
+    {
+      "grupo": "GRUPO 04",
+      "equipamentos": [
+        {
+          "numero": "95",
+          "turnos": {
+            "A": {
+              "matricula": 31556,
+              "nome": "TELSO FERREIRA DOURADO"
+            },
+            "B": {
+              "matricula": 31799,
+              "nome": "LUIS PAULO DOS SANTOS"
+            }
+          }
+        },
+        {
+          "numero": "101",
+          "turnos": {
+            "A": {
+              "matricula": 31805,
+              "nome": "WILTON PEREIRA OLIVEIRA"
+            },
+            "B": {
+              "matricula": 31812,
+              "nome": "MAIRON SILVA DUTRA"
+            },
+            "C": {
+              "matricula": 31795,
+              "nome": "WELLINGTON OLIVEIRA DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "108",
+          "turnos": {
+            "A": {
+              "matricula": 31791,
+              "nome": "WILLIS VILELA DOS SANTOS"
+            },
+            "B": {
+              "matricula": 31828,
+              "nome": "EDUARDO RIBEIRO"
+            },
+            "C": {
+              "matricula": 31533,
+              "nome": "GILBERTO BARBOSA SOUZA"
+            }
+          }
+        },
+        {
+          "numero": "92",
+          "turnos": {
+            "A": {
+              "matricula": 31565,
+              "nome": "LEDIO JOSE DE AMORIM"
+            },
+            "B": {
+              "matricula": 31792,
+              "nome": "ROSALVO SANTANA PINHEIRO"
+            },
+            "C": {
+              "matricula": 31539,
+              "nome": "CLAUDIO JOSE JOVENCIO"
+            }
+          }
+        },
+        {
+          "numero": "97",
+          "turnos": {
+            "A": {
+              "matricula": 31750,
+              "nome": "ADELIO PEREIRA DE CARVALHO"
+            },
+            "B": {
+              "matricula": 31885,
+              "nome": "MIRIAN ROMAO PIRES"
+            },
+            "C": {
+              "matricula": 31889,
+              "nome": "WALTER LANGHOLZ"
+            }
+          }
+        }
+      ],
+      "folguistas": {
+        "A": {
+          "matricula": 31751,
+          "nome": "ADEUSMI ANANIAS DE REZENDE"
+        },
+        "B": {
+          "matricula": 31886,
+          "nome": "RONALDO OLEGARIO DA SILVA"
+        },
+        "C": {
+          "matricula": 32303,
+          "nome": "WELLINGTON XAVIER DA SILVA"
+        }
+      },
+      "unidade": "PRA"
+    },
+    {
+      "grupo": "GRUPO 05",
+      "equipamentos": [
+        {
+          "numero": "99",
+          "turnos": {
+            "A": {
+              "matricula": 31571,
+              "nome": "SAMUEL ARAUJO DA CRUZ"
+            },
+            "B": {
+              "matricula": 31832,
+              "nome": "JOSE ALBERTO VIEIRA DOS SANTOS"
+            },
+            "C": {
+              "matricula": 32348,
+              "nome": "FABIO DOS SANTOS"
+            }
+          }
+        },
+        {
+          "numero": "93",
+          "turnos": {
+            "A": {
+              "matricula": 31822,
+              "nome": "HERICK CARRIJO REGO"
+            },
+            "B": {
+              "matricula": 31896,
+              "nome": "JOSE CICERO NASCIMENTO DOS SANTOS"
+            },
+            "C": {
+              "matricula": 31825,
+              "nome": "AMARO DAMIAO DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "612",
+          "turnos": {
+            "A": {
+              "matricula": 31540,
+              "nome": "EDNALDO SEVERINO DA SILVA"
+            },
+            "B": {
+              "matricula": 31521,
+              "nome": "ELIAS FERNANDES DO NASCIMENTO"
+            },
+            "C": {
+              "matricula": 31882,
+              "nome": "EDMILSON ANTONIO DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "567",
+          "turnos": {
+            "A": {
+              "matricula": 31764,
+              "nome": "EVAIR DE SOUZA TOMAZ"
+            },
+            "B": {
+              "matricula": 30622,
+              "nome": "DIEGO MARQUES DE OLIVEIRA"
+            },
+            "C": {
+              "matricula": 31804,
+              "nome": "JOSE EDUARDO FERREIRA DOS SANTOS"
+            }
+          }
+        },
+        {
+          "numero": "621",
+          "turnos": {
+            "A": {
+              "matricula": 31789,
+              "nome": "VALDIR ALEONCIO DE OLIVEIRA"
+            },
+            "B": {
+              "matricula": 31520,
+              "nome": "DIEGO VIANA DE OLIVEIRA E OLIVEIRA"
+            },
+            "C": {
+              "matricula": 31773,
+              "nome": "JOSE LUIZ PEREIRA SILVA"
+            }
+          }
+        }
+      ],
+      "folguistas": {
+        "A": {
+          "matricula": 31801,
+          "nome": "DERIVALDO JESUS SOUZA"
+        },
+        "B": {
+          "matricula": 31797,
+          "nome": "JOSE JACKSON DE ALMEIDA SANTOS"
+        },
+        "C": {
+          "matricula": 32474,
+          "nome": "ROGERIO PEREIRA SILVA"
+        }
+      },
+      "unidade": "PRA"
+    },
+    {
+      "grupo": "GRUPO 06",
+      "equipamentos": [
+        {
+          "numero": "618",
+          "turnos": {
+            "A": {
+              "matricula": 31820,
+              "nome": "EDVALDO SOARES DA SILVA"
+            },
+            "B": {
+              "matricula": 31800,
+              "nome": "RIVALDO JOSE MARIANO"
+            },
+            "C": {
+              "matricula": 31552,
+              "nome": "LUCIANO INACIO DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "569",
+          "turnos": {
+            "A": {
+              "matricula": 31819,
+              "nome": "ISMAEL PAULO DA SILVA"
+            },
+            "B": {
+              "matricula": 31848,
+              "nome": "RODRIGO DOS SANTOS LIMA"
+            },
+            "C": {
+              "matricula": 31807,
+              "nome": "JEFERSON DE AZEVEDO SILVA"
+            }
+          }
+        },
+        {
+          "numero": "568",
+          "turnos": {
+            "B": {
+              "matricula": 32021,
+              "nome": "EDER ALVES GOMES"
+            },
+            "C": {
+              "matricula": 32090,
+              "nome": "EVERALDO SEBASTIAO DA SILVA VALENTIM"
+            }
+          }
+        },
+        {
+          "numero": "615",
+          "turnos": {
+            "A": {
+              "matricula": 31810,
+              "nome": "VILMAR ANDRADE PEREIRA"
+            },
+            "B": {
+              "matricula": 32023,
+              "nome": "DEURIVAN BORGES DE SOUSA"
+            },
+            "C": {
+              "matricula": 31933,
+              "nome": "THIAGO MATEUS FERREIRA DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "563",
+          "turnos": {
+            "A": {
+              "matricula": 31806,
+              "nome": "CARLOS EDUARDO OLIVEIRA RIBEIRO"
+            },
+            "B": {
+              "matricula": 31895,
+              "nome": "JOAO FERNANDO DE OLIVEIRA"
+            },
+            "C": {
+              "matricula": 32334,
+              "nome": "MARCUS LUIZ DA SILVA"
+            }
+          }
+        }
+      ],
+      "folguistas": {
+        "A": {
+          "matricula": 31831,
+          "nome": "JANIO DA SILVA SANTOS"
+        },
+        "B": {
+          "matricula": 31808,
+          "nome": "ADMILSON MESSIAS DA SILVA"
+        },
+        "C": {
+          "matricula": 32395,
+          "nome": "CLEITON FERREIRA GOMES"
+        }
+      },
+      "unidade": "PRA"
+    },
+    {
+      "grupo": "GRUPO 07",
+      "equipamentos": [
+        {
+          "numero": "613",
+          "turnos": {
+            "A": {
+              "matricula": 31941,
+              "nome": "JOSE CICERO DA SILVA OLIVEIRA"
+            },
+            "B": {
+              "matricula": 31829,
+              "nome": "GLEIDSON DA SILVA MENDONCA"
+            },
+            "C": {
+              "matricula": 31836,
+              "nome": "JOSE FRANCISCO FLORIANO DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "617",
+          "turnos": {
+            "A": {
+              "matricula": 31821,
+              "nome": "JOSE DEIVERSON BEZERRA DA SILVA"
+            },
+            "B": {
+              "matricula": 31830,
+              "nome": "JAIRO RONALDO SILVA DE OLIVEIRA"
+            },
+            "C": {
+              "matricula": 31794,
+              "nome": "ELSON PAULO DA SILVA"
+            }
+          }
+        },
+        {
+          "numero": "562",
+          "turnos": {
+            "B": {
+              "matricula": 31835,
+              "nome": "WISLEY RAMOS DE LIMA"
+            },
+            "C": {
+              "matricula": 32479,
+              "nome": "GEOVANE FERNANDES DE SOUZA"
+            }
+          }
+        }
+      ],
+      "folguistas": {
+        "B": {
+          "matricula": 31798,
+          "nome": "LAILSON TENORIO TORRES"
+        },
+        "C": {
+          "matricula": 31803,
+          "nome": "JAILSON VICENTE DA SILVA"
+        }
+      },
+      "unidade": "PRA"
     }
   ]
 };

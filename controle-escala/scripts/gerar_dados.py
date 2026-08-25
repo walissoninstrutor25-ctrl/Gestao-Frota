@@ -281,19 +281,46 @@ def build_meses_meta(monthly_data):
 
 # ---------- NOMES parsers ----------
 
+def find_header_cols(ws, wanted, header_row=1):
+    """wanted: {campo: [nomes de cabeçalho aceitos, em ordem de preferência]}.
+    Lê a linha de cabeçalho e acha a coluna de cada campo pelo texto (não
+    pela posição) — planilhas de sites/UO diferentes usam o mesmo tipo de
+    aba com colunas em ordens diferentes (ex.: MATRICULA/NOME trocados de
+    posição, ou colunas a mais/a menos como Lider/Telefone)."""
+    by_text = {}
+    for c in range(1, ws.max_column + 1):
+        h = clean(ws.cell(row=header_row, column=c).value)
+        if isinstance(h, str):
+            by_text.setdefault(h.strip().upper(), c)
+    cols = {}
+    for campo, nomes in wanted.items():
+        for nome in nomes:
+            if nome.upper() in by_text:
+                cols[campo] = by_text[nome.upper()]
+                break
+    return cols
+
+
 def parse_nomes_file1(path):
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb['NOMES']
+    cols = find_header_cols(ws, {
+        'matricula': ['MATRICULA', 'MATRÍCULA', 'N° REGISTRO'],
+        'nome': ['NOME', 'COLABORADOR'],
+        'lider': ['LIDER', 'LÍDER'],
+        'telefone': ['TELEFONE'],
+        'cargo': ['CARGO', 'FUNÇÃO'],
+    })
     lookup = {}
     lookup_by_name = {}
     for r in range(2, ws.max_row + 1):
-        nome = clean(ws.cell(row=r, column=2).value)
-        mat = as_matricula(ws.cell(row=r, column=1).value)
+        nome = clean(ws.cell(row=r, column=cols['nome']).value) if 'nome' in cols else None
+        mat = as_matricula(ws.cell(row=r, column=cols['matricula']).value) if 'matricula' in cols else None
         if mat is None and nome is None:
             continue
-        lider = clean(ws.cell(row=r, column=5).value)
-        telefone = clean(ws.cell(row=r, column=6).value)
-        cargo = clean(ws.cell(row=r, column=4).value)
+        lider = clean(ws.cell(row=r, column=cols['lider']).value) if 'lider' in cols else None
+        telefone = clean(ws.cell(row=r, column=cols['telefone']).value) if 'telefone' in cols else None
+        cargo = clean(ws.cell(row=r, column=cols['cargo']).value) if 'cargo' in cols else None
         entry = {'lider': lider, 'telefone': telefone, 'cargo': cargo}
         if mat is not None:
             lookup[mat] = entry
@@ -376,7 +403,7 @@ def _pessoa(mat, nome):
     return {'matricula': mat, 'nome': nome} if (mat or nome) else None
 
 
-def parse_mestre_file1(path):
+def parse_mestre_file1(path, unidade='MNS'):
     """GRUPO block -> repeated 3-row 'Equipamento' sub-blocks (header row with
     turno labels + optional folguistas in cols E-M, then a matrículas row,
     then a names row). Folguistas (Turno A/B/C) only appear on the first
@@ -389,8 +416,7 @@ def parse_mestre_file1(path):
     while r <= ws.max_row:
         a = clean(ws.cell(row=r, column=1).value)
         if isinstance(a, str) and re.match(r'^GRUPO\s*\d+', a.strip()):
-            # Mesma UO única (MNS) das outras planilhas — ver UNIDADES_MNS_PRA.
-            current = {'grupo': re.sub(r'\s+', ' ', a.strip()), 'equipamentos': [], 'folguistas': {}, 'unidade': 'MNS'}
+            current = {'grupo': re.sub(r'\s+', ' ', a.strip()), 'equipamentos': [], 'folguistas': {}, 'unidade': unidade}
             grupos.append(current)
             r += 1
             continue
@@ -508,15 +534,25 @@ def write_js_data(path, varname, data):
         f.write(';\n')
 
 
-def build_file1(path, out_path):
+def build_file1(path, out_path, path_pra=None):
     monthly = parse_all_months(path, marker_grupo)
     lookup, lookup_by_name = parse_nomes_file1(path)
     people = consolidate(monthly, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
-    # A planilha recebida só cobre o lado MNS (não tem coluna de UO como a
-    # do Master Driver) — todo mundo aqui é marcado MNS, e o lado PRA
-    # nasce vazio na aba, pronto pra ser preenchido pelo app.
     for p in people:
         p['unidade'] = 'MNS'
+    mestre = parse_mestre_file1(path, unidade='MNS')
+
+    if path_pra:
+        # Planilha própria do PRA (mesmo formato, colunas da aba NOMES em
+        # ordem diferente — parse_nomes_file1 já lê pelo texto do
+        # cabeçalho, não pela posição, por causa disso).
+        monthly_pra = parse_all_months(path_pra, marker_grupo)
+        lookup_pra, lookup_by_name_pra = parse_nomes_file1(path_pra)
+        people_pra = consolidate(monthly_pra, extra_lookup=lookup_pra, extra_lookup_by_name=lookup_by_name_pra)
+        for p in people_pra:
+            p['unidade'] = 'PRA'
+        people += people_pra
+        mestre += parse_mestre_file1(path_pra, unidade='PRA')
     grupos = sorted(set(p['grupo'] for p in people if p['grupo']))
     # Colaboradores are split into one small file per grupo (data/motoristas/*.js)
     # instead of one big array inline here: keeps each generated file small,
@@ -538,10 +574,11 @@ def build_file1(path, out_path):
         'unidades': UNIDADES_MNS_PRA,
         'grupos': grupos,
         'colaboradoresPorGrupoVar': grupo_vars,
-        'mestre': parse_mestre_file1(path),
+        'mestre': mestre,
     }
     write_js_data(out_path, 'DATA_MOTORISTAS_META', data)
-    print(f'{out_path}: {len(people)} colaboradores em {len(grupos)} arquivo(s) de grupo, grupos={grupos}')
+    unidades_count = {u: sum(1 for p in people if p['unidade'] == u) for u in ('MNS', 'PRA')}
+    print(f'{out_path}: {len(people)} colaboradores em {len(grupos)} arquivo(s) de grupo, grupos={grupos}, por UO={unidades_count}')
     return data
 
 
@@ -662,14 +699,15 @@ if __name__ == '__main__':
     import argparse
 
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--motoristas', required=True, help='Escala 5x1 Motorista Canavieiro (.xlsx)')
+    ap.add_argument('--motoristas', required=True, help='Escala 5x1 Motorista Canavieiro, lado MNS (.xlsx)')
+    ap.add_argument('--motoristas-pra', help='Escala 5x1 Motorista Canavieiro, lado PRA (.xlsx) — opcional')
     ap.add_argument('--lideres', required=True, help='Escala 6x2 Lideres de Turno e Patio (.xlsx)')
     ap.add_argument('--master', required=True, help='Escala 5x1 Master Drivers MNS/PRA (.xlsx)')
     ap.add_argument('--outdir', default=os.path.join(os.path.dirname(__file__), '..', 'data'))
     args = ap.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
-    build_file1(args.motoristas, os.path.join(args.outdir, 'motoristas.js'))
+    build_file1(args.motoristas, os.path.join(args.outdir, 'motoristas.js'), path_pra=args.motoristas_pra)
     build_file2(args.lideres, os.path.join(args.outdir, 'lideres_turno.js'), os.path.join(args.outdir, 'lideres_patio.js'))
     build_file3(args.master, os.path.join(args.outdir, 'master_driver.js'))
     build_adm5x2(os.path.join(args.outdir, 'adm5x2.js'))
