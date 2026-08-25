@@ -42,6 +42,16 @@ function fail(err) {
   window.dispatchEvent(new Event("firebase-sync-ready"));
 }
 
+// Qualquer chamada individual ao Firestore (não só o carregamento do SDK)
+// também pode travar numa rede ruim — isso corta a espera pra não deixar
+// nada pendurado indefinidamente.
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("tempo esgotado")), ms)),
+  ]);
+}
+
 async function connect() {
   const [appMod, firestoreMod] = await Promise.all([
     import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),
@@ -61,7 +71,7 @@ async function connect() {
     stableStringify,
     async fetchInitial() {
       try {
-        const snap = await getDoc(ref);
+        const snap = await withTimeout(getDoc(ref), 8000);
         return snap.exists() ? snap.data() : null;
       } catch (err) {
         console.error("Firebase: falha ao buscar dados iniciais", err);
@@ -71,7 +81,7 @@ async function connect() {
     async pushEdits(edits) {
       lastPushedJson = stableStringify(edits);
       try {
-        await setDoc(ref, JSON.parse(JSON.stringify(edits)));
+        await withTimeout(setDoc(ref, JSON.parse(JSON.stringify(edits))), 8000);
       } catch (err) {
         console.error("Firebase: falha ao salvar (mudança fica só local até reconectar)", err);
       }
@@ -99,3 +109,19 @@ let settled = false;
 setStatus("🟡 Conectando…", "sync-connecting");
 connect().then(() => { settled = true; }).catch((err) => { settled = true; fail(err); });
 setTimeout(() => { if (!settled) { settled = true; fail(new Error("tempo esgotado ao conectar")); } }, CONNECT_TIMEOUT_MS);
+
+// Segunda trava, mais folgada: mesmo que connect() e as chamadas internas
+// (que já têm seus próprios limites) se comportem de um jeito imprevisto
+// numa rede real, o texto visível nunca fica preso em "Conectando…" além
+// desse prazo. Só corrige o texto — não mexe em window.__firebaseSync,
+// porque se connect() já tiver terminado (ready:true) o push/fetch podem
+// muito bem estar funcionando mesmo sem a primeira confirmação do
+// onSnapshot ainda ter chegado, e desligar isso seria pior que só um
+// indicador desatualizado.
+setTimeout(() => {
+  const el = document.getElementById("syncStatus");
+  if (el && el.textContent.includes("Conectando")) {
+    el.textContent = "🔴 Offline";
+    el.className = "sync-status sync-offline";
+  }
+}, 25000);
