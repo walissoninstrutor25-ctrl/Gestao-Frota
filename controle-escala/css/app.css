@@ -168,7 +168,11 @@ main{max-width:1440px; margin:0 auto; padding:18px 20px 60px;}
 .today-strip .ts-date{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.02em; font-size:15px;}
 .today-strip .ts-date small{display:block; font-family:'Inter',sans-serif; text-transform:none; letter-spacing:0; font-size:11.5px; opacity:.8; font-weight:500;}
 .today-strip .ts-stats{display:flex; gap:22px; margin-left:auto; flex-wrap:wrap;}
-.today-strip .ts-stat{text-align:right;}
+.today-strip .ts-stat{
+  text-align:right; appearance:none; border:none; background:transparent; color:inherit;
+  font-family:inherit; cursor:pointer; padding:4px 6px; border-radius:8px; transition:background .15s;
+}
+.today-strip .ts-stat:hover, .today-strip .ts-stat:focus-visible{background:rgba(255,255,255,0.18);}
 .today-strip .ts-stat b{display:block; font-size:20px; font-family:'Roboto Mono',monospace; line-height:1.1;}
 .today-strip .ts-stat span{font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; opacity:.85;}
 .today-strip.out-of-range{background:var(--surface-2); color:var(--text-muted); border:1px dashed var(--line); box-shadow:none;}
@@ -356,6 +360,11 @@ table.escala .day-col.today-col{background:var(--amber-dim); color:var(--amber);
   background:var(--surface); border-radius:14px; max-width:420px; width:100%;
   box-shadow:0 20px 60px rgba(0,0,0,0.25); overflow:hidden;
 }
+.people-list-modal{max-width:520px;}
+.people-list-modal .modal-body{padding:0; max-height:60vh; overflow-y:auto;}
+.people-list-modal table.dash-table{width:100%;}
+.people-list-modal table.dash-table th, .people-list-modal table.dash-table td{padding:9px 20px;}
+.people-list-modal table.dash-table thead th{position:sticky; top:0; background:var(--surface); z-index:1;}
 .modal-head{background:var(--accent); color:#fff; padding:18px 20px;}
 .modal-head h3{margin:0 0 3px; font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px; letter-spacing:.02em;}
 .modal-head span{font-size:12px; opacity:.85;}

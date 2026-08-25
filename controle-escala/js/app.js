@@ -1275,11 +1275,45 @@ function renderTodayStrip(ds, cfg, monthMeta) {
         ${showWorkNames ? `<small>Trabalhando: ${workingPeople.map(fmtPessoa).join(', ')}</small>` : ''}
       </div>
       <div class="ts-stats">
-        <div class="ts-stat"><b>${work}</b><span>Trabalhando</span></div>
-        <div class="ts-stat"><b>${off}</b><span>De folga</span></div>
+        <button class="ts-stat" id="tsStatWork" type="button"><b>${work}</b><span>Trabalhando</span></button>
+        <button class="ts-stat" id="tsStatOff" type="button"><b>${off}</b><span>De folga</span></button>
       </div>
     </div>
   `;
+  document.getElementById('tsStatWork').addEventListener('click', () => showPeopleListModal('Trabalhando hoje', workingPeople));
+  document.getElementById('tsStatOff').addEventListener('click', () => showPeopleListModal('De folga hoje', offPeople));
+}
+
+// Lista clicável a partir dos números do quadro "Hoje" — nome, matrícula
+// e turno um embaixo do outro, em vez do resumo em linha só (que fica
+// ilegível quando a lista é grande).
+function showPeopleListModal(title, people) {
+  const backdrop = document.getElementById('modalBackdrop');
+  const sorted = [...people].sort((a, b) => a.nome.localeCompare(b.nome));
+  const rows = sorted.map((p) => `
+    <tr>
+      <td>${p.nome}</td>
+      <td>${p.matricula || '—'}</td>
+      <td>${p.papelNormalizado || '—'}</td>
+    </tr>`).join('');
+  const finish = () => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; };
+  backdrop.innerHTML = `
+    <div class="modal people-list-modal">
+      <div class="modal-head">
+        <h3>${title}</h3>
+        <span>${people.length} colaborador${people.length === 1 ? '' : 'es'}</span>
+        <button class="modal-close" id="peopleListCloseBtn">✕</button>
+      </div>
+      <div class="modal-body">
+        <table class="dash-table">
+          <thead><tr><th>Nome</th><th>Matrícula</th><th>Turno</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="3"><div class="empty-state">Ninguém nessa lista.</div></td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+  backdrop.classList.add('open');
+  document.getElementById('peopleListCloseBtn').addEventListener('click', finish);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(); }, { once: true });
 }
 
 function renderCards(ds, cfg, monthMeta) {
