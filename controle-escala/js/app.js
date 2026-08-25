@@ -97,9 +97,10 @@ function loadEdits() {
       rotacao: raw.rotacao || {}, // pk -> epochDay âncora (dia de folga) do padrão 5x1/6x2 dessa pessoa
       renumeracoes: raw.renumeracoes || {}, // numero antigo -> numero novo (equipamento renomeado)
       metas: raw.metas || {}, // "tabId|turno|UO" -> meta de vagas (controle de vagas do dashboard)
+      driversDb: raw.driversDb || {}, // matrícula (string) -> {nome, unidade} — banco central pra autocompletar nome pela matrícula
     };
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {}, metas: {} };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {}, metas: {}, driversDb: {} };
   }
 }
 
@@ -486,89 +487,6 @@ function visiblePeople() {
   return people;
 }
 
-// Exporta exatamente o que está filtrado/visível na tela (busca, grupo,
-// turno e — quando a aba tem UO — a UO selecionada), então pra baixar só
-// os dados de uma UO basta selecioná-la antes de exportar.
-function csvEscape(v) {
-  const s = String(v == null ? '' : v);
-  return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-}
-
-// Lê uma planilha no mesmo formato do Exportar CSV (mesmos cabeçalhos,
-// ';' como separador) e adiciona uma linha por colaborador — reconhece a
-// coluna UO quando presente, então uma única planilha com linhas MNS e
-// PRA misturadas povoa as duas UO de uma vez. Cada linha vira uma pessoa
-// nova (mesmo mecanismo do "+ Adicionar colaborador"); pra substituir o
-// que já existe, use "Limpar dados" antes de importar.
-function parseCsvLine(line) {
-  const out = [];
-  let cur = '', inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (inQuotes) {
-      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = false; } }
-      else cur += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ';') { out.push(cur); cur = ''; }
-    else cur += c;
-  }
-  out.push(cur);
-  return out;
-}
-
-function importCsvText(text, ds, cfg) {
-  const clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
-  const lines = clean.split(/\r\n|\n|\r/).filter((l) => l.trim() !== '');
-  if (lines.length < 2) return 0;
-  const header = parseCsvLine(lines[0]).map((h) => h.trim());
-  const col = (name) => header.indexOf(name);
-  const iNome = col('Nome'), iMat = col('Matrícula'), iGrupo = col('Grupo'), iTurno = col('Turno'), iLider = col('Líder'), iTel = col('Telefone'), iUO = col('UO');
-  let count = 0;
-  for (let li = 1; li < lines.length; li++) {
-    const cols = parseCsvLine(lines[li]);
-    const nome = (cols[iNome] || '').trim();
-    if (!nome) continue;
-    const novo = {
-      __pk: `${cfg.id}|novo|${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${count}`,
-      nome,
-      matricula: as_int_or_null((cols[iMat] || '').trim()),
-      grupo: (cols[iGrupo] || '').trim() || null,
-      papelNormalizado: (cols[iTurno] || '').trim() || null,
-      lider: (cols[iLider] || '').trim() || null,
-      telefone: (cols[iTel] || '').trim() || null,
-    };
-    if (cfg.hasUnits) novo.unidade = (iUO !== -1 && (cols[iUO] || '').trim()) || state.unit[cfg.id];
-    ds.colaboradores.push({ ...novo, escala: buildAutoEscala(ds, cfg) });
-    edits.novosColaboradores[cfg.id] = edits.novosColaboradores[cfg.id] || [];
-    edits.novosColaboradores[cfg.id].push(novo);
-    count++;
-  }
-  if (count) persistEdits();
-  return count;
-}
-
-function exportCsv(ds, cfg) {
-  const people = visiblePeople();
-  const headers = ['Nome', 'Matrícula', 'Grupo', 'Turno', 'Líder', 'Telefone'];
-  if (cfg.hasUnits) headers.push('UO');
-  const rows = people.map((p) => {
-    const row = [p.nome, p.matricula ?? '', p.grupo ?? '', p.papelNormalizado ?? '', p.lider ?? '', p.telefone ?? ''];
-    if (cfg.hasUnits) row.push(p.unidade ?? '');
-    return row;
-  });
-  const csv = '﻿' + [headers, ...rows].map((r) => r.map(csvEscape).join(';')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const unitSuffix = cfg.hasUnits ? `_UO${state.unit[cfg.id]}` : '';
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `escala_${cfg.id}${unitSuffix}_${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 /* ------------------------------------------------------------------ */
 /*  Dashboard — visão geral e controle de vagas por turno/UO           */
 /* ------------------------------------------------------------------ */
@@ -581,6 +499,7 @@ const DASHBOARD_ROLES = [
   { tabId: 'lideres_turno', label: 'Líder de Turno' },
   { tabId: 'lideres_patio', label: 'Líder de Pátio' },
   { tabId: 'master_driver', label: 'Master Driver' },
+  { tabId: 'adm5x2', label: 'Administrativo' },
 ];
 const DASHBOARD_TURNOS = ['A', 'B', 'C'];
 
@@ -628,6 +547,91 @@ function renderDashboardRoleTable(role) {
     </div>`;
 }
 
+// Linha CSV simples (';' como separador, aspas duplas pra escapar) —
+// usada só pelo import do banco de motoristas (Nome;Matrícula;UO).
+function parseSimpleCsvLine(line) {
+  const out = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = false; } }
+      else cur += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ';') { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+function importDriversDbText(text) {
+  const clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  const lines = clean.split(/\r\n|\n|\r/).filter((l) => l.trim() !== '');
+  if (lines.length < 2) return 0;
+  const header = parseSimpleCsvLine(lines[0]).map((h) => h.trim());
+  const iNome = header.indexOf('Nome'), iMat = header.indexOf('Matrícula'), iUO = header.indexOf('UO');
+  if (iNome === -1 || iMat === -1) return 0;
+  let count = 0;
+  for (let li = 1; li < lines.length; li++) {
+    const cols = parseSimpleCsvLine(lines[li]);
+    const nome = (cols[iNome] || '').trim();
+    const matricula = (cols[iMat] || '').trim();
+    if (!nome || !matricula) continue;
+    edits.driversDb[matricula] = { nome, unidade: iUO !== -1 ? (cols[iUO] || '').trim() || null : null };
+    count++;
+  }
+  if (count) persistEdits();
+  return count;
+}
+
+// Preenche o campo de nome a partir da matrícula digitada, usando o banco
+// de motoristas — não mexe no nome se a matrícula não tiver cadastro.
+function wireMatriculaLookup(matriculaEl, nomeEl) {
+  const lookup = () => {
+    const mat = matriculaEl.value !== undefined ? matriculaEl.value.trim() : matriculaEl.textContent.trim();
+    const found = mat && edits.driversDb[mat];
+    if (!found) return;
+    if (nomeEl.value !== undefined) nomeEl.value = found.nome; else nomeEl.textContent = found.nome;
+  };
+  matriculaEl.addEventListener('blur', lookup);
+}
+
+function renderDriverDbSection() {
+  const count = Object.keys(edits.driversDb).length;
+  return `
+    <div class="dash-role dash-driverdb">
+      <h3>🗄 Banco de motoristas</h3>
+      <p>${count} matrícula${count === 1 ? '' : 's'} cadastrada${count === 1 ? '' : 's'}. Ao digitar uma matrícula cadastrada aqui — no cadastro de colaborador ou em "Ver equipe" — o nome preenche sozinho.</p>
+      ${state.editMode ? `<label class="icon-btn" id="driverDbImportLabel">📥 Importar planilha (Nome;Matrícula;UO)<input type="file" accept=".csv,text/csv" id="driverDbImportInput" hidden></label>` : ''}
+    </div>`;
+}
+
+function renderLimpoWarnings() {
+  if (!state.editMode) return '';
+  const items = [];
+  TABS.forEach((cfg) => {
+    const ds = datasets[cfg.id];
+    if (!ds) return;
+    if (cfg.hasUnits) {
+      (ds.unidades || []).forEach((u) => {
+        if (edits.limpo[clearKey(cfg, u.codigo)]) items.push({ tabId: cfg.id, unidade: u.codigo, label: `${cfg.label} · UO ${u.codigo}` });
+      });
+    } else if (edits.limpo[clearKey(cfg)]) {
+      items.push({ tabId: cfg.id, unidade: '', label: cfg.label });
+    }
+  });
+  if (!items.length) return '';
+  return `
+    <div class="dash-warn">
+      <h3>⚠ Dados limpos aguardando restaurar</h3>
+      <p>Essas abas/UO tiveram "Limpar dados" usado nelas e continuam escondendo os dados originais da planilha até alguém restaurar.</p>
+      <ul>
+        ${items.map((it) => `<li>${it.label} <button class="icon-btn dash-warn-restore" data-tab="${it.tabId}" data-unidade="${it.unidade}">↺ Restaurar</button></li>`).join('')}
+      </ul>
+    </div>`;
+}
+
 function renderDashboard() {
   const app = document.getElementById('app');
   let totalGeral = 0;
@@ -648,7 +652,8 @@ function renderDashboard() {
       <div class="card accent"><b>${totalGeral}</b><span>Colaboradores no total</span></div>
       ${Object.entries(porTipo).map(([tag, n]) => `<div class="card"><b>${n}</b><span>${escalaTypeLabel(tag)}</span></div>`).join('')}
     </div>
-    <div class="dash-roles">${DASHBOARD_ROLES.map(renderDashboardRoleTable).join('')}</div>
+    ${renderLimpoWarnings()}
+    <div class="dash-roles">${renderDriverDbSection()}${DASHBOARD_ROLES.map(renderDashboardRoleTable).join('')}</div>
   `;
 
   if (state.editMode) {
@@ -658,6 +663,25 @@ function renderDashboard() {
         persistEdits();
         renderDashboard();
       });
+    });
+    app.querySelectorAll('.dash-warn-restore').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const ok = await showConfirmModal(`Isso traz de volta os colaboradores originais de "${btn.parentElement.textContent.trim().replace('↺ Restaurar', '').trim()}".`, { confirmLabel: 'Restaurar', danger: false });
+        if (!ok) return;
+        delete edits.limpo[clearKey({ id: btn.dataset.tab }, btn.dataset.unidade || undefined)];
+        persistEdits();
+        location.reload();
+      });
+    });
+    const driverImportInput = document.getElementById('driverDbImportInput');
+    if (driverImportInput) driverImportInput.addEventListener('change', async () => {
+      const file = driverImportInput.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const count = importDriversDbText(text);
+      driverImportInput.value = '';
+      alert(count ? `${count} motorista(s) cadastrado(s) no banco.` : 'Nenhuma linha válida encontrada (confira se o cabeçalho é Nome;Matrícula;UO).');
+      if (count) renderDashboard();
     });
   }
 }
@@ -689,8 +713,6 @@ function renderPanel() {
         ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="icon-btn danger" id="clearDataBtn">🗑 Limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${!isEquipe && state.editMode && edits.limpo[clearKey(cfg, cfg.hasUnits ? state.unit[cfg.id] : undefined)] ? `<button class="icon-btn" id="restoreClearedBtn">↺ Restaurar dados originais${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
-        ${!isEquipe ? `<button class="icon-btn" id="exportCsvBtn">⬇ Exportar CSV</button>` : ''}
-        ${!isEquipe && state.editMode ? `<label class="icon-btn import-csv-btn" id="importCsvLabel" title="Importar planilha CSV (mesmo formato do Exportar CSV; linhas com UO preenchem as duas UO de uma vez)">📥<input type="file" accept=".csv,text/csv" id="importCsvInput" hidden></label>` : ''}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
       </div>
     </div>
@@ -721,11 +743,11 @@ function renderPanel() {
     renderCards(ds, cfg, monthMeta);
     renderGrid(ds, cfg, monthMeta);
 
-    document.getElementById('searchBox').addEventListener('input', (e) => { state.search = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
+    document.getElementById('searchBox').addEventListener('input', (e) => { state.search = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); renderTodayStrip(ds, cfg, monthMeta); });
     const grupoSel = document.getElementById('grupoSelect');
-    if (grupoSel) grupoSel.addEventListener('change', (e) => { state.grupo = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
+    if (grupoSel) grupoSel.addEventListener('change', (e) => { state.grupo = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); renderTodayStrip(ds, cfg, monthMeta); });
     const papelSel = document.getElementById('papelSelect');
-    if (papelSel) papelSel.addEventListener('change', (e) => { state.papel = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
+    if (papelSel) papelSel.addEventListener('change', (e) => { state.papel = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); renderTodayStrip(ds, cfg, monthMeta); });
     const toggleBtn = document.getElementById('toggleGroups');
     if (toggleBtn) toggleBtn.addEventListener('click', () => {
       let pool = ds.colaboradores;
@@ -741,18 +763,6 @@ function renderPanel() {
   }
 
   document.getElementById('printBtn').addEventListener('click', () => window.print());
-  const exportBtn = document.getElementById('exportCsvBtn');
-  if (exportBtn) exportBtn.addEventListener('click', () => exportCsv(ds, cfg));
-  const importInput = document.getElementById('importCsvInput');
-  if (importInput) importInput.addEventListener('change', async () => {
-    const file = importInput.files[0];
-    if (!file) return;
-    const text = await file.text();
-    const count = importCsvText(text, ds, cfg);
-    importInput.value = '';
-    alert(count ? `${count} colaborador(es) importado(s).` : 'Nenhuma linha válida encontrada nesse arquivo (confira se o cabeçalho é o mesmo do Exportar CSV).');
-    if (count) renderPanel();
-  });
   const addColaboradorBtn = document.getElementById('addColaboradorBtn');
   if (addColaboradorBtn) addColaboradorBtn.addEventListener('click', () => openModal(null, monthMeta, cfg, ds, true));
   const clearBtn = document.getElementById('clearDataBtn');
@@ -909,8 +919,8 @@ function equipeGrupoHtml(g, allGrupos) {
     <tr>
       <td class="col-nome">
         ${state.editMode
-          ? `<span class="nome equip-numero-edit" data-equip="${e.numero}" title="Clique para editar o número">Equip. ${e.numero} ✎</span>`
-          : `<span class="nome">Equip. ${e.numero}</span>`}
+          ? `<span class="nome equip-numero-edit" data-equip="${e.numero}" title="Clique para editar o número">🚚 Equip. ${e.numero} ✎</span>`
+          : `<span class="nome">🚚 Equip. ${e.numero}</span>`}
         ${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}
         ${state.editMode ? moveSelect(e.numero) : ''}
       </td>
@@ -969,6 +979,17 @@ function wireEquipeEdits(container) {
     });
     el.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    });
+  });
+  // Digitou a matrícula de alguém já cadastrado no banco de motoristas?
+  // Preenche o nome sozinho (mesma ideia do cadastro de colaborador).
+  container.querySelectorAll('[data-edit-field="matricula"]').forEach((matEl) => {
+    const nomeEl = container.querySelector(`[data-edit-path="${CSS.escape(matEl.dataset.editPath)}"][data-edit-field="nome"]`);
+    if (nomeEl) matEl.addEventListener('blur', () => {
+      const found = edits.driversDb[matEl.textContent.trim()];
+      if (!found) return;
+      nomeEl.textContent = found.nome;
+      equipeEditSet(nomeEl.dataset.editPath, 'nome', found.nome);
     });
   });
 }
@@ -1079,7 +1100,7 @@ function renderTodayStrip(ds, cfg, monthMeta) {
     return;
   }
   const day = now.getDate();
-  const pool = cfg.hasUnits ? ds.colaboradores.filter((p) => p.unidade === state.unit[cfg.id]) : ds.colaboradores;
+  const pool = visiblePeople();
   let work = 0, off = 0, nodata = 0;
   const workingNames = [];
   pool.forEach((p) => {
@@ -1090,10 +1111,11 @@ function renderTodayStrip(ds, cfg, monthMeta) {
     else nodata++;
   });
   const showNames = pool.length <= 12 && workingNames.length;
+  const filtroLabel = [cfg.hasUnits ? 'UO ' + state.unit[cfg.id] : '', state.papel !== 'todos' ? state.papel : '', state.grupo !== 'todos' ? state.grupo : ''].filter(Boolean).join(' · ');
   el.innerHTML = `
     <div class="today-strip">
       <div class="ts-date">Hoje · ${fmtLongDate(now)}
-        ${showNames ? `<small>Trabalhando: ${workingNames.join(', ')}</small>` : `<small>${cfg.label}${cfg.hasUnits ? ' · UO ' + state.unit[cfg.id] : ''}</small>`}
+        ${showNames ? `<small>Trabalhando: ${workingNames.join(', ')}</small>` : `<small>${cfg.label}${filtroLabel ? ' · ' + filtroLabel : ''}</small>`}
       </div>
       <div class="ts-stats">
         <div class="ts-stat"><b>${work}</b><span>Trabalhando</span></div>
@@ -1306,6 +1328,7 @@ function openModal(p, monthMeta, cfg, ds, isNew) {
     document.getElementById('modalClose').addEventListener('click', close);
     document.getElementById('modalCancel').addEventListener('click', close);
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    if (isNew) wireMatriculaLookup(document.getElementById('editMatricula'), document.getElementById('editNome'));
     document.getElementById('modalSave').addEventListener('click', () => {
       const values = {
         nome: document.getElementById('editNome').value.trim(),
@@ -1397,6 +1420,44 @@ function showConfirmModal(message, opts) {
   });
 }
 
+// Senha padrão pra entrar no modo de edição (e, por consequência, pra
+// tudo que só existe dentro dele: Limpar dados, Restaurar, etc.).
+const EDIT_PASSWORD = '112233';
+
+function showPasswordModal() {
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('modalBackdrop');
+    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
+    const render = (errorMsg) => {
+      backdrop.innerHTML = `
+        <div class="modal confirm-modal">
+          <div class="modal-body">
+            <p class="confirm-msg">Digite a senha pra entrar no modo de edição:</p>
+            <input type="password" class="modal-input" id="pwInput" autocomplete="off" inputmode="numeric">
+            ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="pwCancelBtn">Cancelar</button>
+            <button class="icon-btn primary" id="pwOkBtn">Entrar</button>
+          </div>
+        </div>
+      `;
+      backdrop.classList.add('open');
+      const input = document.getElementById('pwInput');
+      input.focus();
+      const trySubmit = () => {
+        if (input.value === EDIT_PASSWORD) finish(true);
+        else render('Senha incorreta. Tente de novo.');
+      };
+      document.getElementById('pwCancelBtn').addEventListener('click', () => finish(false));
+      document.getElementById('pwOkBtn').addEventListener('click', trySubmit);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); trySubmit(); } });
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(false); }, { once: true });
+    };
+    render(null);
+  });
+}
+
 /* ------------------------------------------------------------------ */
 
 function tickClock() {
@@ -1424,7 +1485,11 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  document.getElementById('editModeBtn').addEventListener('click', () => {
+  document.getElementById('editModeBtn').addEventListener('click', async () => {
+    if (!state.editMode) {
+      const ok = await showPasswordModal();
+      if (!ok) return;
+    }
     state.editMode = !state.editMode;
     const btn = document.getElementById('editModeBtn');
     btn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';

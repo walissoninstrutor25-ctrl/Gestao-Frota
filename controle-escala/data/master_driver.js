@@ -4,6 +4,18 @@ window.DATA_MASTER_DRIVER = {
   "ano": 2026,
   "meses": [
     {
+      "chave": "JANEIRO",
+      "numero": 1,
+      "dias": 31,
+      "nome": "Janeiro"
+    },
+    {
+      "chave": "FEVEREIRO",
+      "numero": 2,
+      "dias": 28,
+      "nome": "Fevereiro"
+    },
+    {
       "chave": "MARÇO",
       "numero": 3,
       "dias": 31,

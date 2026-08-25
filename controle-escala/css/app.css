@@ -157,8 +157,6 @@ main{max-width:1440px; margin:0 auto; padding:18px 20px 60px;}
   display:flex; align-items:center; gap:6px; transition:all .15s ease;
 }
 .icon-btn:hover{color:var(--accent-strong); border-color:var(--accent-dim); background:var(--accent-tint);}
-.import-csv-btn{width:34px; padding:0; justify-content:center; font-size:14px; opacity:.55;}
-.import-csv-btn:hover{opacity:1;}
 
 /* ---------------- today strip ---------------- */
 .today-strip{
@@ -208,6 +206,15 @@ table.dash-table tfoot td{font-weight:700; border-bottom:none; border-top:2px so
 }
 .vagas.vagas-aberta{color:var(--danger); font-weight:700;}
 .vagas.vagas-ok{color:var(--accent-strong); font-weight:700;}
+.dash-driverdb p{margin:0 0 10px; font-size:12.5px; color:var(--text-muted);}
+.dash-warn{
+  background:var(--danger-dim); border:1px solid var(--danger); border-radius:var(--radius);
+  padding:14px 16px; margin-top:16px;
+}
+.dash-warn h3{margin:0 0 6px; font-size:14.5px; color:var(--danger);}
+.dash-warn p{margin:0 0 8px; font-size:12.5px; color:var(--text);}
+.dash-warn ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
+.dash-warn li{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px;}
 
 /* ---------------- legend ---------------- */
 .legend{display:flex; align-items:center; gap:18px; margin-bottom:10px; font-size:12px; color:var(--text-muted); flex-wrap:wrap;}
@@ -361,6 +368,8 @@ table.escala .day-col.today-col{background:var(--amber-dim); color:var(--amber);
 .icon-btn.primary.danger:hover{filter:brightness(0.92);}
 .confirm-modal .modal-body{padding-top:22px;}
 .confirm-msg{margin:0; font-size:13.5px; line-height:1.55; color:var(--text);}
+.confirm-modal .modal-input{margin-top:12px;}
+.pw-error{margin:8px 0 0; font-size:12.5px; color:var(--danger);}
 
 /* Modo edição */
 .icon-btn.danger{color:var(--danger); border-color:var(--danger-dim);}

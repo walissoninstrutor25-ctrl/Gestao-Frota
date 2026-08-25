@@ -30,11 +30,11 @@ import sys
 import unicodedata
 
 MONTHS = [
-    ('MARÇO', 3), ('ABRIL', 4), ('MAIO', 5), ('JUNHO', 6), ('JULHO', 7),
+    ('JANEIRO', 1), ('FEVEREIRO', 2), ('MARÇO', 3), ('ABRIL', 4), ('MAIO', 5), ('JUNHO', 6), ('JULHO', 7),
     ('AGOSTO', 8), ('SETEMBRO', 9), ('OUTUBRO', 10), ('NOVEMBRO', 11), ('DEZEMBRO', 12),
 ]
 MONTH_LABEL = {
-    3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho',
+    1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho',
     8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro',
 }
 YEAR = 2026
@@ -180,12 +180,17 @@ def parse_all_months(path, section_marker_fn, expect_title_contains=None, skip_m
     wb = openpyxl.load_workbook(path, data_only=True)
     result = {}
     for mname, mnum in MONTHS:
-        if mname not in wb.sheetnames:
-            continue
         if skip_months and mname in skip_months:
             continue
-        ws = wb[mname]
         ndays = calendar.monthrange(YEAR, mnum)[1]
+        if mname not in wb.sheetnames:
+            # Nenhuma das planilhas recebidas cobre esse mês (ex.: Janeiro e
+            # Fevereiro, fora da safra) — mesmo tratamento do título
+            # inesperado abaixo: mês mantido em branco, pronto pra
+            # preencher à mão (modo de edição) em vez de sumir da aba.
+            result[mname] = {'mes_num': mnum, 'dias': ndays, 'linhas': []}
+            continue
+        ws = wb[mname]
         if expect_title_contains:
             title = clean(ws.cell(row=1, column=1).value) or ''
             if expect_title_contains.upper() not in title.upper():
