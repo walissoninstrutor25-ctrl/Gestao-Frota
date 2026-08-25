@@ -18,7 +18,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31488,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "REINILDO DE SOUZA NUNES",
@@ -39,7 +40,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 27405,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "DANUBIO MORAIS SOUSA",
@@ -60,7 +62,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31441,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "GUSTAVO SAPUCAIA MAGALHAES",
@@ -81,7 +84,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31459,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "DILSON PEREIRA DAMACENO",
@@ -102,7 +106,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31446,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LINDOMAR MARIANO ALVES",
@@ -123,7 +128,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31815,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "SEVERINO FERREIRA DE SANTANA FILHO",
@@ -144,7 +150,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31490,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "NEIREVALDO MARQUES DAS NEVES",
@@ -165,7 +172,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31528,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "TARCISIO PEREIRA MORAES",
@@ -186,7 +194,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31569,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "RENATO FERREIRA LIMA",
@@ -207,7 +216,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31484,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ILDEU GOMES PEREIRA",
@@ -228,7 +238,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31522,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE ANDRE SANTOS DA SILVA",
@@ -249,7 +260,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31833,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE NUNES BELO",
@@ -270,7 +282,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31551,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "GILNALDO DO NACIMENTO",
@@ -291,7 +304,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31457,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOAQUIM RODRIGUES DA SILVA",
@@ -312,7 +326,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31463,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LUIZ CARLOS BARCELOS DOS SANTOS",
@@ -333,7 +348,8 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 31475,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "SEBASTIAO BELO DE OLIVEIRA FILHO",
@@ -354,6 +370,7 @@ window.DATA_MOTORISTAS_GRUPO_03 = [
     },
     "matricula": 32015,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   }
 ];

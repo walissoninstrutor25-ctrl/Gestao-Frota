@@ -64,6 +64,18 @@ window.DATA_MOTORISTAS_META = {
       "nome": "Dezembro"
     }
   ],
+  "unidades": [
+    {
+      "codigo": "MNS",
+      "uo": "4824",
+      "label": "UO 4824 · MNS"
+    },
+    {
+      "codigo": "PRA",
+      "uo": "4823",
+      "label": "UO 4823 · PRA"
+    }
+  ],
   "grupos": [
     "GRUPO 01",
     "GRUPO 02",

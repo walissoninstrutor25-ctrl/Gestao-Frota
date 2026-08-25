@@ -18,7 +18,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31406,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "EDIMAR FERREIRA DE SOUZA",
@@ -39,7 +40,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31449,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "RAIMUNDO FRANCISCO VIANA",
@@ -60,7 +62,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31483,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE ADARIO ROCHA SOUSA",
@@ -81,7 +84,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 32258,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ADENILDO CASSIANO BEZERRA",
@@ -102,7 +106,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 32154,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "MARCOS CESARIO VILELA SILVA",
@@ -123,7 +128,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31479,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "CARLOS EDUARDO BELO DE MORAES COUTINHO",
@@ -144,7 +150,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 32157,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "DHIERES DIAS RODRIGUES",
@@ -165,7 +172,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31816,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "FRANCISCO HEILTON DA SILVA BEZERRA",
@@ -186,7 +194,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31818,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "MAURO JESUS DOS SANTOS",
@@ -207,7 +216,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 30529,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LUIZ CARLOS DA SILVA",
@@ -228,7 +238,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 32255,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE EDMILSON FERREIRA DA SILVA",
@@ -249,7 +260,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31465,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LEANDRO LUIS DOS NASCIMENTO",
@@ -270,7 +282,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31536,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ELIMAR DA COSTA CARDOSO",
@@ -291,7 +304,8 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 32186,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "DIOGO JOSE DOS SANTOS SILVA",
@@ -312,6 +326,7 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     },
     "matricula": 31494,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   }
 ];

@@ -18,7 +18,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31525,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "AGNALDO ROBERTO ROCHA",
@@ -39,7 +40,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31428,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "CLAUDIO JULIAO",
@@ -60,7 +62,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31436,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JANIO HONORIO BATISTA",
@@ -81,7 +84,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31766,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ABILIO MOISSES DE OLIVEIRA NETO",
@@ -102,7 +106,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31426,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "OSCAR NAVES DE JESUS",
@@ -123,7 +128,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 32016,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "CHARLES PEREIRA SOARES",
@@ -144,7 +150,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31435,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "RODRIGO APOLINARIO DA SILVA",
@@ -165,7 +172,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31526,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JASILDO XAVIER DA SILVA",
@@ -186,7 +194,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31523,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LUCIANO FRANCISCO DE ASSIS SILVA",
@@ -207,7 +216,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31625,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSENILDO CICERO SANTOS DO NASCIMENTO",
@@ -228,7 +238,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 32473,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "MACELO PEREIRA DE LIMA",
@@ -249,7 +260,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31553,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOZIEL RODRIGUES DE AMORIM",
@@ -270,7 +282,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31545,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ADEVAN FERREIRA DA SILVA",
@@ -291,7 +304,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 27458,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "RICARDO LUIS MEDEIROS SILVA",
@@ -312,7 +326,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31546,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE RODOLFO DOS SANTOS SILVA",
@@ -333,7 +348,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31544,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LAZARO ALVES NETO",
@@ -354,7 +370,8 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 31543,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "HELIO LUIS MALAQUIAS SILVA",
@@ -375,6 +392,7 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     },
     "matricula": 32018,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   }
 ];

@@ -39,6 +39,16 @@ MONTH_LABEL = {
 }
 YEAR = 2026
 
+# As únicas duas UO que aparecem nos dados recebidos (vêm da planilha do
+# Master Driver). Reaproveitadas nas abas que não tinham UO nenhuma:
+# a planilha de origem delas só cobre o lado MNS, então os colaboradores
+# existentes são marcados MNS e o lado PRA nasce vazio, pronto pra ser
+# povoado pelo próprio app.
+UNIDADES_MNS_PRA = [
+    {'codigo': 'MNS', 'uo': '4824', 'label': 'UO 4824 · MNS'},
+    {'codigo': 'PRA', 'uo': '4823', 'label': 'UO 4823 · PRA'},
+]
+
 
 def is_off_fill(cell):
     fill = cell.fill
@@ -501,6 +511,11 @@ def build_file1(path, out_path):
     monthly = parse_all_months(path, marker_grupo)
     lookup, lookup_by_name = parse_nomes_file1(path)
     people = consolidate(monthly, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
+    # A planilha recebida só cobre o lado MNS (não tem coluna de UO como a
+    # do Master Driver) — todo mundo aqui é marcado MNS, e o lado PRA
+    # nasce vazio na aba, pronto pra ser preenchido pelo app.
+    for p in people:
+        p['unidade'] = 'MNS'
     grupos = sorted(set(p['grupo'] for p in people if p['grupo']))
     # Colaboradores are split into one small file per grupo (data/motoristas/*.js)
     # instead of one big array inline here: keeps each generated file small,
@@ -519,6 +534,7 @@ def build_file1(path, out_path):
         'tipoEscala': '5x1',
         'ano': YEAR,
         'meses': build_meses_meta(monthly),
+        'unidades': UNIDADES_MNS_PRA,
         'grupos': grupos,
         'colaboradoresPorGrupoVar': grupo_vars,
         'mestre': parse_mestre_file1(path),
@@ -541,6 +557,10 @@ def build_file2(path, out_turno_path, out_patio_path):
 
     people_turno = consolidate(monthly_turno, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
     people_patio = consolidate(monthly_patio, extra_lookup=lookup, extra_lookup_by_name=lookup_by_name)
+    # A planilha (título "ESCALA 6X2 - MNS") só cobre o lado MNS — mesmo
+    # raciocínio do build_file1: marca MNS, PRA fica vazio pra preencher.
+    for p in people_turno + people_patio:
+        p['unidade'] = 'MNS'
 
     mestre_sections = parse_mestre_file2(path)
     mestre_turno = next((s for s in mestre_sections if s['titulo'] == 'Líder de Turno'), None)
@@ -551,6 +571,7 @@ def build_file2(path, out_turno_path, out_patio_path):
         'tipoEscala': '6x2',
         'ano': YEAR,
         'meses': build_meses_meta(monthly_turno),
+        'unidades': UNIDADES_MNS_PRA,
         'colaboradores': people_turno,
         'mestre': mestre_turno,
     }
@@ -559,6 +580,7 @@ def build_file2(path, out_turno_path, out_patio_path):
         'tipoEscala': '6x2',
         'ano': YEAR,
         'meses': build_meses_meta(monthly_patio),
+        'unidades': UNIDADES_MNS_PRA,
         'colaboradores': people_patio,
         'mestre': mestre_patio,
     }
@@ -595,10 +617,7 @@ def build_file3(path, out_path):
         'tipoEscala': '5x1',
         'ano': YEAR,
         'meses': build_meses_meta(monthly),
-        'unidades': [
-            {'codigo': 'MNS', 'uo': '4824', 'label': 'UO 4824 · MNS'},
-            {'codigo': 'PRA', 'uo': '4823', 'label': 'UO 4823 · PRA'},
-        ],
+        'unidades': UNIDADES_MNS_PRA,
         'colaboradores': people,
         'mestre': mestre_by_uo,
     }
@@ -625,10 +644,7 @@ def build_adm5x2(out_path):
         'tipoEscala': 'adm5x2',
         'ano': YEAR,
         'meses': meses,
-        'unidades': [
-            {'codigo': 'MNS', 'uo': '4824', 'label': 'UO 4824 · MNS'},
-            {'codigo': 'PRA', 'uo': '4823', 'label': 'UO 4823 · PRA'},
-        ],
+        'unidades': UNIDADES_MNS_PRA,
         'colaboradores': [],
     }
     write_js_data(out_path, 'DATA_ADM5X2', data)

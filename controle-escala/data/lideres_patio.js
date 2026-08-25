@@ -64,6 +64,18 @@ window.DATA_LIDERES_PATIO = {
       "nome": "Dezembro"
     }
   ],
+  "unidades": [
+    {
+      "codigo": "MNS",
+      "uo": "4824",
+      "label": "UO 4824 · MNS"
+    },
+    {
+      "codigo": "PRA",
+      "uo": "4823",
+      "label": "UO 4823 · PRA"
+    }
+  ],
   "colaboradores": [
     {
       "nome": "FABIANO DA SILVA SANTOS",
@@ -83,7 +95,8 @@ window.DATA_LIDERES_PATIO = {
         "DEZEMBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO"
       },
       "matricula": 27462,
-      "telefone": "(18)996319710"
+      "telefone": "(18)996319710",
+      "unidade": "MNS"
     },
     {
       "nome": "DIEGO MARTINS VIANA",
@@ -103,7 +116,8 @@ window.DATA_LIDERES_PATIO = {
         "DEZEMBRO": "OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"
       },
       "matricula": 31445,
-      "telefone": "(18)996550417"
+      "telefone": "(18)996550417",
+      "unidade": "MNS"
     },
     {
       "nome": "WANDERLEY LUIZ DE SOUZA LIRA",
@@ -123,7 +137,8 @@ window.DATA_LIDERES_PATIO = {
         "DEZEMBRO": "WWOOWWWWWWOOWWWWWWOOWWWWWWOOWWW"
       },
       "matricula": 29672,
-      "telefone": "(18)998222640"
+      "telefone": "(18)998222640",
+      "unidade": "MNS"
     },
     {
       "nome": "DEYBD SOUZA MARTINS",
@@ -143,7 +158,8 @@ window.DATA_LIDERES_PATIO = {
         "DEZEMBRO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW"
       },
       "matricula": 27995,
-      "telefone": "(18)997069154"
+      "telefone": "(18)997069154",
+      "unidade": "MNS"
     }
   ],
   "mestre": {

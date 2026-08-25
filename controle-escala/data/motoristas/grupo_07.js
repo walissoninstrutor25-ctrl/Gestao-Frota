@@ -18,7 +18,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 32396,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LEANDRO SOUZA ROSA",
@@ -39,7 +40,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 31473,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "CRISTIANO NASCIMENTO MORAES",
@@ -60,7 +62,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 31761,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ALEXANDRE FRANCISCO DA SILVA",
@@ -81,7 +84,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 31652,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "UANDERSON VILELA DA SILVA",
@@ -102,7 +106,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 31559,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ADVALDO LIMA LIRA",
@@ -123,7 +128,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 32022,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "EDMILTON DE FREITAS PAGEU",
@@ -144,7 +150,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 31653,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE JADILSON DA SILVA",
@@ -165,7 +172,8 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 31535,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "WELLINGTON FRANCA DE SOUZA",
@@ -186,6 +194,7 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     },
     "matricula": 31492,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   }
 ];

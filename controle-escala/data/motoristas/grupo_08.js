@@ -18,7 +18,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31486,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSEMIR SALES CHAVES",
@@ -39,7 +40,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31656,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "GLEISON JACKSON DA SILVA",
@@ -60,7 +62,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 32257,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSENILDO DA SILVA",
@@ -81,7 +84,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 32260,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "MARIA LUZINEIDE MONTELO DA SILVA CONCEICAO",
@@ -102,7 +106,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 32155,
     "lider": "EDER TEODORO",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "LUCINEIDE PEREIRA DA SILVA",
@@ -123,7 +128,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31537,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "EDEMILSON PEREIRA DE SOUZA",
@@ -144,7 +150,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 32394,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "CHARLES DOS SANTOS PEREIRA",
@@ -165,7 +172,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31547,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "MAURILIO AMARO NASCIMENTO DOS SANTOS",
@@ -186,7 +194,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31884,
     "lider": "EMERSON TABUAS",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "DIEGO MARCOS GUEDES DA SILVA",
@@ -207,7 +216,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31443,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "WILLE DA CONCEICAO DA SILVA",
@@ -228,7 +238,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 32515,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "ELINGTON VIEIRA DA SILVA",
@@ -249,7 +260,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31453,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE GERALDO DOS SANTOS FILHO",
@@ -270,7 +282,8 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31564,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   },
   {
     "nome": "JOSE GILVAN SANTOS CONCEICAO",
@@ -291,6 +304,7 @@ window.DATA_MOTORISTAS_GRUPO_08 = [
     },
     "matricula": 31466,
     "lider": "PAULO HENRIQUE",
-    "cargo": "MOTORISTA"
+    "cargo": "MOTORISTA",
+    "unidade": "MNS"
   }
 ];

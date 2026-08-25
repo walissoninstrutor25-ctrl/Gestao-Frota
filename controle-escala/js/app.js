@@ -5,9 +5,9 @@
 /* ------------------------------------------------------------------ */
 
 const TABS = [
-  { id: 'motoristas', label: 'Motoristas Canavieiros', tag: '5x1', dataVar: 'DATA_MOTORISTAS_META', hasGroups: true, hasUnits: false },
-  { id: 'lideres_turno', label: 'Líder de Turno', tag: '6x2', dataVar: 'DATA_LIDERES_TURNO', hasGroups: false, hasUnits: false },
-  { id: 'lideres_patio', label: 'Líder de Pátio', tag: '6x2', dataVar: 'DATA_LIDERES_PATIO', hasGroups: false, hasUnits: false },
+  { id: 'motoristas', label: 'Motoristas Canavieiros', tag: '5x1', dataVar: 'DATA_MOTORISTAS_META', hasGroups: true, hasUnits: true },
+  { id: 'lideres_turno', label: 'Líder de Turno', tag: '6x2', dataVar: 'DATA_LIDERES_TURNO', hasGroups: false, hasUnits: true },
+  { id: 'lideres_patio', label: 'Líder de Pátio', tag: '6x2', dataVar: 'DATA_LIDERES_PATIO', hasGroups: false, hasUnits: true },
   { id: 'master_driver', label: 'Master Driver', tag: '5x1', dataVar: 'DATA_MASTER_DRIVER', hasGroups: false, hasUnits: true },
   { id: 'adm5x2', label: 'Administrativo', tag: 'adm5x2', dataVar: 'DATA_ADM5X2', hasGroups: false, hasUnits: true },
 ];
@@ -70,9 +70,10 @@ function loadEdits() {
       newEquip: raw.newEquip || {},  // numero equipamento (criado do zero) -> grupo
       newGrupos: raw.newGrupos || [], // grupos criados do zero (podem estar vazios)
       novosColaboradores: raw.novosColaboradores || {}, // tabId -> [{__pk, nome, matricula, grupo, papelNormalizado, lider, telefone}]
+      limpo: raw.limpo || {}, // "tabId" ou "tabId|UO" -> true (colaboradores originais da planilha escondidos)
     };
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {} };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {} };
   }
 }
 
@@ -86,7 +87,8 @@ function persistEdits() {
 function hasAnyEdits() {
   return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0
     || Object.keys(edits.moves).length > 0 || Object.keys(edits.newEquip).length > 0 || edits.newGrupos.length > 0
-    || Object.values(edits.novosColaboradores).some((arr) => arr.length > 0);
+    || Object.values(edits.novosColaboradores).some((arr) => arr.length > 0)
+    || Object.keys(edits.limpo).length > 0;
 }
 
 function updateResetBtnVisibility() {
@@ -163,6 +165,33 @@ function materializeNovosColaboradores(ds, cfg) {
     if (ds.colaboradores.some((p) => p.__pk === nc.__pk)) return;
     ds.colaboradores.push({ ...nc, escala: buildAutoEscala(ds, cfg) });
   });
+}
+
+// "Limpar dados": esconde os colaboradores originais da planilha (de uma
+// aba inteira, ou só de uma UO quando a aba tem UO) pra montar um
+// cadastro do zero com "+ Adicionar colaborador", sem inventar/apagar o
+// arquivo de origem — reversível a qualquer momento com "Restaurar
+// original". unidade é undefined para abas sem UO.
+function clearKey(cfg, unidade) {
+  return cfg.id + (unidade ? `|${unidade}` : '');
+}
+
+function applyClearedFilter(ds, cfg) {
+  if (!cfg.hasUnits) {
+    if (edits.limpo[clearKey(cfg)]) ds.colaboradores = [];
+    return;
+  }
+  ds.colaboradores = ds.colaboradores.filter((p) => !edits.limpo[clearKey(cfg, p.unidade)]);
+}
+
+function clearTabData(ds, cfg) {
+  const unidade = cfg.hasUnits ? state.unit[cfg.id] : undefined;
+  edits.limpo[clearKey(cfg, unidade)] = true;
+  if (edits.novosColaboradores[cfg.id]) {
+    edits.novosColaboradores[cfg.id] = edits.novosColaboradores[cfg.id].filter((nc) => cfg.hasUnits && nc.unidade !== unidade);
+  }
+  persistEdits();
+  ds.colaboradores = ds.colaboradores.filter((p) => cfg.hasUnits && p.unidade !== unidade);
 }
 
 function equipeEditGet(path, field, fallback) {
@@ -295,6 +324,7 @@ function boot() {
 
   const results = TABS.map((t) => loadDataset(t));
   TABS.forEach((t, i) => { datasets[t.id] = results[i]; });
+  TABS.forEach((t) => { if (datasets[t.id]) applyClearedFilter(datasets[t.id], t); });
   applyStoredEditsToDatasets();
   if (datasets.motoristas && datasets.motoristas.mestre) applyStoredMestreOps(datasets.motoristas);
 
@@ -444,11 +474,12 @@ function renderPanel() {
       <div class="months" id="months"></div>
       <div class="toolbar-tools">
         ${isEquipe ? '' : `<div class="field"><input type="search" id="searchBox" placeholder="Buscar nome ou matrícula" value="${state.search}"></div>`}
-        ${!isEquipe && cfg.hasGroups ? renderGrupoSelect(ds) : ''}
+        ${!isEquipe && cfg.hasGroups ? renderGrupoSelect(ds, cfg) : ''}
         ${isEquipe ? '' : renderPapelSelect(ds, cfg)}
         ${!isEquipe && cfg.hasGroups ? `<button class="icon-btn" id="toggleGroups">Recolher grupos</button>` : ''}
         ${mestre ? `<button class="icon-btn" id="equipeBtn">${isEquipe ? '📅 Ver escala' : '👥 Ver equipe'}</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
+        ${!isEquipe && state.editMode ? `<button class="icon-btn danger" id="clearDataBtn">🗑 Limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${!isEquipe ? `<button class="icon-btn" id="exportCsvBtn">⬇ Exportar CSV</button>` : ''}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
       </div>
@@ -487,7 +518,9 @@ function renderPanel() {
     if (papelSel) papelSel.addEventListener('change', (e) => { state.papel = e.target.value; renderCards(ds, cfg, monthMeta); renderGrid(ds, cfg, monthMeta); });
     const toggleBtn = document.getElementById('toggleGroups');
     if (toggleBtn) toggleBtn.addEventListener('click', () => {
-      const allGroups = [...new Set(ds.colaboradores.map((p) => p.grupo))];
+      let pool = ds.colaboradores;
+      if (cfg.hasUnits) pool = pool.filter((p) => p.unidade === state.unit[cfg.id]);
+      const allGroups = [...new Set(pool.map((p) => p.grupo))];
       const collapsed = state.collapsed[cfg.id];
       const collapseAll = collapsed.size < allGroups.length;
       collapsed.clear();
@@ -502,6 +535,13 @@ function renderPanel() {
   if (exportBtn) exportBtn.addEventListener('click', () => exportCsv(ds, cfg));
   const addColaboradorBtn = document.getElementById('addColaboradorBtn');
   if (addColaboradorBtn) addColaboradorBtn.addEventListener('click', () => openModal(null, monthMeta, cfg, ds, true));
+  const clearBtn = document.getElementById('clearDataBtn');
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    const escopo = cfg.hasUnits ? `da UO ${state.unit[cfg.id]}` : 'desta aba';
+    if (!confirm(`Isso apaga TODOS os colaboradores ${escopo} (inclusive os da planilha original) pra você cadastrar outros do zero. Só volta com "Restaurar original" no topo. Continuar?`)) return;
+    clearTabData(ds, cfg);
+    renderPanel();
+  });
   const equipeBtn = document.getElementById('equipeBtn');
   if (equipeBtn) equipeBtn.addEventListener('click', () => {
     state.view[cfg.id] = isEquipe ? 'escala' : 'equipe';
@@ -520,8 +560,14 @@ function renderPanel() {
 
 function currentMestre(ds, cfg) {
   if (!ds.mestre) return null;
-  if (cfg.hasUnits) return ds.mestre[state.unit[cfg.id]] || null;
   if (Array.isArray(ds.mestre)) return ds.mestre.length ? ds.mestre : null;
+  // objeto dividido por UO (ex.: master_driver.mestre = {MNS:{...}, PRA:{...}})
+  // só é indexado por UO quando ele de fato tem essas chaves — a planilha
+  // de Líder de Turno/Pátio não separa o MESTRE por UO (só existe o lado
+  // MNS), então o mesmo objeto vale pras duas UO nessas abas.
+  if (cfg.hasUnits && Object.prototype.hasOwnProperty.call(ds.mestre, state.unit[cfg.id])) {
+    return ds.mestre[state.unit[cfg.id]] || null;
+  }
   return ds.mestre;
 }
 
@@ -548,8 +594,10 @@ function renderUnitSwitch(ds, cfg) {
   `;
 }
 
-function renderGrupoSelect(ds) {
-  const grupos = [...new Set(ds.colaboradores.map((p) => p.grupo))].sort();
+function renderGrupoSelect(ds, cfg) {
+  let pool = ds.colaboradores;
+  if (cfg.hasUnits) pool = pool.filter((p) => p.unidade === state.unit[cfg.id]);
+  const grupos = [...new Set(pool.map((p) => p.grupo))].sort();
   return `<div class="field"><select id="grupoSelect">
     <option value="todos">Todos os grupos</option>
     ${grupos.map((g) => `<option value="${g}" ${state.grupo === g ? 'selected' : ''}>${g}</option>`).join('')}

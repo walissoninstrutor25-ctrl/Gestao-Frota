@@ -64,6 +64,18 @@ window.DATA_LIDERES_TURNO = {
       "nome": "Dezembro"
     }
   ],
+  "unidades": [
+    {
+      "codigo": "MNS",
+      "uo": "4824",
+      "label": "UO 4824 · MNS"
+    },
+    {
+      "codigo": "PRA",
+      "uo": "4823",
+      "label": "UO 4823 · PRA"
+    }
+  ],
   "colaboradores": [
     {
       "nome": "EDER TEODORO NUNES",
@@ -83,7 +95,8 @@ window.DATA_LIDERES_TURNO = {
         "DEZEMBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO"
       },
       "matricula": 27224,
-      "telefone": "(99)99155-2518"
+      "telefone": "(99)99155-2518",
+      "unidade": "MNS"
     },
     {
       "nome": "EMERSON LUIS FURTADO TABUAS",
@@ -103,7 +116,8 @@ window.DATA_LIDERES_TURNO = {
         "DEZEMBRO": "OOWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"
       },
       "matricula": 27488,
-      "telefone": "(99)99155-4575"
+      "telefone": "(99)99155-4575",
+      "unidade": "MNS"
     },
     {
       "nome": "ADAO JOSE SOARES",
@@ -118,7 +132,8 @@ window.DATA_LIDERES_TURNO = {
         "OUTUBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
         "NOVEMBRO": "OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"
       },
-      "matricula": null
+      "matricula": null,
+      "unidade": "MNS"
     },
     {
       "nome": "PAULO HENRIQUE BORGES DA SILVA",
@@ -137,7 +152,8 @@ window.DATA_LIDERES_TURNO = {
         "NOVEMBRO": "WOOWWWWWWOOWWWWWWOOWWWWWWOOWWW"
       },
       "matricula": 27483,
-      "telefone": "(67)998950179"
+      "telefone": "(67)998950179",
+      "unidade": "MNS"
     },
     {
       "nome": "WEMBER RODRIGUES LOURA",
@@ -157,7 +173,8 @@ window.DATA_LIDERES_TURNO = {
         "DEZEMBRO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOOW"
       },
       "matricula": 27377,
-      "telefone": "(67)998095372"
+      "telefone": "(67)998095372",
+      "unidade": "MNS"
     },
     {
       "nome": "ANDRE FERREIRA RODRIGUES",
@@ -171,7 +188,8 @@ window.DATA_LIDERES_TURNO = {
         "JUNHO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
         "JULHO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO"
       },
-      "matricula": 27399
+      "matricula": 27399,
+      "unidade": "MNS"
     }
   ],
   "mestre": {
