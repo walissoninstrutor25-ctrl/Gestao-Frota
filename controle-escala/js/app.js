@@ -1696,6 +1696,20 @@ function startApp() {
   document.getElementById('year').textContent = new Date().getFullYear();
   if (location.protocol !== 'file:' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
+    // sw.js já ativa sozinho a cada deploy (skipWaiting + clients.claim),
+    // mas sem isto a aba só passa a ser controlada pela versão nova no
+    // PRÓXIMO carregamento manual — quem já estava com a página aberta
+    // ficava preso na versão antiga até fechar e abrir de novo por conta
+    // própria. Recarrega uma vez, sozinho, assim que o novo SW assume
+    // (só quando já existia uma versão anterior rodando — na primeira
+    // visita de todas não tem nada "velho" pra atualizar).
+    let refreshedForNewWorker = false;
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshedForNewWorker) return;
+      refreshedForNewWorker = true;
+      if (hadController) location.reload();
+    });
   }
 
   function switchPage(page) {
