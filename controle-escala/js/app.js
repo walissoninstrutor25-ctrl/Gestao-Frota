@@ -72,7 +72,8 @@ const state = {
   page: 'app',     // 'app' | 'dashboard' | 'efetivos'
   dashUnit: 'todos', // 'todos' | 'MNS' | 'PRA' — filtro de UO no Dashboard
   efetivosUnit: 'MNS', // UO selecionada na aba Motoristas Efetivos
-  role: null,      // 'adm' | 'visualizador' — definido no login, ver showLoginGate()
+  efetivosSource: 'motoristas', // de qual escala puxar a lista de seleção na aba Efetivos
+  role: 'visualizador', // 'adm' | 'visualizador' — 'adm' só depois de entrar com a senha, ver showAdmLoginModal()
 };
 
 const datasets = {}; // tabId -> parsed json
@@ -613,11 +614,53 @@ function wireMatriculaLookup(matriculaEl, nomeEl) {
   matriculaEl.addEventListener('blur', lookup);
 }
 
+// Só a tabela principal (nome/matrícula/remover) — usada pra atualizar
+// depois de marcar/desmarcar um checkbox da lista de seleção sem
+// redesenhar a página inteira (o que resetaria a busca/filtro no meio
+// do clique, causando comportamento estranho com uma lista de 100+
+// itens reaparecendo de repente embaixo do cursor).
+function renderEfetivosTable() {
+  const entries = Object.entries(edits.driversDb).filter(([, v]) => v.unidade === state.efetivosUnit);
+  entries.sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+  const table = document.querySelector('.efetivos-table tbody');
+  if (!table) return;
+  table.innerHTML = entries.length ? entries.map(([mat, v]) => `
+    <tr>
+      <td>${v.nome}</td>
+      <td>${mat}</td>
+      ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button></td>` : ''}
+    </tr>`).join('') : `<tr><td colspan="${state.editMode ? 3 : 2}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
+  table.querySelectorAll('.ef-remove-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const nomeRemover = btn.closest('tr').querySelector('td').textContent;
+      const ok = await showConfirmModal(`Remover "${nomeRemover}" do cadastro de efetivos?`, { confirmLabel: 'Remover', danger: true });
+      if (!ok) return;
+      const mat = btn.dataset.mat;
+      delete edits.driversDb[mat];
+      persistEdits();
+      const cb = document.querySelector(`.ef-select-check[data-mat="${CSS.escape(mat)}"]`);
+      if (cb) cb.checked = false;
+      renderEfetivosTable();
+    });
+  });
+}
+
+const EFETIVOS_SOURCES = [
+  { tabId: 'motoristas', label: 'Motoristas Canavieiros' },
+  { tabId: 'lideres_turno', label: 'Líder de Turno' },
+  { tabId: 'lideres_patio', label: 'Líder de Pátio' },
+  { tabId: 'master_driver', label: 'Master Driver' },
+  { tabId: 'adm5x2', label: 'Administrativo' },
+];
+
 function renderEfetivos() {
   const app = document.getElementById('app');
   const unidadesRef = (Object.values(datasets).find((d) => d && d.unidades) || {}).unidades || [];
-  const entries = Object.entries(edits.driversDb).filter(([, v]) => v.unidade === state.efetivosUnit);
-  entries.sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+  const sourceCfg = EFETIVOS_SOURCES.find((s) => s.tabId === state.efetivosSource) || EFETIVOS_SOURCES[0];
+
+  const sourcePool = (datasets[sourceCfg.tabId] ? datasets[sourceCfg.tabId].colaboradores : [])
+    .filter((p) => p.unidade === state.efetivosUnit)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 
   app.innerHTML = `
     <div class="panel-head">
@@ -636,38 +679,68 @@ function renderEfetivos() {
       </div>` : ''}
     <table class="dash-table efetivos-table">
       <thead><tr><th>Nome</th><th>Matrícula</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
-      <tbody>
-        ${entries.length ? entries.map(([mat, v]) => `
-          <tr>
-            <td>${v.nome}</td>
-            <td>${mat}</td>
-            ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button></td>` : ''}
-          </tr>`).join('') : `<tr><td colspan="${state.editMode ? 3 : 2}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`}
-      </tbody>
+      <tbody></tbody>
     </table>
+    ${state.editMode ? `
+      <div class="efetivos-select">
+        <h3>Selecionar da escala de ${sourceCfg.label}</h3>
+        <p>Marque quem é efetivo entre quem já está cadastrado na escala dessa UO — sem precisar digitar nome/matrícula de novo.</p>
+        <div class="unit-switch" id="efetivosSourceSwitch">
+          ${EFETIVOS_SOURCES.map((s) => `<button class="unit-btn ${state.efetivosSource === s.tabId ? 'active' : ''}" data-source="${s.tabId}">${s.label}</button>`).join('')}
+        </div>
+        <div class="field"><input type="search" id="efSelectSearch" placeholder="Buscar nome ou matrícula"></div>
+        <div class="efetivos-select-list" id="efSelectList">
+          ${sourcePool.length ? sourcePool.map((p) => `
+            <label class="efetivos-select-row" data-nome="${normText(p.nome)}" data-mat="${p.matricula || ''}">
+              <input type="checkbox" class="ef-select-check" data-mat="${p.matricula || ''}" data-nome="${p.nome.replace(/"/g, '&quot;')}" ${p.matricula && edits.driversDb[p.matricula] ? 'checked' : ''} ${!p.matricula ? 'disabled' : ''}>
+              <span>${p.nome}${p.matricula ? ` <small>Mat. ${p.matricula}</small>` : ` <small>(sem matrícula — cadastre pelo campo acima)</small>`}</span>
+            </label>`).join('') : `<div class="empty-state">Nenhum colaborador cadastrado na escala dessa UO ainda.</div>`}
+        </div>
+      </div>` : ''}
   `;
+  renderEfetivosTable();
 
   document.getElementById('efetivosUnitSwitch').querySelectorAll('.unit-btn').forEach((btn) => {
     btn.addEventListener('click', () => { state.efetivosUnit = btn.dataset.unit; renderEfetivos(); });
   });
+  const sourceSwitch = document.getElementById('efetivosSourceSwitch');
+  if (sourceSwitch) sourceSwitch.querySelectorAll('.unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => { state.efetivosSource = btn.dataset.source; renderEfetivos(); });
+  });
 
   if (state.editMode) {
     document.getElementById('efAddBtn').addEventListener('click', () => {
-      const nome = document.getElementById('efNome').value.trim();
-      const matricula = document.getElementById('efMatricula').value.trim();
+      const nomeInput = document.getElementById('efNome');
+      const matInput = document.getElementById('efMatricula');
+      const nome = nomeInput.value.trim();
+      const matricula = matInput.value.trim();
       if (!nome || !matricula) { alert('Preencha nome e matrícula.'); return; }
       edits.driversDb[matricula] = { nome, unidade: state.efetivosUnit };
       persistEdits();
-      renderEfetivos();
+      nomeInput.value = '';
+      matInput.value = '';
+      const cb = document.querySelector(`.ef-select-check[data-mat="${CSS.escape(matricula)}"]`);
+      if (cb) cb.checked = true;
+      renderEfetivosTable();
     });
-    app.querySelectorAll('.ef-remove-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const nomeRemover = btn.closest('tr').querySelector('td').textContent;
-        const ok = await showConfirmModal(`Remover "${nomeRemover}" do cadastro de efetivos?`, { confirmLabel: 'Remover', danger: true });
-        if (!ok) return;
-        delete edits.driversDb[btn.dataset.mat];
+    // Um toggle não redesenha a página inteira (só a tabela acima) —
+    // senão, com a busca ativa, a lista de 100+ nomes reaparece de
+    // repente embaixo do cursor no meio do clique.
+    app.querySelectorAll('.ef-select-check').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        const mat = cb.dataset.mat;
+        if (!mat) return;
+        if (cb.checked) edits.driversDb[mat] = { nome: cb.dataset.nome, unidade: state.efetivosUnit };
+        else delete edits.driversDb[mat];
         persistEdits();
-        renderEfetivos();
+        renderEfetivosTable();
+      });
+    });
+    const selectSearch = document.getElementById('efSelectSearch');
+    if (selectSearch) selectSearch.addEventListener('input', (e) => {
+      const q = normText(e.target.value.trim());
+      document.querySelectorAll('.efetivos-select-row').forEach((row) => {
+        row.style.display = (!q || row.dataset.nome.includes(q) || row.dataset.mat.includes(q)) ? '' : 'none';
       });
     });
     const driverImportInput = document.getElementById('driverDbImportInput');
@@ -715,8 +788,9 @@ function renderDashboard() {
   TABS.forEach((cfg) => {
     const ds = datasets[cfg.id];
     if (!ds) return;
-    totalGeral += ds.colaboradores.length;
-    porTipo[cfg.tag] = (porTipo[cfg.tag] || 0) + ds.colaboradores.length;
+    const count = state.dashUnit === 'todos' ? ds.colaboradores.length : ds.colaboradores.filter((p) => p.unidade === state.dashUnit).length;
+    totalGeral += count;
+    porTipo[cfg.tag] = (porTipo[cfg.tag] || 0) + count;
   });
 
   const unidadesRef = (Object.values(datasets).find((d) => d && d.unidades) || {}).unidades || [];
@@ -1186,15 +1260,19 @@ function renderTodayStrip(ds, cfg, monthMeta) {
     else if (status === 'O') { off++; offPeople.push(p); }
     else nodata++;
   });
-  const showNames = pool.length <= 12 && (workingPeople.length || offPeople.length);
+  // "De folga" sempre aparece com nome — é a lista curta e mais útil no
+  // dia a dia (quem tá faltando). "Trabalhando" só quando a lista já tá
+  // pequena o bastante pra não virar uma parede de nomes (ex.: filtrando
+  // por turno/grupo), já que normalmente é a maioria do time.
+  const showWorkNames = pool.length <= 12 && workingPeople.length;
   const fmtPessoa = (p) => `${p.nome}${p.matricula ? ` (Mat. ${p.matricula})` : ''}`;
   const filtroLabel = [cfg.hasUnits ? 'UO ' + state.unit[cfg.id] : '', state.papel !== 'todos' ? state.papel : '', state.grupo !== 'todos' ? state.grupo : ''].filter(Boolean).join(' · ');
   el.innerHTML = `
     <div class="today-strip">
       <div class="ts-date">Hoje · ${fmtLongDate(now)}
-        ${showNames
-          ? `${workingPeople.length ? `<small>Trabalhando: ${workingPeople.map(fmtPessoa).join(', ')}</small>` : ''}${offPeople.length ? `<small>De folga: ${offPeople.map(fmtPessoa).join(', ')}</small>` : ''}`
-          : `<small>${cfg.label}${filtroLabel ? ' · ' + filtroLabel : ''}</small>`}
+        <small>${cfg.label}${filtroLabel ? ' · ' + filtroLabel : ''}</small>
+        ${offPeople.length ? `<small>De folga: ${offPeople.map(fmtPessoa).join(', ')}</small>` : ''}
+        ${showWorkNames ? `<small>Trabalhando: ${workingPeople.map(fmtPessoa).join(', ')}</small>` : ''}
       </div>
       <div class="ts-stats">
         <div class="ts-stat"><b>${work}</b><span>Trabalhando</span></div>
@@ -1499,40 +1577,43 @@ function showConfirmModal(message, opts) {
   });
 }
 
-// Duas senhas: ADM (acesso completo) e Visualizador (só olhar, nunca
-// consegue nem ver o botão de editar). Fica salvo no navegador até
-// alguém clicar em "Sair" — não pede de novo a cada visita.
-const ROLE_PASSWORDS = { adm: 'lots112233', visualizador: 'lots654321' };
+// Sem senha nenhuma pra só visualizar — o site abre direto em modo
+// visualizador. A senha só existe pra virar ADM (edita, apaga, etc.).
+// Fica salvo no navegador até alguém clicar em "Sair".
+const ADM_PASSWORD = 'lots112233';
 const ROLE_STORAGE_KEY = 'escala:role';
 
-function showLoginGate(onSuccess) {
-  const gate = document.getElementById('loginGate');
-  const render = (errorMsg) => {
-    gate.innerHTML = `
-      <div class="login-card">
-        <img src="assets/lots-logo.png" alt="LOTS" class="login-logo">
-        <h2>Controle de Escala</h2>
-        <p>Digite a senha de acesso:</p>
-        <input type="password" id="loginPwInput" autocomplete="off" placeholder="Senha">
-        ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
-        <button class="icon-btn primary" id="loginBtn">Entrar</button>
-      </div>`;
-    gate.style.display = 'flex';
-    const input = document.getElementById('loginPwInput');
-    input.focus();
-    const trySubmit = () => {
-      const role = Object.keys(ROLE_PASSWORDS).find((r) => ROLE_PASSWORDS[r] === input.value);
-      if (!role) { render('Senha incorreta. Tente de novo.'); return; }
-      localStorage.setItem(ROLE_STORAGE_KEY, role);
-      state.role = role;
-      gate.style.display = 'none';
-      gate.innerHTML = '';
-      onSuccess();
+function showAdmLoginModal() {
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('modalBackdrop');
+    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
+    const render = (errorMsg) => {
+      backdrop.innerHTML = `
+        <div class="modal confirm-modal">
+          <div class="modal-body">
+            <p class="confirm-msg">Digite a senha de administrador:</p>
+            <input type="password" class="modal-input" id="loginPwInput" autocomplete="off">
+            ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="loginCancelBtn">Cancelar</button>
+            <button class="icon-btn primary" id="loginBtn">Entrar</button>
+          </div>
+        </div>`;
+      backdrop.classList.add('open');
+      const input = document.getElementById('loginPwInput');
+      input.focus();
+      const trySubmit = () => {
+        if (input.value !== ADM_PASSWORD) { render('Senha incorreta. Tente de novo.'); return; }
+        finish(true);
+      };
+      document.getElementById('loginCancelBtn').addEventListener('click', () => finish(false));
+      document.getElementById('loginBtn').addEventListener('click', trySubmit);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); trySubmit(); } });
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(false); }, { once: true });
     };
-    document.getElementById('loginBtn').addEventListener('click', trySubmit);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); trySubmit(); } });
-  };
-  render(null);
+    render(null);
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -1575,26 +1656,38 @@ function startApp() {
     else if (datasets[state.activeTab]) renderPanel();
   }
 
-  // Visualizador nunca vê o botão de editar — sem ele, state.editMode
-  // nunca vira true, e todo o resto do app já esconde as ferramentas de
-  // edição com base nesse mesmo estado (não precisa repetir a checagem
-  // em cada botão individualmente).
+  // Visualizador (padrão, sem senha) nunca vê o botão de editar — sem
+  // ele, state.editMode nunca vira true, e todo o resto do app já
+  // esconde as ferramentas de edição com base nesse mesmo estado (não
+  // precisa repetir a checagem em cada botão individualmente).
   const editBtn = document.getElementById('editModeBtn');
-  if (state.role === 'visualizador') {
-    editBtn.style.display = 'none';
-  } else {
-    editBtn.addEventListener('click', () => {
-      state.editMode = !state.editMode;
-      editBtn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';
-      document.body.classList.toggle('edit-mode', state.editMode);
-      if (state.page === 'dashboard') renderDashboard();
-      else if (state.page === 'efetivos') renderEfetivos();
-      else if (datasets[state.activeTab]) renderPanel();
-    });
+  const logoutBtn = document.getElementById('logoutBtn');
+  const admLoginBtn = document.getElementById('admLoginBtn');
+  function applyRoleUI() {
+    const isAdm = state.role === 'adm';
+    editBtn.style.display = isAdm ? '' : 'none';
+    logoutBtn.style.display = isAdm ? '' : 'none';
+    admLoginBtn.style.display = isAdm ? 'none' : '';
   }
-  document.getElementById('logoutBtn').addEventListener('click', () => {
+  applyRoleUI();
+  editBtn.addEventListener('click', () => {
+    state.editMode = !state.editMode;
+    editBtn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';
+    document.body.classList.toggle('edit-mode', state.editMode);
+    if (state.page === 'dashboard') renderDashboard();
+    else if (state.page === 'efetivos') renderEfetivos();
+    else if (datasets[state.activeTab]) renderPanel();
+  });
+  logoutBtn.addEventListener('click', () => {
     localStorage.removeItem(ROLE_STORAGE_KEY);
     location.reload();
+  });
+  admLoginBtn.addEventListener('click', async () => {
+    const ok = await showAdmLoginModal();
+    if (!ok) return;
+    state.role = 'adm';
+    localStorage.setItem(ROLE_STORAGE_KEY, 'adm');
+    applyRoleUI();
   });
   document.getElementById('dashboardBtn').addEventListener('click', () => switchPage('dashboard'));
   document.getElementById('efetivosBtn').addEventListener('click', () => switchPage('efetivos'));
@@ -1608,11 +1701,6 @@ function startApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
-  if (savedRole && Object.prototype.hasOwnProperty.call(ROLE_PASSWORDS, savedRole)) {
-    state.role = savedRole;
-    startApp();
-  } else {
-    showLoginGate(startApp);
-  }
+  if (localStorage.getItem(ROLE_STORAGE_KEY) === 'adm') state.role = 'adm';
+  startApp();
 });
