@@ -1260,19 +1260,13 @@ function renderTodayStrip(ds, cfg, monthMeta) {
     else if (status === 'O') { off++; offPeople.push(p); }
     else nodata++;
   });
-  // "De folga" sempre aparece com nome — é a lista curta e mais útil no
-  // dia a dia (quem tá faltando). "Trabalhando" só quando a lista já tá
-  // pequena o bastante pra não virar uma parede de nomes (ex.: filtrando
-  // por turno/grupo), já que normalmente é a maioria do time.
-  const showWorkNames = pool.length <= 12 && workingPeople.length;
-  const fmtPessoa = (p) => `${p.nome}${p.matricula ? ` (Mat. ${p.matricula})` : ''}`;
+  // Os nomes não ficam mais escritos aqui em linha — clique em cima do
+  // número (Trabalhando/De folga) abre a lista completa em um modal.
   const filtroLabel = [cfg.hasUnits ? 'UO ' + state.unit[cfg.id] : '', state.papel !== 'todos' ? state.papel : '', state.grupo !== 'todos' ? state.grupo : ''].filter(Boolean).join(' · ');
   el.innerHTML = `
     <div class="today-strip">
       <div class="ts-date">Hoje · ${fmtLongDate(now)}
         <small>${cfg.label}${filtroLabel ? ' · ' + filtroLabel : ''}</small>
-        ${offPeople.length ? `<small>De folga: ${offPeople.map(fmtPessoa).join(', ')}</small>` : ''}
-        ${showWorkNames ? `<small>Trabalhando: ${workingPeople.map(fmtPessoa).join(', ')}</small>` : ''}
       </div>
       <div class="ts-stats">
         <button class="ts-stat" id="tsStatWork" type="button"><b>${work}</b><span>Trabalhando</span></button>
