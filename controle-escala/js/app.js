@@ -105,19 +105,6 @@ const edits = loadEdits();
 
 function persistEdits() {
   localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(edits));
-  updateResetBtnVisibility();
-}
-
-function hasAnyEdits() {
-  return Object.keys(edits.contato).length > 0 || Object.keys(edits.dias).length > 0 || Object.keys(edits.equipe).length > 0
-    || Object.keys(edits.moves).length > 0 || Object.keys(edits.newEquip).length > 0 || edits.newGrupos.length > 0
-    || Object.values(edits.novosColaboradores).some((arr) => arr.length > 0)
-    || Object.keys(edits.limpo).length > 0 || Object.keys(edits.rotacao).length > 0 || Object.keys(edits.renumeracoes).length > 0;
-}
-
-function updateResetBtnVisibility() {
-  const btn = document.getElementById('resetEditsBtn');
-  if (btn) btn.style.display = hasAnyEdits() ? '' : 'none';
 }
 
 function computeOriginalKey(cfgId, nome, grupo) {
@@ -1331,19 +1318,12 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  updateResetBtnVisibility();
   document.getElementById('editModeBtn').addEventListener('click', () => {
     state.editMode = !state.editMode;
     const btn = document.getElementById('editModeBtn');
     btn.textContent = state.editMode ? '✅ Concluir edição' : '✏️ Editar';
     document.body.classList.toggle('edit-mode', state.editMode);
     if (datasets[state.activeTab]) renderPanel();
-  });
-  document.getElementById('resetEditsBtn').addEventListener('click', async () => {
-    const ok = await showConfirmModal('Isso vai apagar todas as edições salvas neste navegador e voltar aos dados originais da planilha.', { confirmLabel: 'Restaurar original', danger: true });
-    if (!ok) return;
-    localStorage.removeItem(EDIT_STORAGE_KEY);
-    location.reload();
   });
   document.getElementById('installAppBtn').addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
