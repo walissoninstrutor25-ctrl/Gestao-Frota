@@ -112,6 +112,7 @@ const edits = loadEdits();
 
 function persistEdits() {
   localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(edits));
+  if (window.__firebaseSync && window.__firebaseSync.ready) window.__firebaseSync.pushEdits(edits);
 }
 
 function computeOriginalKey(cfgId, nome, grupo) {
@@ -556,11 +557,11 @@ function renderDashboardRoleTable(role) {
   return `
     <div class="dash-role">
       <h3>${role.label}</h3>
-      <table class="dash-table">
+      <div class="table-scroll"><table class="dash-table">
         <thead><tr><th>UO</th><th>Turno</th><th>Atual</th><th>Meta</th><th>Vagas</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
         <tfoot><tr><td colspan="2">Total</td><td class="num">${totalAtual}</td><td class="num">${totalMeta}</td><td class="num">${totalVagas}</td></tr></tfoot>
-      </table>
+      </table></div>
     </div>`;
 }
 
@@ -701,10 +702,12 @@ function renderEfetivos() {
         <button class="icon-btn primary" id="efAddBtn">+ Adicionar</button>
         <label class="icon-btn" id="driverDbImportLabel">📥 Importar planilha (Nome;Matrícula;UO)<input type="file" accept=".csv,text/csv" id="driverDbImportInput" hidden></label>
       </div>` : ''}
-    <table class="dash-table efetivos-table">
-      <thead><tr><th>Nome</th><th>Matrícula</th><th>Status</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
-      <tbody></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="dash-table efetivos-table">
+        <thead><tr><th>Nome</th><th>Matrícula</th><th>Status</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
     ${state.editMode ? `
       <div class="efetivos-select">
         <h3>Selecionar da escala de ${sourceCfg.label}</h3>
@@ -1071,10 +1074,10 @@ function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, ap
   return `
     <div class="equipe-grupo">
       <h3>${titulo}</h3>
-      <table class="equipe-table">
+      <div class="table-scroll"><table class="equipe-table">
         <thead><tr><th>Turno</th><th>Titular</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+      </table></div>
       ${showFolguistas ? `
         <div class="equipe-folguistas">
           ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath)}</div>` : ''}
@@ -1107,10 +1110,10 @@ function equipeGrupoHtml(g, allGrupos) {
   return `
     <div class="equipe-grupo" data-grupo="${g.grupo}">
       <h3>${g.grupo}</h3>
-      <table class="equipe-table">
+      <div class="table-scroll"><table class="equipe-table">
         <thead><tr><th>Equipamento</th><th>Turno A</th><th>Turno B</th><th>Turno C</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+      </table></div>
       ${!g.equipamentos.length ? '<p class="equipe-vazio-msg">Nenhum equipamento neste grupo ainda.</p>' : ''}
       ${state.editMode ? `<button class="icon-btn equip-add-btn" data-grupo="${g.grupo}">+ Adicionar equipamento</button>` : ''}
       ${temFolguistas ? `
@@ -1752,7 +1755,39 @@ function startApp() {
   });
 }
 
+// Depois do primeiro desenho (com o que já tava salvo neste navegador),
+// confere se o Firebase tem uma versão mais nova (de outro aparelho) —
+// se tiver, recarrega já com ela. Dali em diante, qualquer edição de
+// qualquer pessoa conectada recarrega a página sozinha pra todo mundo
+// ficar vendo a mesma coisa (sem precisar apertar F5).
+function bootstrapFirebaseSync() {
+  const onReady = async () => {
+    if (!window.__firebaseSync || !window.__firebaseSync.ready) return;
+    const remote = await window.__firebaseSync.fetchInitial();
+    if (remote) {
+      const localJson = localStorage.getItem(EDIT_STORAGE_KEY) || '{}';
+      const remoteJson = JSON.stringify(remote);
+      if (remoteJson !== localJson) {
+        localStorage.setItem(EDIT_STORAGE_KEY, remoteJson);
+        location.reload();
+        return;
+      }
+    } else {
+      // nada salvo ainda no Firebase (primeira vez) — sobe o que já
+      // existe localmente pra virar o ponto de partida compartilhado
+      window.__firebaseSync.pushEdits(edits);
+    }
+    window.__firebaseSync.onRemoteChange((remoteData) => {
+      localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(remoteData));
+      location.reload();
+    });
+  };
+  if (window.__firebaseSync) onReady();
+  else window.addEventListener('firebase-sync-ready', onReady, { once: true });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem(ROLE_STORAGE_KEY) === 'adm') state.role = 'adm';
   startApp();
+  bootstrapFirebaseSync();
 });

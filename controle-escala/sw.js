@@ -2,13 +2,14 @@
 // topo do index.html) — força o navegador a buscar os arquivos de novo
 // em vez de continuar servindo uma versão antiga do cache HTTP normal,
 // que o fetch() abaixo (rede primeiro) não contorna sozinho.
-const BUILD = "20260825-20";
+const BUILD = "20260825-21";
 const CACHE_NAME = "lots-escala-" + BUILD;
 const FILES = [
   "./index.html",
   "./manifest.webmanifest",
   "./css/app.css?v=" + BUILD,
   "./js/app.js?v=" + BUILD,
+  "./js/firebase-sync.js?v=" + BUILD,
   "./assets/lots-logo.png",
   "./assets/lots-logo-192.png",
   "./assets/lots-logo-512.png",
@@ -41,6 +42,7 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== 'GET') return;
+  if (new URL(event.request.url).origin !== self.location.origin) return; // deixa passar direto (Firebase, fontes, etc.)
   event.respondWith(
     fetch(event.request).catch(() =>
       caches.match(event.request).then(response => response || caches.match("./index.html"))
