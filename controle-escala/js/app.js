@@ -499,7 +499,7 @@ const DASHBOARD_ROLES = [
   { tabId: 'lideres_turno', label: 'Líder de Turno' },
   { tabId: 'lideres_patio', label: 'Líder de Pátio' },
   { tabId: 'master_driver', label: 'Master Driver' },
-  { tabId: 'adm5x2', label: 'Administrativo' },
+  { tabId: 'adm5x2', label: 'Administrativo', turnos: ['ADM'] }, // 5x2 fixo, sem turno A/B/C — uma linha só por UO
 ];
 const DASHBOARD_TURNOS = ['A', 'B', 'C'];
 
@@ -510,6 +510,7 @@ function metaKey(tabId, turno, unidade) {
 function contagemAtual(tabId, turno, unidade) {
   const ds = datasets[tabId];
   if (!ds) return 0;
+  if (turno === 'ADM') return ds.colaboradores.filter((p) => p.unidade === unidade).length;
   return ds.colaboradores.filter((p) => p.unidade === unidade && p.papelNormalizado === `Turno ${turno}`).length;
 }
 
@@ -520,7 +521,7 @@ function renderDashboardRoleTable(role) {
   let totalAtual = 0, totalMeta = 0, totalVagas = 0;
   const rows = [];
   unidades.forEach((u) => {
-    DASHBOARD_TURNOS.forEach((t) => {
+    (role.turnos || DASHBOARD_TURNOS).forEach((t) => {
       const atual = contagemAtual(role.tabId, t, u.codigo);
       const key = metaKey(role.tabId, t, u.codigo);
       const meta = edits.metas[key] || 0;
@@ -529,7 +530,7 @@ function renderDashboardRoleTable(role) {
       rows.push(`
         <tr>
           <td>${u.label}</td>
-          <td>Turno ${t}</td>
+          <td>${t === 'ADM' ? 'ADM' : 'Turno ' + t}</td>
           <td class="num">${atual}</td>
           <td class="num">${state.editMode ? `<input type="number" min="0" class="meta-input" data-key="${key}" value="${meta}">` : meta}</td>
           <td class="num vagas ${vagas > 0 ? 'vagas-aberta' : 'vagas-ok'}">${vagas}</td>
