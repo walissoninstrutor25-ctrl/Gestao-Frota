@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-25T18-10-00Z -->
+<!-- APP_BUILD:2026-08-25T19-05-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -184,23 +184,43 @@
   .icon-btn.danger:hover{color:var(--danger);}
 
   /* ---------- organograma ---------- */
-  .org-unit-title{font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:14px; letter-spacing:0.03em; margin:18px 0 10px 0; color:var(--accent);}
-  .org-unit-title:first-child{margin-top:0;}
-  .org-tree, .org-tree ul{list-style:none; margin:0; padding-left:0;}
-  .org-tree{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-start;}
-  .org-tree ul{display:flex; flex-wrap:wrap; gap:14px; margin:14px 0 0 0; padding:14px 0 0 0; border-top:2px dashed var(--accent-dim); position:relative;}
-  .org-branch{display:flex; flex-direction:column; align-items:center;}
+  .org-unit-card{padding:0; overflow:hidden;}
+  .org-header-bar{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:2px solid var(--line); background:var(--surface);}
+  .org-header-logo{height:26px; width:auto; object-fit:contain; flex-shrink:0;}
+  .org-header-title{font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; letter-spacing:.01em; color:var(--text);}
+  .org-header-unit{color:var(--accent); font-weight:700;}
+  .org-tree-scroll{overflow-x:auto; padding:26px 18px 22px 18px;}
+  .org-tree, .org-tree ul{list-style:none; margin:0; padding:0;}
+  .org-tree{display:inline-flex; justify-content:center; min-width:100%;}
+  .org-tree li{position:relative; display:flex; flex-direction:column; align-items:center; padding:0 12px;}
+  .org-tree ul{display:flex; padding-top:26px; position:relative;}
+  .org-tree ul li{padding-top:26px;}
+  .org-tree ul li::before, .org-tree ul li::after{content:''; position:absolute; top:0; width:50%; height:26px; border-top:2px solid var(--org-line, var(--line));}
+  .org-tree ul li::before{right:50%;}
+  .org-tree ul li::after{left:50%; border-left:2px solid var(--org-line, var(--line));}
+  .org-tree ul li:only-child::before, .org-tree ul li:only-child::after{display:none;}
+  .org-tree ul li:only-child{padding-top:0;}
+  .org-tree ul li:first-child::before{border-top:none;}
+  .org-tree ul li:last-child::after{border-top:none;}
+  .org-tree ul li:first-child::after{border-radius:6px 0 0 0;}
+  .org-tree ul li:last-child::before{border-radius:0 6px 0 0;}
+  .org-tree ul::before{content:''; position:absolute; top:0; left:50%; width:0; height:26px; border-left:2px solid var(--org-line, var(--line));}
   .org2-card{
-    background:var(--surface); border:1px solid var(--line); border-radius:10px;
-    padding:8px 10px; display:flex; align-items:center; gap:9px; width:196px;
-    cursor:pointer; transition:border-color .12s ease, transform .08s ease; text-align:left;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    width:206px; min-height:52px; padding:8px 10px; border-radius:5px;
+    cursor:pointer; text-align:left; box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:transform .1s ease, box-shadow .1s ease;
   }
-  .org2-card:hover{border-color:var(--accent); transform:translateY(-1px);}
-  .org2-avatar{width:38px; height:38px; border-radius:50%; object-fit:cover; flex-shrink:0; background:var(--surface-2); border:1px solid var(--line);}
-  .org2-avatar-fallback{width:38px; height:38px; border-radius:50%; flex-shrink:0; background:var(--accent-dim); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-weight:700; font-size:14px;}
+  .org2-card:hover{transform:translateY(-2px); box-shadow:0 5px 12px rgba(0,0,0,.18);}
+  .org2-card.tier-lead{background:#a9ac86; color:#2b2a1c;}
+  .org2-card.tier-staff{background:#4c4732; color:#f3f1e7;}
   .org2-info{min-width:0;}
-  .org2-name{font-weight:700; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .org2-role{color:var(--text-muted); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .org2-name{font-weight:700; font-size:12.5px; line-height:1.28;}
+  .org2-role{font-size:10.5px; line-height:1.28; opacity:.92;}
+  .org2-avatar{width:42px; height:42px; border-radius:5px; object-fit:cover; flex-shrink:0;}
+  .org2-avatar-fallback{width:42px; height:42px; border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-weight:700; font-size:15px;}
+  .org2-card.tier-lead .org2-avatar-fallback{background:rgba(0,0,0,.15);}
+  .org2-card.tier-staff .org2-avatar-fallback{background:rgba(255,255,255,.18);}
 
   /* ---------- checklist de processos ---------- */
   .checklist-progress{height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden; margin:12px 0 16px 0;}
@@ -777,7 +797,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-25T18-10-00Z';
+  const APP_VERSION = '2026-08-25T19-05-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1639,6 +1659,11 @@
     switchView('rhcolab');
     setTimeout(()=>LOTS.editColaborador(id), 60);
   };
+  function orgCardTier(cargo){
+    const s = normalizarCabecalho(cargo);
+    if(s.includes('COORDIN') || s.includes('MANAGER') || s.includes('GERENTE') || s.includes('DIRETOR')) return 'tier-lead';
+    return 'tier-staff';
+  }
   function buildOrgNode(c, lista){
     const filhos = lista.filter(x=>x.supervisorId===c.id);
     const foto = state.fotos && state.fotos[c.id];
@@ -1646,16 +1671,15 @@
       ? `<img class="org2-avatar" src="${foto}" alt="">`
       : `<div class="org2-avatar-fallback">${(c.nome||'?').trim().charAt(0).toUpperCase()}</div>`;
     return `<li>
-      <div class="org-branch">
-        <div class="org2-card" onclick="LOTS.editColaboradorFromOrg('${c.id}')" title="Clique para editar">
-          ${avatar}
-          <div class="org2-info">
-            <div class="org2-name">${c.nome}</div>
-            <div class="org2-role">${c.cargo||'—'}</div>
-          </div>
+      <div class="org2-card ${orgCardTier(c.cargo)}" onclick="LOTS.editColaboradorFromOrg('${c.id}')" title="Clique para editar">
+        <div class="org2-info">
+          <div class="org2-name">${c.nome}</div>
+          <div class="org2-role">${c.cargo||'—'}</div>
+          ${c.departamento ? `<div class="org2-role">${c.departamento}</div>` : ''}
         </div>
-        ${filhos.length ? `<ul>${filhos.map(f=>buildOrgNode(f,lista)).join('')}</ul>` : ''}
+        ${avatar}
       </div>
+      ${filhos.length ? `<ul>${filhos.map(f=>buildOrgNode(f,lista)).join('')}</ul>` : ''}
     </li>`;
   }
   function renderOrganograma(){
@@ -1669,8 +1693,15 @@
       const lista = base.filter(c=>c.unidade===uo);
       const idsNaUnidade = new Set(lista.map(c=>c.id));
       const raizes = lista.filter(c=>!c.supervisorId || !idsNaUnidade.has(c.supervisorId));
-      return `<div class="org-unit-title">${uo}</div>
-        <div class="card"><ul class="org-tree">${raizes.map(r=>buildOrgNode(r,lista)).join('') || '<li class="page-sub">Nenhum colaborador nesta unidade.</li>'}</ul></div>`;
+      return `<div class="card org-unit-card">
+        <div class="org-header-bar">
+          <img src="assets/lots-logo.png" class="org-header-logo" alt="LOTS">
+          <div class="org-header-title">LOTS Group — Recursos Humanos — <span class="org-header-unit">${uo}</span></div>
+        </div>
+        <div class="org-tree-scroll">
+          <ul class="org-tree">${raizes.map(r=>buildOrgNode(r,lista)).join('') || '<li class="page-sub">Nenhum colaborador nesta unidade.</li>'}</ul>
+        </div>
+      </div>`;
     }).join('');
   }
 
