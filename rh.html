@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-25T20-15-00Z -->
+<!-- APP_BUILD:2026-08-26T14-40-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -148,8 +148,16 @@
   .ops-eyebrow{color:#8fd6ac; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; margin-bottom:6px;}
   .ops-title{font-family:'Oswald',sans-serif; font-size:26px; text-transform:none; font-weight:600;}
   .ops-sub{color:#c7ddd0; font-size:13px; margin-top:4px;}
+  .ops-filter{display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;}
+  .ops-filter-field{display:flex; flex-direction:column; gap:5px;}
+  .ops-filter-field label{font-size:10.5px; color:#c7ddd0; text-transform:uppercase; letter-spacing:.05em; font-weight:700;}
+  .ops-filter-field input{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.35); color:#fff; padding:8px 10px; border-radius:7px; font-size:12.5px;}
+  .ops-filter-field input::-webkit-calendar-picker-indicator{filter:invert(1);}
+  .ops-filter .btn-ghost{border-color:rgba(255,255,255,.45); color:#fff; background:transparent;}
+  .ops-filter .btn-ghost:hover{color:#fff; border-color:#fff;}
 
-  .kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; display:flex; align-items:center; gap:14px;}
+  .kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:transform .08s ease, box-shadow .08s ease;}
+  .kpi:hover{transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,.14);}
   .kpi-val{font-family:'Roboto Mono',monospace; font-size:20px; font-weight:700;}
   .kpi-label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
 
@@ -185,14 +193,20 @@
 
   /* ---------- organograma ---------- */
   .org-unit-card{padding:0; overflow:hidden;}
-  .org-header-bar{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:2px solid var(--line); background:var(--surface);}
+  .org-fullboard{padding:0; overflow:hidden;}
+  .org-header-bar{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:2px solid var(--line); background:var(--surface); flex-wrap:wrap;}
   .org-header-title-wrap{display:flex; align-items:center; gap:12px;}
   .org-header-logo{height:26px; width:auto; object-fit:contain; flex-shrink:0;}
   .org-header-title{font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; letter-spacing:.01em; color:var(--text);}
   .org-header-unit{color:var(--accent); font-weight:700;}
-  .org-toolbar{margin-left:auto; display:flex; gap:8px; flex-shrink:0;}
+  .org-toolbar{margin-left:auto; display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;}
+  .org-unit-tabs{display:flex; gap:6px; flex-wrap:wrap; padding:10px 18px; border-bottom:1px solid var(--line); background:var(--surface-2);}
+  .org-unit-tab{background:transparent; color:var(--text-muted); border:1px solid var(--line); padding:6px 12px; font-size:12px; border-radius:20px; font-weight:600;}
+  .org-unit-tab:hover{color:var(--text); border-color:var(--text-muted);}
+  .org-unit-tab.active{background:var(--accent); color:#fff; border-color:var(--accent);}
   .org-edit-hint{padding:8px 18px; font-size:12px; color:var(--accent); background:var(--accent-dim); border-bottom:1px solid var(--line);}
   .org-tree-scroll{overflow:auto; padding:26px 18px 22px 18px;}
+  .org-tree-scroll-full{min-height:max(460px, calc(100vh - 400px));}
   .org-canvas{position:relative;}
   .org-canvas-lines{position:absolute; top:0; left:0; pointer-events:none;}
   .org-connector-line{fill:none; stroke:var(--line); stroke-width:2;}
@@ -372,6 +386,11 @@
             <div class="ops-eyebrow">Visão geral de pessoas</div>
             <div class="ops-title">Gestão de RH</div>
             <div class="ops-sub">Quadro, admissões, desligamentos e processos consolidados.</div>
+          </div>
+          <div class="ops-filter">
+            <div class="ops-filter-field"><label>Período de</label><input type="date" id="rdfilter-inicio"></div>
+            <div class="ops-filter-field"><label>até</label><input type="date" id="rdfilter-fim"></div>
+            <button class="btn-ghost btn-sm" id="btn-clear-rdfilter">Mês atual</button>
           </div>
         </div>
 
@@ -806,7 +825,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-25T20-15-00Z';
+  const APP_VERSION = '2026-08-26T14-40-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1692,7 +1711,7 @@
   function buildOrgNode(c, lista){
     const filhos = lista.filter(x=>x.supervisorId===c.id);
     return `<li>
-      <div class="org2-card ${orgCardTier(c.cargo)}" onclick="LOTS.editColaboradorFromOrg('${c.id}')" title="Clique para editar">
+      <div class="org2-card ${orgCardTier(c.cargo)}" onclick="LOTS.orgQuickEdit('${c.id}')" title="Clique para editar">
         ${orgCardInnerHtml(c)}
       </div>
       ${filhos.length ? `<ul>${filhos.map(f=>buildOrgNode(f,lista)).join('')}</ul>` : ''}
@@ -1737,7 +1756,7 @@
       const p = positions[c.id];
       return `<div class="org2-card ${orgCardTier(c.cargo)} canvas-mode ${editMode?'edit-mode':''}"
           data-cid="${c.id}" data-sup="${c.supervisorId||''}" style="left:${p.x}px; top:${p.y}px;"
-          ${editMode ? '' : `onclick="LOTS.editColaboradorFromOrg('${c.id}')"`}
+          ${editMode ? '' : `onclick="LOTS.orgQuickEdit('${c.id}')"`}
           title="${editMode ? 'Arraste para reposicionar' : 'Clique para editar'}">
         ${orgCardInnerHtml(c)}
       </div>`;
@@ -1794,7 +1813,7 @@
         state.orgLayout[uo][el.dataset.cid] = { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
         await save.orgLayout();
       } else {
-        LOTS.editColaboradorFromOrg(el.dataset.cid);
+        LOTS.orgQuickEdit(el.dataset.cid);
       }
     });
     el.addEventListener('pointercancel', ()=>{ dragging = false; });
@@ -1822,57 +1841,161 @@
     toast('Organograma voltou ao modo automático.');
     logAudit('Organograma automático restaurado', uo);
   };
+  LOTS.orgSelecionarUnidade = (uo)=>{
+    const sel = document.getElementById('rgfilter-unidade');
+    if(sel) sel.value = uo;
+    renderOrganograma();
+  };
+
+  /* ---- cadastrar / editar / excluir colaborador direto pelo organograma ---- */
+  function orgPessoaForm(uo, c){
+    const editando = !!c;
+    const supervisoresOpts = visibleColaboradores()
+      .filter(x=>x.unidade===uo && x.status!=='desligado' && (!editando || x.id!==c.id))
+      .map(x=>`<option value="${x.id}" ${c?.supervisorId===x.id?'selected':''}>${x.nome}${x.cargo?' — '+x.cargo:''}</option>`).join('');
+    const deptoOpt = (v)=>`<option value="${v}" ${c?.departamento===v?'selected':''}>${v}</option>`;
+    return `
+      <div class="modal-title">${editando ? 'Editar colaborador' : 'Adicionar pessoa ao organograma'}</div>
+      <div class="field"><label>Nome</label><input id="of-nome" value="${c?.nome||''}" placeholder="Nome completo"></div>
+      <div class="field-row">
+        <div class="field"><label>Cargo</label><input id="of-cargo" list="cargos-existentes" value="${c?.cargo||''}" placeholder="Ex: Coordinator, Analyst..."></div>
+        <div class="field"><label>Departamento</label>
+          <select id="of-depto">${deptoOpt('Operação')}${deptoOpt('Manutenção')}${deptoOpt('Drivers')}${deptoOpt('ADM')}</select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Unidade</label>
+          <select id="of-unidade">
+            <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
+            <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+            <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+          </select>
+        </div>
+        <div class="field"><label>Supervisor (a quem reporta)</label>
+          <select id="of-supervisor"><option value="">— Nenhum —</option>${supervisoresOpts}</select>
+        </div>
+      </div>
+      <div class="err-msg" id="of-err"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="btn-save-org-pessoa">${editando?'Salvar':'Adicionar'}</button>
+        ${editando ? `<button class="btn-danger" id="btn-delete-org-pessoa">Excluir colaborador</button>` : ''}
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>
+      ${editando ? `<div style="margin-top:10px;"><button class="btn-ghost btn-sm" onclick="closeModalGlobal(); LOTS.editColaboradorFromOrg('${c.id}');">Abrir cadastro completo (foto, CPF, data de admissão…) →</button></div>` : ''}
+    `;
+  }
+  function wireOrgPessoaForm(id, uoInicial){
+    document.getElementById('of-unidade').value = uoInicial;
+    document.getElementById('of-unidade').addEventListener('change', (e)=>{
+      const supSel = document.getElementById('of-supervisor');
+      const opts = visibleColaboradores().filter(x=>x.unidade===e.target.value && x.status!=='desligado' && x.id!==id)
+        .map(x=>`<option value="${x.id}">${x.nome}${x.cargo?' — '+x.cargo:''}</option>`).join('');
+      supSel.innerHTML = '<option value="">— Nenhum —</option>' + opts;
+    });
+    document.getElementById('btn-save-org-pessoa').addEventListener('click', ()=>LOTS.orgSavePessoa(id));
+    document.getElementById('btn-delete-org-pessoa')?.addEventListener('click', ()=>LOTS.orgDeletePessoa(id));
+  }
+  LOTS.orgAddPessoa = (uo)=>{
+    populateColabSelects();
+    openModal(orgPessoaForm(uo, null));
+    wireOrgPessoaForm(null, uo);
+  };
+  LOTS.orgQuickEdit = (id)=>{
+    const c = colaboradorById(id);
+    if(!c) return;
+    populateColabSelects();
+    openModal(orgPessoaForm(c.unidade, c));
+    wireOrgPessoaForm(id, c.unidade);
+  };
+  LOTS.orgSavePessoa = async (id)=>{
+    const errEl = document.getElementById('of-err');
+    const nome = document.getElementById('of-nome').value.trim();
+    const cargo = document.getElementById('of-cargo').value.trim();
+    const departamento = document.getElementById('of-depto').value;
+    const unidade = document.getElementById('of-unidade').value;
+    const supervisorId = document.getElementById('of-supervisor').value || null;
+    if(!nome){ errEl.textContent = 'Informe o nome.'; return; }
+    if(!canManageColaborador(unidade)){ errEl.textContent = 'Você não tem permissão para esta unidade.'; return; }
+    if(id){
+      Object.assign(colaboradorById(id), { nome, cargo, departamento, unidade, supervisorId });
+    } else {
+      state.colaboradores.push({
+        id: uid(), nome, cargo, departamento, unidade, supervisorId,
+        status:'ativo', tipoContrato:'Indeterminado', dataAdmissao: todayISO(),
+        matricula:'', cpf:'', dataNascimento:'', telefone:'', email:'', observacoes:''
+      });
+    }
+    await save.colaboradores();
+    closeModal();
+    const sel = document.getElementById('rgfilter-unidade');
+    if(sel) sel.value = unidade;
+    renderOrganograma();
+    toast(id ? 'Colaborador atualizado.' : 'Pessoa adicionada ao organograma.');
+    logAudit(id ? 'Colaborador editado pelo organograma' : 'Colaborador adicionado pelo organograma', nome);
+  };
+  LOTS.orgDeletePessoa = async (id)=>{
+    closeModal();
+    await LOTS.deleteColaborador(id);
+  };
 
   function renderOrganograma(){
     const container = document.getElementById('rh-org-container');
     if(!container) return;
-    const uoF = document.getElementById('rgfilter-unidade')?.value || '';
-    const base = visibleColaboradores().filter(c=>c.status!=='desligado').filter(c=>!uoF || c.unidade===uoF);
-    if(base.length===0){ container.innerHTML = '<div class="card"><div class="empty-row" style="padding:24px; text-align:center; color:var(--text-faint); font-style:italic;">Nenhum colaborador ativo cadastrado.</div></div>'; return; }
-    const unidades = [...new Set(base.map(c=>c.unidade||'Sem unidade'))].sort();
-    container.innerHTML = unidades.map(uo=>{
-      const lista = base.filter(c=>c.unidade===uo);
-      const temLayoutSalvo = !!(state.orgLayout[uo] && Object.keys(state.orgLayout[uo]).length>0);
-      const podeEditar = canManageColaborador(uo);
-      const editMode = temLayoutSalvo && podeEditar && orgEditUnits.has(uo);
-      let toolbar = '';
-      if(podeEditar){
-        if(!temLayoutSalvo){
-          toolbar = `<button class="btn-ghost btn-sm" onclick="LOTS.orgEnableManual('${uo}')">Organizar manualmente</button>`;
-        } else if(editMode){
-          toolbar = `<button class="btn-primary btn-sm" onclick="LOTS.orgToggleEdit('${uo}', false)">Concluir edição</button>
-            <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uo}')">Restaurar automático</button>`;
-        } else {
-          toolbar = `<button class="btn-ghost btn-sm" onclick="LOTS.orgToggleEdit('${uo}', true)">Editar posições</button>
-            <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uo}')">Restaurar automático</button>`;
-        }
-      }
-      const idsNaUnidade = new Set(lista.map(c=>c.id));
-      const raizes = lista.filter(c=>!c.supervisorId || !idsNaUnidade.has(c.supervisorId));
-      const corpo = temLayoutSalvo
-        ? renderOrgCanvas(uo, lista, editMode)
-        : `<ul class="org-tree">${raizes.map(r=>buildOrgNode(r,lista)).join('') || '<li class="page-sub">Nenhum colaborador nesta unidade.</li>'}</ul>`;
-      return `<div class="card org-unit-card">
-        <div class="org-header-bar">
-          <div class="org-header-title-wrap">
-            <img src="assets/lots-logo.png" class="org-header-logo" alt="LOTS">
-            <div class="org-header-title">LOTS Group — Recursos Humanos — <span class="org-header-unit">${uo}</span></div>
-          </div>
-          <div class="org-toolbar">${toolbar}</div>
-        </div>
-        ${editMode ? '<div class="org-edit-hint">Modo de edição ativo: arraste os cards para reposicionar. As posições são salvas automaticamente a cada movimento.</div>' : ''}
-        <div class="org-tree-scroll">${corpo}</div>
-      </div>`;
-    }).join('');
+    const todosAtivos = visibleColaboradores().filter(c=>c.status!=='desligado');
+    if(todosAtivos.length===0){ container.innerHTML = '<div class="card"><div class="empty-row" style="padding:24px; text-align:center; color:var(--text-faint); font-style:italic;">Nenhum colaborador ativo cadastrado.</div></div>'; return; }
+    const unidades = [...new Set(todosAtivos.map(c=>c.unidade||'Sem unidade'))].sort();
+    let uoAtual = document.getElementById('rgfilter-unidade')?.value || '';
+    if(!uoAtual || !unidades.includes(uoAtual)){
+      uoAtual = unidades[0];
+      const sel = document.getElementById('rgfilter-unidade');
+      if(sel) sel.value = uoAtual;
+    }
+    const lista = todosAtivos.filter(c=>c.unidade===uoAtual);
+    const temLayoutSalvo = !!(state.orgLayout[uoAtual] && Object.keys(state.orgLayout[uoAtual]).length>0);
+    const podeEditar = canManageColaborador(uoAtual);
+    const editMode = temLayoutSalvo && podeEditar && orgEditUnits.has(uoAtual);
 
-    container.querySelectorAll('.org-canvas').forEach(canvasEl=>{
-      const uo = canvasEl.dataset.uo;
-      redrawOrgLines(canvasEl);
-      const podeEditar = canManageColaborador(uo);
-      if(podeEditar && orgEditUnits.has(uo)){
-        canvasEl.querySelectorAll('.org2-card.edit-mode').forEach(el=>wireOrgCardDrag(el, uo, canvasEl));
+    let toolbar = podeEditar ? `<button class="btn-ghost btn-sm" onclick="LOTS.orgAddPessoa('${uoAtual}')">+ Adicionar pessoa</button>` : '';
+    if(podeEditar){
+      if(!temLayoutSalvo){
+        toolbar += `<button class="btn-ghost btn-sm" onclick="LOTS.orgEnableManual('${uoAtual}')">Organizar manualmente</button>`;
+      } else if(editMode){
+        toolbar += `<button class="btn-primary btn-sm" onclick="LOTS.orgToggleEdit('${uoAtual}', false)">Concluir edição</button>
+          <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uoAtual}')">Restaurar automático</button>`;
+      } else {
+        toolbar += `<button class="btn-ghost btn-sm" onclick="LOTS.orgToggleEdit('${uoAtual}', true)">Editar posições</button>
+          <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uoAtual}')">Restaurar automático</button>`;
       }
-    });
+    }
+    const idsNaUnidade = new Set(lista.map(c=>c.id));
+    const raizes = lista.filter(c=>!c.supervisorId || !idsNaUnidade.has(c.supervisorId));
+    const corpo = temLayoutSalvo
+      ? renderOrgCanvas(uoAtual, lista, editMode)
+      : `<ul class="org-tree">${raizes.map(r=>buildOrgNode(r,lista)).join('') || '<li class="page-sub">Nenhum colaborador nesta unidade.</li>'}</ul>`;
+    const abas = unidades.length>1
+      ? `<div class="org-unit-tabs">${unidades.map(u=>`<button class="org-unit-tab ${u===uoAtual?'active':''}" onclick="LOTS.orgSelecionarUnidade('${u}')">${u}</button>`).join('')}</div>`
+      : '';
+
+    container.innerHTML = `<div class="card org-fullboard">
+      <div class="org-header-bar">
+        <div class="org-header-title-wrap">
+          <img src="assets/lots-logo.png" class="org-header-logo" alt="LOTS">
+          <div class="org-header-title">LOTS Group — Recursos Humanos — <span class="org-header-unit">${uoAtual}</span></div>
+        </div>
+        <div class="org-toolbar">${toolbar}</div>
+      </div>
+      ${abas}
+      ${editMode ? '<div class="org-edit-hint">Modo de edição ativo: arraste os cards para reposicionar. As posições são salvas automaticamente a cada movimento.</div>' : ''}
+      <div class="org-tree-scroll org-tree-scroll-full">${corpo}</div>
+    </div>`;
+
+    const canvasEl = container.querySelector('.org-canvas');
+    if(canvasEl){
+      redrawOrgLines(canvasEl);
+      if(podeEditar && editMode){
+        canvasEl.querySelectorAll('.org2-card.edit-mode').forEach(el=>wireOrgCardDrag(el, uoAtual, canvasEl));
+      }
+    }
   }
 
   /* ---------------- VAGAS ---------------- */
@@ -2467,32 +2590,62 @@
   }
 
   /* ---------------- PAINEL RH (DASHBOARD) ---------------- */
+  function dashListaModal(titulo, colunas, linhasHtml){
+    return `<div class="modal-title">${titulo}</div>
+      <table><thead><tr>${colunas.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>${linhasHtml || `<tr class="empty-row"><td colspan="${colunas.length}">Nenhum registro no período selecionado.</td></tr>`}</tbody></table>
+      <div class="modal-actions" style="margin-top:14px;"><button class="btn-ghost" onclick="closeModalGlobal()">Fechar</button></div>`;
+  }
+  LOTS.dashShowLista = (chave)=>{
+    const listas = LOTS._dashListas || {};
+    if(chave==='vagas'){
+      const linhas = (listas.vagas||[]).map(v=>`<tr><td>${v.titulo}</td><td>${v.unidade||'—'}</td><td class="mono">${v.quantidade||1}</td></tr>`).join('');
+      openModal(dashListaModal('Vagas abertas no período', ['Vaga','Unidade','Qtd'], linhas));
+      return;
+    }
+    const titulos = { ativos:'Colaboradores ativos', ferias:'Em férias/afastados', admissoes:'Admissões no período', desligamentos:'Desligamentos no período' };
+    const linhas = (listas[chave]||[]).map(c=>`<tr><td>${c.nome}</td><td class="mono">${c.matricula||'—'}</td><td>${c.cargo||'—'}</td><td>${c.unidade||'—'}</td></tr>`).join('');
+    openModal(dashListaModal(titulos[chave]||'Colaboradores', ['Nome','Matrícula','Cargo','Unidade'], linhas));
+  };
+  document.getElementById('rdfilter-inicio')?.addEventListener('change', renderRHDashboard);
+  document.getElementById('rdfilter-fim')?.addEventListener('change', renderRHDashboard);
+  document.getElementById('btn-clear-rdfilter')?.addEventListener('click', ()=>{
+    document.getElementById('rdfilter-inicio').value='';
+    document.getElementById('rdfilter-fim').value='';
+    renderRHDashboard();
+  });
+
   function renderRHDashboard(){
     syncColaboradoresStatus();
     const todos = visibleColaboradores();
     const ativos = todos.filter(c=>c.status!=='desligado');
     const hoje = todayISO();
-    const mesAtual = hoje.slice(0,7);
-    const dozeMesesAtras = addMonths(hoje, -12);
 
-    const admissoesMes = todos.filter(c=>(c.dataAdmissao||'').startsWith(mesAtual)).length;
-    const desligamentosMes = todos.filter(c=>c.status==='desligado' && (c.dataDesligamento||'').startsWith(mesAtual)).length;
-    const desligamentos12m = todos.filter(c=>c.status==='desligado' && c.dataDesligamento && c.dataDesligamento>=dozeMesesAtras).length;
-    const headcountMedio = Math.max(ativos.length + desligamentos12m/2, 1);
-    const turnover = Math.round((desligamentos12m/headcountMedio)*100);
-    const vagasAbertas = visibleVagas().filter(v=>v.status==='aberta'||v.status==='em_selecao').length;
-    const emFeriasOuAfastado = ativos.filter(c=>c.status==='ferias'||c.status==='afastado').length;
+    const inicio = document.getElementById('rdfilter-inicio')?.value || hoje.slice(0,7)+'-01';
+    const fim = document.getElementById('rdfilter-fim')?.value || hoje;
+
+    const listaAtivosPeriodo = todos.filter(c=>c.dataAdmissao && c.dataAdmissao<=fim && (c.status!=='desligado' || !c.dataDesligamento || c.dataDesligamento>fim));
+    const listaAdmissoes = todos.filter(c=>c.dataAdmissao && c.dataAdmissao>=inicio && c.dataAdmissao<=fim);
+    const listaDesligamentos = todos.filter(c=>c.status==='desligado' && c.dataDesligamento && c.dataDesligamento>=inicio && c.dataDesligamento<=fim);
+    const idsComFerias = new Set(state.ferias.filter(f=>(f.dataFim||f.dataInicio)>=inicio && f.dataInicio<=fim).map(f=>f.colaboradorId));
+    const listaFerias = todos.filter(c=>idsComFerias.has(c.id));
+    const listaVagasAbertas = visibleVagas().filter(v=>(v.status==='aberta'||v.status==='em_selecao') && (!v.dataAbertura || v.dataAbertura<=fim));
+
+    const headcountMedio = Math.max(listaAtivosPeriodo.length + listaDesligamentos.length/2, 1);
+    const turnover = Math.round((listaDesligamentos.length/headcountMedio)*100);
+
+    LOTS._dashListas = { ativos: listaAtivosPeriodo, ferias: listaFerias, admissoes: listaAdmissoes, desligamentos: listaDesligamentos, vagas: listaVagasAbertas };
 
     const kpiGrid = document.getElementById('rh-kpi-grid');
     if(kpiGrid){
       kpiGrid.innerHTML = [
-        {label:'Colaboradores ativos', val: ativos.filter(c=>c.status==='ativo').length},
-        {label:'Em férias/afastados', val: emFeriasOuAfastado},
-        {label:'Admissões no mês', val: admissoesMes},
-        {label:'Desligamentos no mês', val: desligamentosMes},
-        {label:'Turnover (12 meses)', val: turnover+'%', color: turnover>15?'var(--danger)':''},
-        {label:'Vagas abertas', val: vagasAbertas}
-      ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+        {chave:'ativos', label:'Colaboradores ativos', val: listaAtivosPeriodo.length},
+        {chave:'ferias', label:'Em férias/afastados', val: listaFerias.length},
+        {chave:'admissoes', label:'Admissões no período', val: listaAdmissoes.length},
+        {chave:'desligamentos', label:'Desligamentos no período', val: listaDesligamentos.length},
+        {chave:'desligamentos', label:'Turnover do período', val: turnover+'%', color: turnover>15?'var(--danger)':''},
+        {chave:'vagas', label:'Vagas abertas', val: listaVagasAbertas.length}
+      ].map(k=>`<div class="kpi" onclick="LOTS.dashShowLista('${k.chave}')" title="Clique para ver a lista"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
     }
 
     const vencTbl = document.getElementById('rh-dash-vencimentos');
