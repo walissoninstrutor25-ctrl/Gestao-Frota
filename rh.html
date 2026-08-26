@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T19-15-00Z -->
+<!-- APP_BUILD:2026-08-26T19-40-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -508,6 +508,20 @@
             </div>
             <div class="err-msg" id="import-colab-msg"></div>
           </div>
+
+          <div style="margin-top:10px; text-align:right;">
+            <button type="button" id="btn-toggle-wipe-colab" style="background:none; border:none; color:var(--text-faint); font-size:10.5px; padding:2px; cursor:pointer; text-decoration:underline;">apagar todos os colaboradores cadastrados</button>
+          </div>
+          <div id="wipe-colab-panel" style="display:none; margin-top:10px; padding:14px; border:1px dashed var(--danger); border-radius:8px; background:var(--surface-2);">
+            <div class="page-sub" style="margin-bottom:10px; color:var(--danger);">
+              Isso apaga TODOS os colaboradores cadastrados (ativos e desligados) e as fotos deles, de todas as unidades — não tem como desfazer. Use só se for reimportar a planilha do zero.
+            </div>
+            <div class="field-grid-4" style="align-items:end; margin-bottom:0;">
+              <div class="field" style="margin-bottom:0;"><label>Digite EXCLUIR TUDO para confirmar</label><input id="wipe-colab-confirm" placeholder="EXCLUIR TUDO"></div>
+              <div class="field" style="margin-bottom:0;"><button class="btn-danger" id="btn-wipe-colab" style="width:100%;">Apagar todos os colaboradores</button></div>
+            </div>
+            <div class="err-msg" id="wipe-colab-msg"></div>
+          </div>
         </div>
 
         <div class="lane accent"></div>
@@ -837,7 +851,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T19-15-00Z';
+  const APP_VERSION = '2026-08-26T19-40-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1511,6 +1525,28 @@
   document.getElementById('btn-toggle-import-colab')?.addEventListener('click', ()=>{
     const panel = document.getElementById('import-colab-panel');
     panel.style.display = panel.style.display==='none' ? 'block' : 'none';
+  });
+  document.getElementById('btn-toggle-wipe-colab')?.addEventListener('click', ()=>{
+    const panel = document.getElementById('wipe-colab-panel');
+    panel.style.display = panel.style.display==='none' ? 'block' : 'none';
+  });
+  document.getElementById('btn-wipe-colab')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('wipe-colab-msg');
+    if(currentUser().role!=='admin'){ msgEl.textContent='Só o administrador pode fazer isso.'; return; }
+    const confirmTexto = document.getElementById('wipe-colab-confirm').value.trim().toUpperCase();
+    if(confirmTexto!=='EXCLUIR TUDO'){ msgEl.textContent='Digite exatamente "EXCLUIR TUDO" para confirmar.'; return; }
+    msgEl.textContent = 'Apagando…';
+    for(const id of Object.keys(state.fotos||{})){ await removerFotoColaborador(id); }
+    state.fotos = {};
+    const totalApagado = state.colaboradores.length;
+    state.colaboradores = [];
+    await save.colaboradores();
+    document.getElementById('wipe-colab-confirm').value = '';
+    document.getElementById('wipe-colab-panel').style.display = 'none';
+    msgEl.textContent = '';
+    renderAll();
+    logAudit('Todos os colaboradores apagados', `${totalApagado} registros removidos`);
+    toast(`${totalApagado} colaboradores apagados. Pode importar a planilha de novo.`);
   });
   // acha uma coluna da planilha comparando os nomes sem acento/maiúscula/espaço/underline
   // (assim funciona tanto com cabeçalhos "amigáveis" quanto com exports de ERP tipo DATA_ADMISSAO)
