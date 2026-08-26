@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T16-30-00Z -->
+<!-- APP_BUILD:2026-08-26T18-20-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -411,7 +411,7 @@
 
         <div class="card" id="card-rh-quadro-desejado">
           <div class="card-head"><div class="card-title">Vagas em aberto por setor (quadro x efetivo)</div></div>
-          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Cargo</th><th>Desejado</th><th>Ativos</th><th>Faltando</th></tr></thead>
+          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Cargo</th><th>Turno</th><th>Desejado</th><th>Ativos</th><th>Faltando</th></tr></thead>
           <tbody id="rh-dash-quadro-desejado"></tbody></table>
         </div>
 
@@ -458,6 +458,14 @@
                 <option value="Manutenção">Manutenção</option>
                 <option value="Drivers">Drivers</option>
                 <option value="ADM">ADM</option>
+              </select>
+            </div>
+            <div class="field"><label>Turno</label>
+              <select id="rc-turno">
+                <option value="">— Não informado —</option>
+                <option value="Turno A">Turno A</option>
+                <option value="Turno B">Turno B</option>
+                <option value="Turno C">Turno C</option>
               </select>
             </div>
           </div>
@@ -654,7 +662,7 @@
                 <option value="ADM">ADM</option>
               </select>
             </div>
-            <div class="field" style="margin-bottom:0;"><label>Cargo (opcional)</label><input id="qd-cargo" list="cargos-existentes" placeholder="Deixe em branco p/ todo o depto"></div>
+            <div class="field" style="margin-bottom:0;"><label>Cargo</label><input id="qd-cargo" list="cargos-existentes" placeholder="Ex: Motorista"></div>
             <div class="field" style="margin-bottom:0;"><label>Quantidade desejada</label><input type="number" min="0" id="qd-quantidade" placeholder="Ex: 12"></div>
             <div class="field" style="margin-bottom:0;"><button class="btn-primary" id="btn-save-quadro" style="width:100%;">Salvar</button></div>
           </div>
@@ -829,7 +837,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T16-30-00Z';
+  const APP_VERSION = '2026-08-26T18-20-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1357,6 +1365,7 @@
     document.getElementById('rc-email').value = c?.email || '';
     document.getElementById('rc-cargo').value = c?.cargo || '';
     document.getElementById('rc-depto').value = c?.departamento || '';
+    document.getElementById('rc-turno').value = c?.turno || '';
     document.getElementById('rc-unidade').value = c?.unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : '4824-MNS');
     document.getElementById('rc-admissao').value = c?.dataAdmissao || todayISO();
     document.getElementById('rc-tipocontrato').value = c?.tipoContrato || 'Indeterminado';
@@ -1425,6 +1434,7 @@
       email: document.getElementById('rc-email').value.trim(),
       cargo: document.getElementById('rc-cargo').value.trim(),
       departamento: document.getElementById('rc-depto').value.trim(),
+      turno: document.getElementById('rc-turno').value,
       unidade, supervisorId,
       dataAdmissao: document.getElementById('rc-admissao').value || todayISO(),
       tipoContrato: document.getElementById('rc-tipocontrato').value,
@@ -1878,6 +1888,14 @@
         </div>
       </div>
       <div class="field-row">
+        <div class="field"><label>Turno</label>
+          <select id="of-turno">
+            <option value="" ${!c?.turno?'selected':''}>— Não informado —</option>
+            <option value="Turno A" ${c?.turno==='Turno A'?'selected':''}>Turno A</option>
+            <option value="Turno B" ${c?.turno==='Turno B'?'selected':''}>Turno B</option>
+            <option value="Turno C" ${c?.turno==='Turno C'?'selected':''}>Turno C</option>
+          </select>
+        </div>
         <div class="field"><label>Unidade</label>
           <select id="of-unidade">
             <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
@@ -1885,9 +1903,9 @@
             <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
           </select>
         </div>
-        <div class="field"><label>Supervisor (a quem reporta)</label>
-          <select id="of-supervisor"><option value="">— Nenhum —</option>${supervisoresOpts}</select>
-        </div>
+      </div>
+      <div class="field"><label>Supervisor (a quem reporta)</label>
+        <select id="of-supervisor"><option value="">— Nenhum —</option>${supervisoresOpts}</select>
       </div>
       <div class="err-msg" id="of-err"></div>
       <div class="modal-actions">
@@ -1926,15 +1944,16 @@
     const nome = document.getElementById('of-nome').value.trim();
     const cargo = document.getElementById('of-cargo').value.trim();
     const departamento = document.getElementById('of-depto').value;
+    const turno = document.getElementById('of-turno').value;
     const unidade = document.getElementById('of-unidade').value;
     const supervisorId = document.getElementById('of-supervisor').value || null;
     if(!nome){ errEl.textContent = 'Informe o nome.'; return; }
     if(!canManageColaborador(unidade)){ errEl.textContent = 'Você não tem permissão para esta unidade.'; return; }
     if(id){
-      Object.assign(colaboradorById(id), { nome, cargo, departamento, unidade, supervisorId });
+      Object.assign(colaboradorById(id), { nome, cargo, departamento, turno, unidade, supervisorId });
     } else {
       state.colaboradores.push({
-        id: uid(), nome, cargo, departamento, unidade, supervisorId,
+        id: uid(), nome, cargo, departamento, turno, unidade, supervisorId,
         status:'ativo', tipoContrato:'Indeterminado', dataAdmissao: todayISO(),
         matricula:'', cpf:'', dataNascimento:'', telefone:'', email:'', observacoes:''
       });
@@ -2152,9 +2171,15 @@
     if(u.role==='gestor') return state.quadroDesejado.filter(q=>q.unidade===u.uoResponsavel);
     return state.quadroDesejado;
   }
+  const RH_TURNOS = ['Turno A','Turno B','Turno C'];
   function calcQuadro(q){
-    const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento && (!q.cargo || c.cargo===q.cargo)).length;
+    const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento && c.cargo===q.cargo).length;
     return { ativos, faltando: Math.max((Number(q.quantidade)||0) - ativos, 0) };
+  }
+  function calcQuadroTurno(q, turno){
+    const desejado = Number((q.turnos && q.turnos[turno]) || 0);
+    const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento && c.cargo===q.cargo && c.turno===turno).length;
+    return { desejado, ativos, faltando: Math.max(desejado-ativos, 0) };
   }
   document.getElementById('btn-save-quadro')?.addEventListener('click', async ()=>{
     const errEl = document.getElementById('qd-err');
@@ -2162,23 +2187,51 @@
     const departamento = document.getElementById('qd-departamento').value;
     const cargo = document.getElementById('qd-cargo').value.trim();
     const quantidade = Number(document.getElementById('qd-quantidade').value);
+    if(!cargo){ errEl.textContent='Informe o cargo.'; return; }
     if(!document.getElementById('qd-quantidade').value){ errEl.textContent='Informe a quantidade desejada.'; return; }
     if(!canManageColaborador(unidade)){ errEl.textContent='Você não tem permissão para esta unidade.'; return; }
     errEl.textContent='';
     // uma combinação unidade+departamento+cargo só tem um registro — se já existe, atualiza a quantidade em vez de duplicar
-    const existente = state.quadroDesejado.find(q=>q.unidade===unidade && q.departamento===departamento && (q.cargo||'')===cargo);
+    const existente = state.quadroDesejado.find(q=>q.unidade===unidade && q.departamento===departamento && q.cargo===cargo);
     if(existente){
       existente.quantidade = quantidade;
     } else {
-      state.quadroDesejado.push({ id: uid(), unidade, departamento, cargo, quantidade });
+      state.quadroDesejado.push({ id: uid(), unidade, departamento, cargo, quantidade, turnos: {} });
     }
     await save.quadroDesejado();
     document.getElementById('qd-quantidade').value = '';
     document.getElementById('qd-cargo').value = '';
     renderView('rhvagas'); renderView('rhdash');
     toast('Quadro atualizado.');
-    logAudit('Quadro desejado atualizado', `${departamento}${cargo?' — '+cargo:''} — ${unidade} — ${quantidade}`);
+    logAudit('Quadro desejado atualizado', `${departamento} — ${cargo} — ${unidade} — ${quantidade}`);
   });
+  function quadroTurnoForm(q){
+    return `<div class="modal-title">Vagas por turno</div>
+      <div class="page-sub" style="margin-bottom:14px;">${q.cargo} — ${q.departamento} — ${q.unidade}. Quebre a quantidade desejada (${q.quantidade}) entre os turnos.</div>
+      ${RH_TURNOS.map(t=>`<div class="field"><label>${t}</label><input type="number" min="0" id="qdt-${t.replace(/\s/g,'')}" value="${(q.turnos&&q.turnos[t])||0}"></div>`).join('')}
+      <div class="err-msg" id="qdt-err"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.salvarQuadroTurno('${q.id}')">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  LOTS.abrirQuadroTurno = (id)=>{
+    const q = state.quadroDesejado.find(x=>x.id===id);
+    if(!q) return;
+    openModal(quadroTurnoForm(q));
+  };
+  LOTS.salvarQuadroTurno = async (id)=>{
+    const q = state.quadroDesejado.find(x=>x.id===id);
+    if(!q) return;
+    const turnos = {};
+    RH_TURNOS.forEach(t=>{ turnos[t] = Number(document.getElementById('qdt-'+t.replace(/\s/g,'')).value)||0; });
+    q.turnos = turnos;
+    await save.quadroDesejado();
+    closeModal();
+    renderView('rhvagas'); renderView('rhdash');
+    toast('Vagas por turno atualizadas.');
+    logAudit('Vagas por turno atualizadas', `${q.cargo} — ${q.departamento} — ${q.unidade}`);
+  };
   LOTS.deleteQuadroDesejado = async (id)=>{
     const q = state.quadroDesejado.find(x=>x.id===id);
     if(!q) return;
@@ -2202,7 +2255,10 @@
         <td class="mono">${q.quantidade}</td>
         <td class="mono">${ativos}</td>
         <td class="mono" style="${faltando>0?'color:var(--danger); font-weight:700;':''}">${faltando}</td>
-        <td><div class="action-links">${canManageColaborador(q.unidade)?`<button class="icon-btn danger" onclick="LOTS.deleteQuadroDesejado('${q.id}')">excluir</button>`:''}</div></td>
+        <td><div class="action-links">
+          ${canManageColaborador(q.unidade)?`<button class="icon-btn" onclick="LOTS.abrirQuadroTurno('${q.id}')">turnos</button>`:''}
+          ${canManageColaborador(q.unidade)?`<button class="icon-btn danger" onclick="LOTS.deleteQuadroDesejado('${q.id}')">excluir</button>`:''}
+        </div></td>
       </tr>`;
     }).join('');
   }
@@ -2324,8 +2380,18 @@
       const colabs = visibleColaboradores().filter(c=>c.status!=='desligado');
       return `
         <div class="modal-title">Novo processo de desligamento</div>
-        <div class="field"><label>Colaborador</label><select id="np-colab"><option value="">Selecione</option>${colabs.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
-        <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
+        <div class="field"><label>Colaborador</label><select id="np-colab"><option value="">Selecione</option>${colabs.map(c=>`<option value="${c.id}" data-turno="${c.turno||''}">${c.nome}</option>`).join('')}</select></div>
+        <div class="field-row">
+          <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
+          <div class="field"><label>Turno</label>
+            <select id="np-turno">
+              <option value="">Selecione</option>
+              <option value="Turno A">Turno A</option>
+              <option value="Turno B">Turno B</option>
+              <option value="Turno C">Turno C</option>
+            </select>
+          </div>
+        </div>
         <div class="field"><label>Motivo do desligamento</label>
           <select id="np-motivo">
             <option value="pedido_demissao">Pedido de demissão</option>
@@ -2380,7 +2446,17 @@
           </select>
         </div>
       </div>
-      <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
+      <div class="field-row">
+        <div class="field"><label>Data de início do processo</label><input type="date" id="np-data" value="${todayISO()}"></div>
+        <div class="field"><label>Turno</label>
+          <select id="np-turno">
+            <option value="">Selecione</option>
+            <option value="Turno A">Turno A</option>
+            <option value="Turno B">Turno B</option>
+            <option value="Turno C">Turno C</option>
+          </select>
+        </div>
+      </div>
       <div class="err-msg" id="np-err"></div>
       <div class="modal-actions">
         <button class="btn-primary" onclick="LOTS.saveNovoProcesso('admissao')">Iniciar processo</button>
@@ -2388,21 +2464,29 @@
       </div>`;
   }
   document.getElementById('btn-new-admissao')?.addEventListener('click', ()=>{ populateColabSelects(); openModal(novoProcessoForm('admissao')); });
-  document.getElementById('btn-new-desligamento')?.addEventListener('click', ()=> openModal(novoProcessoForm('desligamento')));
+  document.getElementById('btn-new-desligamento')?.addEventListener('click', ()=>{
+    openModal(novoProcessoForm('desligamento'));
+    document.getElementById('np-colab')?.addEventListener('change', (e)=>{
+      const turnoAtual = e.target.selectedOptions[0]?.dataset.turno || '';
+      document.getElementById('np-turno').value = turnoAtual;
+    });
+  });
   LOTS.saveNovoProcesso = async (tipo)=>{
     const errEl = document.getElementById('np-err');
     const dataInicio = document.getElementById('np-data').value || todayISO();
 
     if(tipo==='desligamento'){
       const colaboradorId = document.getElementById('np-colab').value;
+      const turno = document.getElementById('np-turno').value;
       if(!colaboradorId){ errEl.textContent='Selecione o colaborador.'; return; }
+      if(!turno){ errEl.textContent='Selecione o turno.'; return; }
       const c = colaboradorById(colaboradorId);
       if(!canManageColaborador(c?.unidade)){ errEl.textContent='Você não tem permissão para este colaborador.'; return; }
       if(state.processos.some(p=>p.colaboradorId===colaboradorId && p.tipo==='desligamento' && p.status==='em_andamento')){
         errEl.textContent='Já existe um processo de desligamento em andamento para este colaborador.'; return;
       }
       const novo = {
-        id: uid(), colaboradorId, tipo:'desligamento', dataInicio,
+        id: uid(), colaboradorId, tipo:'desligamento', dataInicio, turno,
         etapas: RH_ETAPAS_DESLIGAMENTO.map(nome=>({nome, feito:false})),
         status:'em_andamento', dataConclusao:null, observacoes:'',
         motivoSaida: document.getElementById('np-motivo').value,
@@ -2421,11 +2505,13 @@
     const nome = document.getElementById('np-nome').value.trim();
     const cargo = document.getElementById('np-cargo').value.trim();
     const unidade = document.getElementById('np-unidade').value;
+    const turno = document.getElementById('np-turno').value;
     if(!nome){ errEl.textContent='Informe o nome do candidato.'; return; }
+    if(!turno){ errEl.textContent='Selecione o turno.'; return; }
     if(!canManageColaborador(unidade)){ errEl.textContent='Você não tem permissão para cadastrar processos nesta unidade.'; return; }
     const novo = {
       id: uid(), colaboradorId: null, tipo:'admissao', dataInicio,
-      candidatoNome: nome, cargo, unidade,
+      candidatoNome: nome, cargo, unidade, turno,
       departamento: document.getElementById('np-depto').value.trim(),
       tipoContrato: document.getElementById('np-tipocontrato').value,
       etapas: buildEtapasAdmissao(cargo),
@@ -2493,7 +2579,7 @@
       nome: p.candidatoNome,
       cpf: document.getElementById('pp-cpf').value.trim(),
       dataNascimento: '', telefone: '', email: '',
-      cargo: p.cargo || '', departamento: p.departamento || '', unidade: p.unidade,
+      cargo: p.cargo || '', departamento: p.departamento || '', turno: p.turno || '', unidade: p.unidade,
       supervisorId: document.getElementById('pp-supervisor').value || null,
       dataAdmissao, tipoContrato: p.tipoContrato || 'Indeterminado',
       observacoes: p.observacoes || '', status: 'ativo', dataCadastro: todayISO()
@@ -2546,6 +2632,7 @@
       c.dataDesligamento = p.dataInicio;
       c.motivoDesligamento = p.motivoSaida;
       c.avisoPrevio = p.avisoPrevio;
+      if(p.turno) c.turno = p.turno;
       await save.colaboradores();
     }
     await save.processos();
@@ -2705,16 +2792,30 @@
 
     const qdTbl = document.getElementById('rh-dash-quadro-desejado');
     if(qdTbl){
-      const comGap = visibleQuadroDesejado().map(q=>({q, ...calcQuadro(q)})).filter(x=>x.faltando>0)
-        .sort((a,b)=>b.faltando-a.faltando);
-      qdTbl.innerHTML = comGap.length ? comGap.map(x=>`<tr>
-        <td>${x.q.unidade}</td>
-        <td>${x.q.departamento}</td>
-        <td>${x.q.cargo||'—'}</td>
-        <td class="mono">${x.q.quantidade}</td>
+      const linhas = [];
+      visibleQuadroDesejado().forEach(q=>{
+        const temTurnos = q.turnos && RH_TURNOS.some(t=>Number(q.turnos[t])>0);
+        if(temTurnos){
+          RH_TURNOS.forEach(t=>{
+            if(!Number(q.turnos[t])) return;
+            const {desejado, ativos, faltando} = calcQuadroTurno(q, t);
+            if(faltando>0) linhas.push({unidade:q.unidade, departamento:q.departamento, cargo:q.cargo, turno:t, desejado, ativos, faltando});
+          });
+        } else {
+          const {ativos, faltando} = calcQuadro(q);
+          if(faltando>0) linhas.push({unidade:q.unidade, departamento:q.departamento, cargo:q.cargo, turno:'—', desejado:q.quantidade, ativos, faltando});
+        }
+      });
+      linhas.sort((a,b)=>b.faltando-a.faltando);
+      qdTbl.innerHTML = linhas.length ? linhas.map(x=>`<tr>
+        <td>${x.unidade}</td>
+        <td>${x.departamento}</td>
+        <td>${x.cargo||'—'}</td>
+        <td>${x.turno}</td>
+        <td class="mono">${x.desejado}</td>
         <td class="mono">${x.ativos}</td>
         <td class="mono" style="color:var(--danger); font-weight:700;">${x.faltando}</td>
-      </tr>`).join('') : '<tr class="empty-row"><td colspan="6">Nenhuma vaga em aberto no quadro cadastrado.</td></tr>';
+      </tr>`).join('') : '<tr class="empty-row"><td colspan="7">Nenhuma vaga em aberto no quadro cadastrado.</td></tr>';
     }
 
     const procTbl = document.getElementById('rh-dash-processos');
