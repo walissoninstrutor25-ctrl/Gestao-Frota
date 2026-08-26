@@ -1795,6 +1795,11 @@ function bootstrapFirebaseSync() {
         location.reload();
         return;
       }
+      // já está tudo igual — marca como sincronizado antes de assinar
+      // onRemoteChange, senão a primeira confirmação do onSnapshot (que
+      // só repete esses mesmos dados) é lida como mudança nova e recarrega
+      // a página à toa.
+      window.__firebaseSync.markSynced(edits);
     } else {
       // nada salvo ainda no Firebase (primeira vez) — sobe o que já
       // existe localmente pra virar o ponto de partida compartilhado

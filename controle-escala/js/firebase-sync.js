@@ -69,6 +69,15 @@ async function connect() {
   window.__firebaseSync = {
     ready: true,
     stableStringify,
+    // Quando o app.js descobre que os dados remotos já batem com os
+    // locais (nada novo pra puxar nem empurrar), ele precisa "marcar"
+    // esse estado como já sincronizado antes de assinar onRemoteChange
+    // — senão o primeiro aviso do onSnapshot (que só confirma os dados
+    // que já tínhamos) não tem com o que comparar, é tratado como uma
+    // mudança nova de outro aparelho, e recarrega a página à toa.
+    markSynced(edits) {
+      lastPushedJson = stableStringify(edits);
+    },
     async fetchInitial() {
       try {
         const snap = await withTimeout(getDoc(ref), 8000);
