@@ -620,11 +620,13 @@ function wireMatriculaLookup(matriculaEl, nomeEl) {
 // redesenhar a página inteira (o que resetaria a busca/filtro no meio
 // do clique, causando comportamento estranho com uma lista de 100+
 // itens reaparecendo de repente embaixo do cursor).
-// Acha em qual escala (Motoristas, Líder de Turno, etc.) essa matrícula
-// está cadastrada hoje, pra mostrar o cargo na tabela de Efetivos sem
-// precisar guardar isso separado (e sem ficar desatualizado se a pessoa
-// mudar de função depois).
-function cargoDoEfetivo(matricula) {
+// Pra quem foi selecionado a partir de uma escala já existente, acha em
+// qual delas essa matrícula está cadastrada hoje (sem precisar guardar
+// isso separado, e sem ficar desatualizado se a pessoa mudar de função
+// depois). Pra quem foi cadastrado manualmente, usa o cargo escolhido
+// no formulário.
+function cargoDoEfetivo(matricula, driverEntry) {
+  if (driverEntry && driverEntry.cargo) return driverEntry.cargo;
   for (const s of EFETIVOS_SOURCES) {
     const ds = datasets[s.tabId];
     if (ds && ds.colaboradores.some((p) => String(p.matricula) === String(matricula))) return s.label;
@@ -641,7 +643,7 @@ function renderEfetivosTable() {
     <tr class="${v.afastado ? 'ef-row-afastado' : ''}">
       <td>${v.nome}</td>
       <td>${mat}</td>
-      <td>${cargoDoEfetivo(mat) || '—'}</td>
+      <td>${cargoDoEfetivo(mat, v) || '—'}</td>
       <td class="ef-status-cell">
         ${state.editMode ? `
           <label class="ef-afastado-toggle"><input type="checkbox" class="ef-afastado-check" data-mat="${mat}" ${v.afastado ? 'checked' : ''}> Afastado</label>
@@ -729,6 +731,10 @@ function renderEfetivos() {
       <div class="toolbar-tools efetivos-add">
         <div class="field"><input type="text" id="efNome" placeholder="Nome do motorista"></div>
         <div class="field"><input type="text" id="efMatricula" placeholder="Matrícula"></div>
+        <div class="field"><select id="efCargo">
+          <option value="">Cargo (opcional)</option>
+          ${EFETIVOS_SOURCES.map((s) => `<option value="${s.label}">${s.label}</option>`).join('')}
+        </select></div>
         <button class="icon-btn primary" id="efAddBtn">+ Adicionar</button>
         <label class="icon-btn" id="driverDbImportLabel">📥 Importar planilha (Nome;Matrícula;UO)<input type="file" accept=".csv,text/csv" id="driverDbImportInput" hidden></label>
       </div>` : ''}
@@ -769,13 +775,15 @@ function renderEfetivos() {
     document.getElementById('efAddBtn').addEventListener('click', () => {
       const nomeInput = document.getElementById('efNome');
       const matInput = document.getElementById('efMatricula');
+      const cargoInput = document.getElementById('efCargo');
       const nome = nomeInput.value.trim();
       const matricula = matInput.value.trim();
       if (!nome || !matricula) { alert('Preencha nome e matrícula.'); return; }
-      edits.driversDb[matricula] = { nome, unidade: state.efetivosUnit };
+      edits.driversDb[matricula] = { nome, unidade: state.efetivosUnit, cargo: cargoInput.value || undefined };
       persistEdits();
       nomeInput.value = '';
       matInput.value = '';
+      cargoInput.value = '';
       const cb = document.querySelector(`.ef-select-check[data-mat="${CSS.escape(matricula)}"]`);
       if (cb) cb.checked = true;
       renderEfetivosTable();
