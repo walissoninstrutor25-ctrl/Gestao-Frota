@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T18-55-00Z -->
+<!-- APP_BUILD:2026-08-26T19-15-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -411,7 +411,7 @@
 
         <div class="card" id="card-rh-quadro-desejado">
           <div class="card-head"><div class="card-title">Vagas em aberto por setor (quadro x efetivo)</div></div>
-          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Cargo</th><th>Turno</th><th>Desejado</th><th>Ativos</th><th>Faltando</th></tr></thead>
+          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Cargo</th><th>Turnos</th><th>Desejado</th><th>Faltando</th></tr></thead>
           <tbody id="rh-dash-quadro-desejado"></tbody></table>
         </div>
 
@@ -837,7 +837,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T18-55-00Z';
+  const APP_VERSION = '2026-08-26T19-15-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2172,16 +2172,15 @@
     return state.quadroDesejado;
   }
   const RH_TURNOS = ['Turno A','Turno B','Turno C'];
+  function turnoResumo(q){
+    if(!q.turnos) return '—';
+    const partes = RH_TURNOS.filter(t=>Number(q.turnos[t])>0).map(t=>`${t.replace('Turno ','')}: ${q.turnos[t]}`);
+    return partes.length ? partes.join(' · ') : '—';
+  }
   function calcQuadro(q){
     const cargoAlvo = normalizarCabecalho(q.cargo);
     const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento && normalizarCabecalho(c.cargo)===cargoAlvo).length;
     return { ativos, faltando: Math.max((Number(q.quantidade)||0) - ativos, 0) };
-  }
-  function calcQuadroTurno(q, turno){
-    const cargoAlvo = normalizarCabecalho(q.cargo);
-    const desejado = Number((q.turnos && q.turnos[turno]) || 0);
-    const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento && normalizarCabecalho(c.cargo)===cargoAlvo && c.turno===turno).length;
-    return { desejado, ativos, faltando: Math.max(desejado-ativos, 0) };
   }
   document.getElementById('btn-save-quadro')?.addEventListener('click', async ()=>{
     const errEl = document.getElementById('qd-err');
@@ -2796,30 +2795,16 @@
 
     const qdTbl = document.getElementById('rh-dash-quadro-desejado');
     if(qdTbl){
-      const linhas = [];
-      visibleQuadroDesejado().forEach(q=>{
-        const temTurnos = q.turnos && RH_TURNOS.some(t=>Number(q.turnos[t])>0);
-        if(temTurnos){
-          RH_TURNOS.forEach(t=>{
-            if(!Number(q.turnos[t])) return;
-            const {desejado, ativos, faltando} = calcQuadroTurno(q, t);
-            if(faltando>0) linhas.push({unidade:q.unidade, departamento:q.departamento, cargo:q.cargo, turno:t, desejado, ativos, faltando});
-          });
-        } else {
-          const {ativos, faltando} = calcQuadro(q);
-          if(faltando>0) linhas.push({unidade:q.unidade, departamento:q.departamento, cargo:q.cargo, turno:'—', desejado:q.quantidade, ativos, faltando});
-        }
-      });
-      linhas.sort((a,b)=>b.faltando-a.faltando);
-      qdTbl.innerHTML = linhas.length ? linhas.map(x=>`<tr>
-        <td>${x.unidade}</td>
-        <td>${x.departamento}</td>
-        <td>${x.cargo||'—'}</td>
-        <td>${x.turno}</td>
-        <td class="mono">${x.desejado}</td>
-        <td class="mono">${x.ativos}</td>
+      const comGap = visibleQuadroDesejado().map(q=>({q, ...calcQuadro(q)})).filter(x=>x.faltando>0)
+        .sort((a,b)=>b.faltando-a.faltando);
+      qdTbl.innerHTML = comGap.length ? comGap.map(x=>`<tr>
+        <td>${x.q.unidade}</td>
+        <td>${x.q.departamento}</td>
+        <td>${x.q.cargo||'—'}</td>
+        <td>${turnoResumo(x.q)}</td>
+        <td class="mono">${x.q.quantidade}</td>
         <td class="mono" style="color:var(--danger); font-weight:700;">${x.faltando}</td>
-      </tr>`).join('') : '<tr class="empty-row"><td colspan="7">Nenhuma vaga em aberto no quadro cadastrado.</td></tr>';
+      </tr>`).join('') : '<tr class="empty-row"><td colspan="6">Nenhuma vaga em aberto no quadro cadastrado.</td></tr>';
     }
 
     const procTbl = document.getElementById('rh-dash-processos');
