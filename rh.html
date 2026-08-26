@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T21-30-00Z -->
+<!-- APP_BUILD:2026-08-26T22-10-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -561,6 +561,18 @@
           <div class="filter-field"><label>Admissão até</label><input type="date" id="rcfilter-data-fim"></div>
           <button class="btn-ghost" id="btn-clear-rcfilter">Limpar</button>
         </div>
+        <div class="filter-bar" id="rc-bulk-depto-bar" style="margin-top:-12px;">
+          <div class="filter-field"><label>Aplicar departamento a todos os <span id="rc-bulk-depto-count">0</span> filtrados</label>
+            <select id="rc-bulk-depto-valor">
+              <option value="Operação">Operação</option>
+              <option value="Manutenção">Manutenção</option>
+              <option value="Drivers">Drivers</option>
+              <option value="ADM">ADM</option>
+            </select>
+          </div>
+          <div class="filter-field"><button class="btn-primary" id="btn-bulk-depto" style="margin-top:auto;">Aplicar aos filtrados</button></div>
+          <div class="err-msg" id="rc-bulk-depto-msg"></div>
+        </div>
         <div class="kpi-grid" id="rc-kpi-grid"></div>
         <div class="card">
           <table><thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Unidade</th><th>Admissão</th><th>Supervisor</th><th>Status</th><th></th></tr></thead>
@@ -852,7 +864,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T21-30-00Z';
+  const APP_VERSION = '2026-08-26T22-10-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1508,6 +1520,25 @@
     document.getElementById('rcfilter-data-fim').value='';
     renderColaboradores();
   });
+  document.getElementById('btn-bulk-depto')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('rc-bulk-depto-msg');
+    const lista = LOTS._colabSnapshot || [];
+    if(lista.length===0){ msgEl.textContent='Nenhum colaborador filtrado pra aplicar.'; return; }
+    const valor = document.getElementById('rc-bulk-depto-valor').value;
+    let aplicados = 0, semPermissao = 0;
+    lista.forEach(c=>{
+      if(!canManageColaborador(c.unidade)){ semPermissao++; return; }
+      c.departamento = valor;
+      aplicados++;
+    });
+    if(aplicados===0){ msgEl.textContent='Sem permissão para editar os colaboradores filtrados.'; return; }
+    msgEl.textContent = '';
+    await save.colaboradores();
+    renderColaboradores();
+    renderView('rhorg'); renderView('rhvagas'); renderView('rhdash');
+    logAudit('Departamento aplicado em massa', `${valor} em ${aplicados} colaborador(es)`);
+    toast(`Departamento "${valor}" aplicado em ${aplicados} colaborador(es).` + (semPermissao?` ${semPermissao} ignorado(s) por permissão.`:''));
+  });
   document.getElementById('btn-export-colab')?.addEventListener('click', ()=>{
     if(typeof XLSX === 'undefined'){ toast('Biblioteca de exportação não carregada.'); return; }
     const list = LOTS._colabSnapshot || [];
@@ -1591,6 +1622,15 @@
     if(s.includes('DETERMINADO')) return 'Determinado';
     return 'Indeterminado';
   }
+  function mapDepartamento(valBruto){
+    const s = normalizarCabecalho(valBruto);
+    if(!s) return '';
+    if(s.includes('DRIVER')) return 'Drivers';
+    if(s.includes('OPERA')) return 'Operação';
+    if(s.includes('MANUTEN')) return 'Manutenção';
+    if(s.includes('ADM')) return 'ADM';
+    return String(valBruto).trim();
+  }
   function mapStatusColaborador(valBruto){
     const s = normalizarCabecalho(valBruto);
     if(s==='D' || s.includes('DESLIG') || s.includes('INATIV') || s.includes('DEMITID')) return 'desligado';
@@ -1649,7 +1689,7 @@
           telefone: String(pickCol(row,'TELEFONE','Telefone','Celular')||'').trim(),
           email: String(pickCol(row,'EMAIL','E-mail')||'').trim(),
           cargo: String(pickCol(row,'DESCR_CARGO','Cargo','DESCR_FUNCAO')||'').trim(),
-          departamento: String(pickCol(row,'DESCR_DEPARTAMENTO','Departamento','Setor')||'').trim(),
+          departamento: mapDepartamento(pickCol(row,'DESCR_DEPARTAMENTO','Departamento','Setor','Departamento/Setor','DEPARTAMENTO/ SETOR')),
           unidade: unidade || (currentUser().role==='gestor' ? currentUser().uoResponsavel : ''),
           dataAdmissao: parseDataFlexivel(pickCol(row,'DATA_ADMISSAO','Data de admissão','Admissão')) || todayISO(),
           tipoContrato: mapTipoContrato(pickCol(row,'DESCR_TIPO_COLAB','Tipo de contrato','TIPO_COLAB')),
@@ -1712,6 +1752,8 @@
       .filter(c=>!busca || [c.nome,c.cargo,c.matricula].join(' ').toLowerCase().includes(busca))
       .sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
     LOTS._colabSnapshot = list;
+    const bulkCountEl = document.getElementById('rc-bulk-depto-count');
+    if(bulkCountEl) bulkCountEl.textContent = list.length;
 
     const kpiGrid = document.getElementById('rc-kpi-grid');
     if(kpiGrid){
