@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-25T19-05-00Z -->
+<!-- APP_BUILD:2026-08-25T20-15-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -186,10 +186,19 @@
   /* ---------- organograma ---------- */
   .org-unit-card{padding:0; overflow:hidden;}
   .org-header-bar{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:2px solid var(--line); background:var(--surface);}
+  .org-header-title-wrap{display:flex; align-items:center; gap:12px;}
   .org-header-logo{height:26px; width:auto; object-fit:contain; flex-shrink:0;}
   .org-header-title{font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; letter-spacing:.01em; color:var(--text);}
   .org-header-unit{color:var(--accent); font-weight:700;}
-  .org-tree-scroll{overflow-x:auto; padding:26px 18px 22px 18px;}
+  .org-toolbar{margin-left:auto; display:flex; gap:8px; flex-shrink:0;}
+  .org-edit-hint{padding:8px 18px; font-size:12px; color:var(--accent); background:var(--accent-dim); border-bottom:1px solid var(--line);}
+  .org-tree-scroll{overflow:auto; padding:26px 18px 22px 18px;}
+  .org-canvas{position:relative;}
+  .org-canvas-lines{position:absolute; top:0; left:0; pointer-events:none;}
+  .org-connector-line{fill:none; stroke:var(--line); stroke-width:2;}
+  .org2-card.canvas-mode{position:absolute;}
+  .org2-card.edit-mode{cursor:grab; touch-action:none; user-select:none;}
+  .org2-card.edit-mode:active{cursor:grabbing;}
   .org-tree, .org-tree ul{list-style:none; margin:0; padding:0;}
   .org-tree{display:inline-flex; justify-content:center; min-width:100%;}
   .org-tree li{position:relative; display:flex; flex-direction:column; align-items:center; padding:0 12px;}
@@ -797,7 +806,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-25T19-05-00Z';
+  const APP_VERSION = '2026-08-25T20-15-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -985,6 +994,7 @@
   /* ---------------- estado ---------------- */
   let state = {
     users:[], colaboradores:[], ferias:[], vagas:[], processos:[], auditLog:[], quadroDesejado:[], fotos:{},
+    orgLayout:{},
     currentProfile:null
   };
 
@@ -998,6 +1008,7 @@
     setLoadingProgress(65, 'Carregando processos…');
     state.processos = await loadShared('processos', []);
     state.quadroDesejado = await loadShared('quadro-desejado', []);
+    state.orgLayout = await loadShared('org-layout', {});
     setLoadingProgress(80, 'Carregando fotos…');
     state.fotos = await loadAllFotos();
     state.auditLog = await loadShared('audit-log', []);
@@ -1011,6 +1022,7 @@
     vagas: () => saveShared('vagas', state.vagas),
     processos: () => saveShared('processos', state.processos),
     quadroDesejado: () => saveShared('quadro-desejado', state.quadroDesejado),
+    orgLayout: () => saveShared('org-layout', state.orgLayout),
     auditLog: () => saveShared('audit-log', state.auditLog)
   };
 
@@ -1650,6 +1662,7 @@
   }
 
   /* ---------------- ORGANOGRAMA ---------------- */
+  let orgEditUnits = new Set();
   document.getElementById('rgfilter-unidade')?.addEventListener('change', renderOrganograma);
   document.getElementById('btn-clear-rgfilter')?.addEventListener('click', ()=>{
     document.getElementById('rgfilter-unidade').value='';
@@ -1664,24 +1677,152 @@
     if(s.includes('COORDIN') || s.includes('MANAGER') || s.includes('GERENTE') || s.includes('DIRETOR')) return 'tier-lead';
     return 'tier-staff';
   }
-  function buildOrgNode(c, lista){
-    const filhos = lista.filter(x=>x.supervisorId===c.id);
+  function orgCardInnerHtml(c){
     const foto = state.fotos && state.fotos[c.id];
     const avatar = foto
       ? `<img class="org2-avatar" src="${foto}" alt="">`
       : `<div class="org2-avatar-fallback">${(c.nome||'?').trim().charAt(0).toUpperCase()}</div>`;
+    return `<div class="org2-info">
+        <div class="org2-name">${c.nome}</div>
+        <div class="org2-role">${c.cargo||'—'}</div>
+        ${c.departamento ? `<div class="org2-role">${c.departamento}</div>` : ''}
+      </div>
+      ${avatar}`;
+  }
+  function buildOrgNode(c, lista){
+    const filhos = lista.filter(x=>x.supervisorId===c.id);
     return `<li>
       <div class="org2-card ${orgCardTier(c.cargo)}" onclick="LOTS.editColaboradorFromOrg('${c.id}')" title="Clique para editar">
-        <div class="org2-info">
-          <div class="org2-name">${c.nome}</div>
-          <div class="org2-role">${c.cargo||'—'}</div>
-          ${c.departamento ? `<div class="org2-role">${c.departamento}</div>` : ''}
-        </div>
-        ${avatar}
+        ${orgCardInnerHtml(c)}
       </div>
       ${filhos.length ? `<ul>${filhos.map(f=>buildOrgNode(f,lista)).join('')}</ul>` : ''}
     </li>`;
   }
+
+  /* posições iniciais (grade por nível hierárquico) usadas ao ligar o modo manual pela primeira vez */
+  function orgSeedPositions(lista){
+    const idsNaLista = new Set(lista.map(c=>c.id));
+    const raizes = lista.filter(c=>!c.supervisorId || !idsNaLista.has(c.supervisorId));
+    const positions = {};
+    const colWidth = 226, rowHeight = 150;
+    const levelCounters = {};
+    function place(c, depth){
+      const col = (levelCounters[depth] = (levelCounters[depth]||0) + 1) - 1;
+      positions[c.id] = { x: col*colWidth + 20, y: depth*rowHeight + 20 };
+      lista.filter(f=>f.supervisorId===c.id).forEach(f=>place(f, depth+1));
+    }
+    raizes.forEach(r=>place(r,0));
+    lista.forEach(c=>{ if(!positions[c.id]) positions[c.id] = { x: Object.keys(positions).length*colWidth + 20, y: 20 }; });
+    return positions;
+  }
+
+  function renderOrgCanvas(uo, lista, editMode){
+    const saved = state.orgLayout[uo] || {};
+    const idsNaLista = new Set(lista.map(c=>c.id));
+    let maxSavedY = 0;
+    Object.keys(saved).forEach(id=>{ if(idsNaLista.has(id)) maxSavedY = Math.max(maxSavedY, saved[id].y); });
+    const semPosicao = lista.filter(c=>!saved[c.id]);
+    const seeded = orgSeedPositions(semPosicao);
+    const offsetY = Object.keys(saved).length ? maxSavedY + 170 : 20;
+    const positions = {};
+    lista.forEach(c=>{
+      positions[c.id] = saved[c.id] ? saved[c.id] : { x: seeded[c.id].x, y: seeded[c.id].y + offsetY };
+    });
+    const cardW = 206, cardH = 78;
+    let maxX = 0, maxY = 0;
+    Object.values(positions).forEach(p=>{ maxX = Math.max(maxX, p.x+cardW); maxY = Math.max(maxY, p.y+cardH); });
+    const canvasW = Math.max(maxX + 30, 400);
+    const canvasH = Math.max(maxY + 30, 220);
+    const cardsHtml = lista.map(c=>{
+      const p = positions[c.id];
+      return `<div class="org2-card ${orgCardTier(c.cargo)} canvas-mode ${editMode?'edit-mode':''}"
+          data-cid="${c.id}" data-sup="${c.supervisorId||''}" style="left:${p.x}px; top:${p.y}px;"
+          ${editMode ? '' : `onclick="LOTS.editColaboradorFromOrg('${c.id}')"`}
+          title="${editMode ? 'Arraste para reposicionar' : 'Clique para editar'}">
+        ${orgCardInnerHtml(c)}
+      </div>`;
+    }).join('');
+    return `<div class="org-canvas" data-uo="${uo}" style="width:${canvasW}px; height:${canvasH}px;">
+      <svg class="org-canvas-lines" width="${canvasW}" height="${canvasH}"></svg>
+      ${cardsHtml}
+    </div>`;
+  }
+
+  function redrawOrgLines(canvasEl){
+    const svg = canvasEl.querySelector('.org-canvas-lines');
+    if(!svg) return;
+    const cards = canvasEl.querySelectorAll('.org2-card[data-cid]');
+    const byId = {};
+    cards.forEach(el=>{ byId[el.dataset.cid] = el; });
+    let html = '';
+    cards.forEach(el=>{
+      const parent = el.dataset.sup && byId[el.dataset.sup];
+      if(!parent) return;
+      const x1 = parent.offsetLeft + parent.offsetWidth/2;
+      const y1 = parent.offsetTop + parent.offsetHeight;
+      const x2 = el.offsetLeft + el.offsetWidth/2;
+      const y2 = el.offsetTop;
+      const midY = (y1+y2)/2;
+      html += `<path class="org-connector-line" d="M${x1},${y1} L${x1},${midY} L${x2},${midY} L${x2},${y2}"/>`;
+    });
+    svg.innerHTML = html;
+  }
+
+  function wireOrgCardDrag(el, uo, canvasEl){
+    let startX=0, startY=0, origLeft=0, origTop=0, dragging=false, moved=false;
+    el.addEventListener('pointerdown', (e)=>{
+      dragging = true; moved = false;
+      startX = e.clientX; startY = e.clientY;
+      origLeft = parseFloat(el.style.left)||0;
+      origTop = parseFloat(el.style.top)||0;
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX-startX, dy = e.clientY-startY;
+      if(Math.abs(dx)>3 || Math.abs(dy)>3) moved = true;
+      if(!moved) return;
+      el.style.left = Math.max(0, origLeft+dx)+'px';
+      el.style.top = Math.max(0, origTop+dy)+'px';
+      redrawOrgLines(canvasEl);
+    });
+    el.addEventListener('pointerup', async ()=>{
+      if(!dragging) return;
+      dragging = false;
+      if(moved){
+        if(!state.orgLayout[uo]) state.orgLayout[uo] = {};
+        state.orgLayout[uo][el.dataset.cid] = { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
+        await save.orgLayout();
+      } else {
+        LOTS.editColaboradorFromOrg(el.dataset.cid);
+      }
+    });
+    el.addEventListener('pointercancel', ()=>{ dragging = false; });
+  }
+
+  LOTS.orgEnableManual = async (uo)=>{
+    const lista = visibleColaboradores().filter(c=>c.status!=='desligado' && c.unidade===uo);
+    if(lista.length===0) return;
+    state.orgLayout[uo] = orgSeedPositions(lista);
+    orgEditUnits.add(uo);
+    await save.orgLayout();
+    renderOrganograma();
+    toast('Modo manual ativado — arraste os cards para organizar.');
+    logAudit('Organograma organizado manualmente', uo);
+  };
+  LOTS.orgToggleEdit = (uo, ligar)=>{
+    if(ligar) orgEditUnits.add(uo); else orgEditUnits.delete(uo);
+    renderOrganograma();
+  };
+  LOTS.orgResetLayout = async (uo)=>{
+    delete state.orgLayout[uo];
+    orgEditUnits.delete(uo);
+    await save.orgLayout();
+    renderOrganograma();
+    toast('Organograma voltou ao modo automático.');
+    logAudit('Organograma automático restaurado', uo);
+  };
+
   function renderOrganograma(){
     const container = document.getElementById('rh-org-container');
     if(!container) return;
@@ -1691,18 +1832,47 @@
     const unidades = [...new Set(base.map(c=>c.unidade||'Sem unidade'))].sort();
     container.innerHTML = unidades.map(uo=>{
       const lista = base.filter(c=>c.unidade===uo);
+      const temLayoutSalvo = !!(state.orgLayout[uo] && Object.keys(state.orgLayout[uo]).length>0);
+      const podeEditar = canManageColaborador(uo);
+      const editMode = temLayoutSalvo && podeEditar && orgEditUnits.has(uo);
+      let toolbar = '';
+      if(podeEditar){
+        if(!temLayoutSalvo){
+          toolbar = `<button class="btn-ghost btn-sm" onclick="LOTS.orgEnableManual('${uo}')">Organizar manualmente</button>`;
+        } else if(editMode){
+          toolbar = `<button class="btn-primary btn-sm" onclick="LOTS.orgToggleEdit('${uo}', false)">Concluir edição</button>
+            <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uo}')">Restaurar automático</button>`;
+        } else {
+          toolbar = `<button class="btn-ghost btn-sm" onclick="LOTS.orgToggleEdit('${uo}', true)">Editar posições</button>
+            <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uo}')">Restaurar automático</button>`;
+        }
+      }
       const idsNaUnidade = new Set(lista.map(c=>c.id));
       const raizes = lista.filter(c=>!c.supervisorId || !idsNaUnidade.has(c.supervisorId));
+      const corpo = temLayoutSalvo
+        ? renderOrgCanvas(uo, lista, editMode)
+        : `<ul class="org-tree">${raizes.map(r=>buildOrgNode(r,lista)).join('') || '<li class="page-sub">Nenhum colaborador nesta unidade.</li>'}</ul>`;
       return `<div class="card org-unit-card">
         <div class="org-header-bar">
-          <img src="assets/lots-logo.png" class="org-header-logo" alt="LOTS">
-          <div class="org-header-title">LOTS Group — Recursos Humanos — <span class="org-header-unit">${uo}</span></div>
+          <div class="org-header-title-wrap">
+            <img src="assets/lots-logo.png" class="org-header-logo" alt="LOTS">
+            <div class="org-header-title">LOTS Group — Recursos Humanos — <span class="org-header-unit">${uo}</span></div>
+          </div>
+          <div class="org-toolbar">${toolbar}</div>
         </div>
-        <div class="org-tree-scroll">
-          <ul class="org-tree">${raizes.map(r=>buildOrgNode(r,lista)).join('') || '<li class="page-sub">Nenhum colaborador nesta unidade.</li>'}</ul>
-        </div>
+        ${editMode ? '<div class="org-edit-hint">Modo de edição ativo: arraste os cards para reposicionar. As posições são salvas automaticamente a cada movimento.</div>' : ''}
+        <div class="org-tree-scroll">${corpo}</div>
       </div>`;
     }).join('');
+
+    container.querySelectorAll('.org-canvas').forEach(canvasEl=>{
+      const uo = canvasEl.dataset.uo;
+      redrawOrgLines(canvasEl);
+      const podeEditar = canManageColaborador(uo);
+      if(podeEditar && orgEditUnits.has(uo)){
+        canvasEl.querySelectorAll('.org2-card.edit-mode').forEach(el=>wireOrgCardDrag(el, uo, canvasEl));
+      }
+    });
   }
 
   /* ---------------- VAGAS ---------------- */
