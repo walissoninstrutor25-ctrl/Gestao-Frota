@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T21-00-00Z -->
+<!-- APP_BUILD:2026-08-26T21-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -417,7 +417,7 @@
 
         <div class="card">
           <div class="card-head"><div class="card-title">Processos de admissão/desligamento em andamento</div></div>
-          <table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Progresso</th><th></th></tr></thead>
+          <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Tipo</th><th>Início</th><th>Progresso</th><th></th></tr></thead>
           <tbody id="rh-dash-processos"></tbody></table>
         </div>
       </div>
@@ -764,7 +764,7 @@
             <select id="rpfilter-tipo"><option value="">Todos</option><option value="admissao">Admissão</option><option value="desligamento">Desligamento</option></select>
           </div>
           <div class="filter-field"><label>Status</label>
-            <select id="rpfilter-status"><option value="">Todos</option><option value="em_andamento">Em andamento</option><option value="concluido">Concluído</option></select>
+            <select id="rpfilter-status"><option value="">Todos</option><option value="em_andamento">Em andamento</option><option value="concluido">Concluído</option><option value="reprovado">Reprovado</option></select>
           </div>
           <button class="btn-ghost" id="btn-clear-rpfilter">Limpar</button>
         </div>
@@ -852,7 +852,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T21-00-00Z';
+  const APP_VERSION = '2026-08-26T21-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2573,19 +2573,20 @@
     renderView('rhprocessos'); renderView('rhdash');
     LOTS.openProcesso(novo.id);
   };
-  function processoChecklistForm(p){
+  function processoChecklistForm(p, mostrarReprovar){
     const c = colaboradorById(p.colaboradorId);
     const feitos = p.etapas.filter(e=>e.feito).length;
     const pct = p.etapas.length ? Math.round(feitos/p.etapas.length*100) : 0;
-    const podeEditar = p.status!=='concluido' && canManageColaborador(processoUnidade(p));
+    const podeEditar = p.status!=='concluido' && p.status!=='reprovado' && canManageColaborador(processoUnidade(p));
     const checklistCompleto = feitos===p.etapas.length;
     return `
       <div class="modal-title">${p.tipo==='admissao'?'Admissão':'Desligamento'} — ${processoNome(p)}</div>
       <div class="page-sub" style="margin-bottom:6px;">
         ${p.tipo==='admissao' ? `${p.cargo||'—'} · ${p.unidade||'—'}${p.departamento?' · '+p.departamento:''} · ` : ''}
-        Início: ${fmtDate(p.dataInicio)}${p.status==='concluido'?` · Concluído em ${fmtDate(p.dataConclusao)}`:''}
+        Início: ${fmtDate(p.dataInicio)}${p.status==='concluido'?` · Concluído em ${fmtDate(p.dataConclusao)}`:''}${p.status==='reprovado'?` · Reprovado em ${fmtDate(p.dataConclusao)}`:''}
       </div>
       ${p.tipo==='desligamento' ? `<div class="page-sub" style="margin-bottom:10px;">Motivo: ${RH_MOTIVO_DESLIGAMENTO_LABEL[p.motivoSaida]||'—'} · Aviso prévio: ${({trabalhado:'Trabalhado',indenizado:'Indenizado',dispensado:'Dispensado'})[p.avisoPrevio]||'—'}</div>`:''}
+      ${p.status==='reprovado' ? `<div class="page-sub" style="margin-bottom:10px; color:var(--danger);">Motivo da reprovação: ${p.motivoReprovacao||'—'}</div>`:''}
       <div class="checklist-progress"><div class="checklist-progress-fill" style="width:${pct}%;"></div></div>
       ${p.etapas.map((e,i)=>`<label class="checklist-item"><input type="checkbox" ${e.feito?'checked':''} ${podeEditar?'':'disabled'} onchange="LOTS.toggleEtapaProcesso('${p.id}',${i})"> ${e.nome}</label>`).join('')}
       <div class="field" style="margin-top:14px;"><label>Observações</label><input id="pp-obs" value="${(p.observacoes||'').replace(/"/g,'&quot;')}" ${podeEditar?'':'disabled'} onchange="LOTS.salvarObsProcesso('${p.id}')"></div>
@@ -2601,14 +2602,44 @@
           <div class="field"><label>Data de admissão</label><input type="date" id="pp-admissao" value="${todayISO()}"></div>
         </div>
       ` : ''}
+      ${p.tipo==='admissao' && podeEditar && mostrarReprovar ? `
+        <div class="lane accent"></div>
+        <div class="card-title" style="margin-bottom:12px; color:var(--danger);">Reprovar candidato</div>
+        <div class="field"><label>Motivo da reprovação</label><input id="pp-motivo-reprovacao" placeholder="Ex: não compareceu, reprovado na entrevista, no teste..."></div>
+        <div class="err-msg" id="pp-motivo-reprovacao-err"></div>
+        <div class="modal-actions" style="margin-top:6px;">
+          <button class="btn-danger" onclick="LOTS.reprovarProcesso('${p.id}')">Confirmar reprovação</button>
+          <button class="btn-ghost" onclick="LOTS.abrirReprovarProcesso('${p.id}', false)">Cancelar</button>
+        </div>
+      ` : ''}
       <div class="err-msg" id="pp-err"></div>
       <div class="modal-actions">
         ${p.tipo==='admissao' && checklistCompleto && podeEditar ? `<button class="btn-primary" onclick="LOTS.finalizarAdmissao('${p.id}')">Cadastrar colaborador</button>` : ''}
         ${p.tipo==='desligamento' && podeEditar ? `<button class="btn-primary" onclick="LOTS.concluirProcesso('${p.id}')">Concluir processo</button>` : ''}
+        ${p.tipo==='admissao' && podeEditar && !mostrarReprovar ? `<button class="btn-danger" onclick="LOTS.abrirReprovarProcesso('${p.id}', true)">Reprovado</button>` : ''}
         <button class="btn-ghost" onclick="closeModalGlobal()">Fechar</button>
         ${podeEditar ? `<button class="btn-danger" onclick="LOTS.deleteProcesso('${p.id}')">Excluir</button>` : ''}
       </div>`;
   }
+  LOTS.abrirReprovarProcesso = (id, mostrar)=>{
+    const p = state.processos.find(x=>x.id===id);
+    if(!p) return;
+    openModal(processoChecklistForm(p, mostrar));
+  };
+  LOTS.reprovarProcesso = async (id)=>{
+    const p = state.processos.find(x=>x.id===id);
+    if(!p) return;
+    const motivo = document.getElementById('pp-motivo-reprovacao').value.trim();
+    if(!motivo){ document.getElementById('pp-motivo-reprovacao-err').textContent = 'Informe o motivo da reprovação.'; return; }
+    p.status = 'reprovado';
+    p.dataConclusao = todayISO();
+    p.motivoReprovacao = motivo;
+    await save.processos();
+    closeModal();
+    renderView('rhprocessos'); renderView('rhdash');
+    logAudit('Processo de admissão reprovado', `${processoNome(p)} — ${motivo}`);
+    toast('Candidato marcado como reprovado.');
+  };
   LOTS.salvarObsProcesso = async (id)=>{
     const p = state.processos.find(x=>x.id===id);
     const el = document.getElementById('pp-obs');
@@ -2736,7 +2767,7 @@
         <td>${p.tipo==='admissao'?'Admissão':'Desligamento'}</td>
         <td class="mono">${fmtDate(p.dataInicio)}</td>
         <td class="mono">${feitos}/${p.etapas.length}</td>
-        <td>${p.status==='concluido'?'<span class="badge badge-ok">Concluído</span>':'<span class="badge badge-pending">Em andamento</span>'}</td>
+        <td>${p.status==='concluido'?'<span class="badge badge-ok">Concluído</span>':p.status==='reprovado'?'<span class="badge badge-danger">Reprovado</span>':'<span class="badge badge-pending">Em andamento</span>'}</td>
         <td><div class="action-links">
           <button class="icon-btn" onclick="LOTS.openProcesso('${p.id}')">abrir</button>
           ${canManageColaborador(processoUnidade(p)) ? `<button class="icon-btn danger" onclick="LOTS.deleteProcesso('${p.id}')">excluir</button>` : ''}
@@ -2858,14 +2889,16 @@
       const emAndamento = visibleProcessos().filter(p=>p.status==='em_andamento');
       procTbl.innerHTML = emAndamento.length ? emAndamento.map(p=>{
         const feitos = p.etapas.filter(e=>e.feito).length;
+        const cargo = p.tipo==='admissao' ? (p.cargo||'—') : (colaboradorById(p.colaboradorId)?.cargo||'—');
         return `<tr>
           <td>${processoNome(p)}</td>
+          <td>${cargo}</td>
           <td>${p.tipo==='admissao'?'Admissão':'Desligamento'}</td>
           <td class="mono">${fmtDate(p.dataInicio)}</td>
           <td class="mono">${feitos}/${p.etapas.length}</td>
           <td><button class="icon-btn" onclick="LOTS.openProcesso('${p.id}')">abrir</button></td>
         </tr>`;
-      }).join('') : '<tr class="empty-row"><td colspan="5">Nenhum processo em andamento.</td></tr>';
+      }).join('') : '<tr class="empty-row"><td colspan="6">Nenhum processo em andamento.</td></tr>';
     }
   }
 
