@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T20-25-00Z -->
+<!-- APP_BUILD:2026-08-26T21-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -551,6 +551,7 @@
               <option value="Manutenção">Manutenção</option>
               <option value="Drivers">Drivers</option>
               <option value="ADM">ADM</option>
+              <option value="__sem_departamento__">— Sem departamento —</option>
             </select>
           </div>
           <div class="filter-field"><label>Cargo</label>
@@ -851,7 +852,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T20-25-00Z';
+  const APP_VERSION = '2026-08-26T21-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1625,7 +1626,8 @@
       }
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-      let novosCount = 0, atualizadosCount = 0, semNome = 0, semPermissao = 0, unidadeNaoReconhecida = 0;
+      let novosCount = 0, atualizadosCount = 0, semNome = 0, semPermissao = 0, unidadeNaoReconhecida = 0, departamentoNaoReconhecido = 0, semDepartamento = 0;
+      const RH_DEPTO_FIXAS = ['Operação','Manutenção','Drivers','ADM'].map(normalizarCabecalho);
       // acha um colaborador já existente pela matrícula (prioridade) ou pelo CPF —
       // assim reimportar a mesma planilha ATUALIZA quem já está cadastrado em vez de duplicar
       const porMatricula = new Map(state.colaboradores.filter(c=>c.matricula).map(c=>[c.matricula, c]));
@@ -1653,6 +1655,8 @@
           tipoContrato: mapTipoContrato(pickCol(row,'DESCR_TIPO_COLAB','Tipo de contrato','TIPO_COLAB')),
           status
         };
+        if(!dados.departamento) semDepartamento++;
+        else if(!RH_DEPTO_FIXAS.includes(normalizarCabecalho(dados.departamento))) departamentoNaoReconhecido++;
         if(status==='desligado'){
           dados.dataDesligamento = parseDataFlexivel(pickCol(row,'DATA_DESLIGAMENTO','Data de desligamento')) || dados.dataAdmissao;
         }
@@ -1675,6 +1679,8 @@
       if(semNome) avisos.push(`${semNome} linha(s) sem nome (ignoradas)`);
       if(semPermissao) avisos.push(`${semPermissao} fora da sua unidade (sem permissão)`);
       if(unidadeNaoReconhecida) avisos.push(`${unidadeNaoReconhecida} com unidade não reconhecida — confira/edite manualmente`);
+      if(departamentoNaoReconhecido) avisos.push(`${departamentoNaoReconhecido} com departamento fora de Operação/Manutenção/Drivers/ADM — confira/edite manualmente`);
+      if(semDepartamento) avisos.push(`${semDepartamento} sem departamento na planilha — use o filtro "Sem departamento" em Colaboradores pra achar e corrigir`);
       msgEl.style.color = (novosCount+atualizadosCount)>0 ? 'var(--go)' : 'var(--danger)';
       msgEl.textContent = `${novosCount} novo(s), ${atualizadosCount} atualizado(s).` + (avisos.length ? ' ' + avisos.join('; ') + '.' : '');
       fileInput.value='';
@@ -1699,7 +1705,7 @@
     let list = visibleColaboradores()
       .filter(c=>!uoF || c.unidade===uoF)
       .filter(c=>!stF || c.status===stF)
-      .filter(c=>!deptoF || c.departamento===deptoF)
+      .filter(c=>!deptoF || (deptoF==='__sem_departamento__' ? !c.departamento : c.departamento===deptoF))
       .filter(c=>!cargoF || c.cargo===cargoF)
       .filter(c=>!dataIni || (c.dataAdmissao||'')>=dataIni)
       .filter(c=>!dataFim || (c.dataAdmissao||'')<=dataFim)
