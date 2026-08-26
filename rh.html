@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T20-05-00Z -->
+<!-- APP_BUILD:2026-08-26T20-25-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -851,7 +851,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T20-05-00Z';
+  const APP_VERSION = '2026-08-26T20-25-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2216,9 +2216,10 @@
   function calcQuadro(q){
     const cargoAlvo = normalizarCabecalho(q.cargo);
     const deptoAlvo = normalizarCabecalho(q.departamento);
+    const unidadeAlvo = normalizarCabecalho(q.unidade);
     // conta quem já ocupa a vaga (ativo, de férias ou afastado — só desligado não conta),
-    // comparando cargo/departamento sem diferenciar maiúscula/minúscula, acento ou espaço
-    const ativos = visibleColaboradores().filter(c=>c.status!=='desligado' && c.unidade===q.unidade && normalizarCabecalho(c.departamento)===deptoAlvo && normalizarCabecalho(c.cargo)===cargoAlvo).length;
+    // comparando unidade/cargo/departamento sem diferenciar maiúscula/minúscula, acento, espaço ou traço
+    const ativos = visibleColaboradores().filter(c=>c.status!=='desligado' && normalizarCabecalho(c.unidade)===unidadeAlvo && normalizarCabecalho(c.departamento)===deptoAlvo && normalizarCabecalho(c.cargo)===cargoAlvo).length;
     return { ativos, faltando: Math.max((Number(q.quantidade)||0) - ativos, 0) };
   }
   document.getElementById('btn-save-quadro')?.addEventListener('click', async ()=>{
