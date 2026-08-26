@@ -632,8 +632,11 @@ function renderEfetivosTable() {
       <td class="ef-status-cell">
         ${state.editMode ? `
           <label class="ef-afastado-toggle"><input type="checkbox" class="ef-afastado-check" data-mat="${mat}" ${v.afastado ? 'checked' : ''}> Afastado</label>
-          ${v.afastado ? `<input type="text" class="ef-motivo-input" data-mat="${mat}" placeholder="Motivo (opcional)" value="${(v.motivo || '').replace(/"/g, '&quot;')}">` : ''}
-        ` : (v.afastado ? `<span class="ef-badge ef-badge-afastado">🏥 Afastado${v.motivo ? ' — ' + v.motivo : ''}</span>` : `<span class="ef-badge ef-badge-ativo">Ativo</span>`)}
+          ${v.afastado ? `
+            <input type="text" class="ef-motivo-input" data-mat="${mat}" placeholder="Motivo (opcional)" value="${(v.motivo || '').replace(/"/g, '&quot;')}">
+            <input type="date" class="ef-retorno-input" data-mat="${mat}" title="Previsão de retorno" value="${v.dataRetorno || ''}">
+          ` : ''}
+        ` : (v.afastado ? `<span class="ef-badge ef-badge-afastado">🏥 Afastado${v.motivo ? ' — ' + v.motivo : ''}${v.dataRetorno ? ' · retorno ' + formatDataBr(v.dataRetorno) : ''}</span>` : `<span class="ef-badge ef-badge-ativo">Ativo</span>`)}
       </td>
       ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button></td>` : ''}
     </tr>`).join('') : `<tr><td colspan="${state.editMode ? 4 : 3}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
@@ -655,7 +658,7 @@ function renderEfetivosTable() {
       const mat = cb.dataset.mat;
       if (!edits.driversDb[mat]) return;
       edits.driversDb[mat].afastado = cb.checked;
-      if (!cb.checked) delete edits.driversDb[mat].motivo;
+      if (!cb.checked) { delete edits.driversDb[mat].motivo; delete edits.driversDb[mat].dataRetorno; }
       persistEdits();
       renderEfetivosTable();
     });
@@ -668,6 +671,20 @@ function renderEfetivosTable() {
       persistEdits();
     });
   });
+  table.querySelectorAll('.ef-retorno-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      const mat = input.dataset.mat;
+      if (!edits.driversDb[mat]) return;
+      edits.driversDb[mat].dataRetorno = input.value;
+      persistEdits();
+    });
+  });
+}
+
+// "2026-08-30" (formato do <input type="date">) -> "30/08/2026"
+function formatDataBr(isoDate) {
+  const [ano, mes, dia] = isoDate.split('-');
+  return `${dia}/${mes}/${ano}`;
 }
 
 const EFETIVOS_SOURCES = [
@@ -888,7 +905,7 @@ function renderPanel() {
         ${!isEquipe && cfg.hasGroups ? `<button class="icon-btn" id="toggleGroups">Recolher grupos</button>` : ''}
         ${mestre ? `<button class="icon-btn" id="equipeBtn">${isEquipe ? '📅 Ver escala' : '👥 Ver equipe'}</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
-        ${!isEquipe && state.editMode ? `<button class="icon-btn danger" id="clearDataBtn">🗑 Limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
+        ${!isEquipe && state.editMode ? `<button class="danger-mini-btn" id="clearDataBtn" title="Apaga todos os colaboradores${cfg.hasUnits ? ' da UO ' + state.unit[cfg.id] : ''} — ação drástica, dá pra restaurar depois">limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${!isEquipe && state.editMode && edits.limpo[clearKey(cfg, cfg.hasUnits ? state.unit[cfg.id] : undefined)] ? `<button class="icon-btn" id="restoreClearedBtn">↺ Restaurar dados originais${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
       </div>

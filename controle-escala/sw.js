@@ -2,7 +2,7 @@
 // topo do index.html) — força o navegador a buscar os arquivos de novo
 // em vez de continuar servindo uma versão antiga do cache HTTP normal,
 // que o fetch() abaixo (rede primeiro) não contorna sozinho.
-const BUILD = "20260826-03";
+const BUILD = "20260826-04";
 const CACHE_NAME = "lots-escala-" + BUILD;
 const FILES = [
   "./index.html",
