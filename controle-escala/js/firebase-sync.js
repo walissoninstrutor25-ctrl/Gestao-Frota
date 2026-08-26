@@ -7,12 +7,12 @@
 // funcionando normalmente só com o localStorage local, como antes.
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAjEcv-Kwscr-5PiZ0Alla3XxACgSdDm9Q",
-  authDomain: "controle-de-escala-operacional.firebaseapp.com",
-  projectId: "controle-de-escala-operacional",
-  storageBucket: "controle-de-escala-operacional.firebasestorage.app",
-  messagingSenderId: "86487653924",
-  appId: "1:86487653924:web:61bc1eceaef840884442b1",
+  apiKey: "AIzaSyDD6U2abR2tL0oqgcvUuNWtRYVKcpE6t0w",
+  authDomain: "controle-escala-509d8.firebaseapp.com",
+  projectId: "controle-escala-509d8",
+  storageBucket: "controle-escala-509d8.firebasestorage.app",
+  messagingSenderId: "348557307264",
+  appId: "1:348557307264:web:5e911b355c4c7e9cb36565",
 };
 
 const SDK_VERSION = "10.13.2";
