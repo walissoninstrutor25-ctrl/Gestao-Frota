@@ -132,22 +132,6 @@ window.DATA_LIDERES_TURNO = {
       "unidade": "MNS"
     },
     {
-      "nome": "ADAO JOSE SOARES",
-      "grupo": "LIDER DE TURNO",
-      "papel": "Apoio A",
-      "papelNormalizado": "Apoio A",
-      "escala": {
-        "MARÇO": "WWWWWWWWWWWWOOWWWWWWOOWWWWWWOOW",
-        "ABRIL": "WWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
-        "AGOSTO": "WWWOOWWWWWWOOWWWWWWOOWWWWWWOOWW",
-        "SETEMBRO": "WWWWOOWWWWWWOOWWWWWWOOWWWWWWOO",
-        "OUTUBRO": "WWWWWWOOWWWWWWOOWWWWWWOOWWWWWWO",
-        "NOVEMBRO": "OWWWWWWOOWWWWWWOOWWWWWWOOWWWWW"
-      },
-      "matricula": null,
-      "unidade": "MNS"
-    },
-    {
       "nome": "PAULO HENRIQUE BORGES DA SILVA",
       "grupo": "LIDER DE TURNO",
       "papel": "C",
@@ -225,11 +209,6 @@ window.DATA_LIDERES_TURNO = {
       "nome": "WEMBER RODRIGUES LOURA"
     },
     "apoio": [
-      {
-        "matricula": null,
-        "nome": "ADAO JOSE SOARES",
-        "turno": "A"
-      },
       {
         "matricula": 27399,
         "nome": "ANDRE FERREIRA RODRIGUES",
