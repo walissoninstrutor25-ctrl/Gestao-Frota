@@ -1560,7 +1560,7 @@ function openModal(p, monthMeta, cfg, ds, isNew) {
         <div class="modal-body">
           <div class="modal-row edit"><span class="k">Nome</span><input class="modal-input" id="editNome" value="${p.nome || ''}"></div>
           <div class="modal-row edit"><span class="k">Matrícula</span><input class="modal-input" id="editMatricula" value="${p.matricula || ''}"></div>
-          <div class="modal-row edit"><span class="k">Turno</span><input class="modal-input" id="editTurno" list="turnoOptions" value="${p.papelNormalizado || ''}"></div>
+          <div class="modal-row edit"><span class="k">${cfg.id === 'adm5x2' ? 'Cargo' : 'Turno'}</span><input class="modal-input" id="editTurno" list="turnoOptions" value="${p.papelNormalizado || ''}"></div>
           <datalist id="turnoOptions">${papeis.map((v) => `<option value="${v}">`).join('')}</datalist>
           <div class="modal-row edit"><span class="k">Grupo</span><input class="modal-input" id="editGrupo" list="grupoOptions" value="${p.grupo || ''}"></div>
           <datalist id="grupoOptions">${grupos.map((v) => `<option value="${v}">`).join('')}</datalist>
