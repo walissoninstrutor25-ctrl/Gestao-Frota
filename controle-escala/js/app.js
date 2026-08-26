@@ -1440,7 +1440,7 @@ function renderGrid(ds, cfg, monthMeta) {
       <thead>
         <tr>
           <th class="col-nome">Colaborador</th>
-          <th class="col-info">Turno</th>
+          <th class="col-info">${cfg.id === 'adm5x2' ? 'Cargo' : 'Turno'}</th>
           ${headCells}
         </tr>
       </thead>
