@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T14-40-00Z -->
+<!-- APP_BUILD:2026-08-26T16-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -411,7 +411,7 @@
 
         <div class="card" id="card-rh-quadro-desejado">
           <div class="card-head"><div class="card-title">Vagas em aberto por setor (quadro x efetivo)</div></div>
-          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Desejado</th><th>Ativos</th><th>Faltando</th></tr></thead>
+          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Cargo</th><th>Desejado</th><th>Ativos</th><th>Faltando</th></tr></thead>
           <tbody id="rh-dash-quadro-desejado"></tbody></table>
         </div>
 
@@ -530,6 +530,9 @@
               <option value="Drivers">Drivers</option>
               <option value="ADM">ADM</option>
             </select>
+          </div>
+          <div class="filter-field"><label>Cargo</label>
+            <select id="rcfilter-cargo"><option value="">Todos</option></select>
           </div>
           <div class="filter-field"><label>Admissão de</label><input type="date" id="rcfilter-data-inicio"></div>
           <div class="filter-field"><label>Admissão até</label><input type="date" id="rcfilter-data-fim"></div>
@@ -651,13 +654,14 @@
                 <option value="ADM">ADM</option>
               </select>
             </div>
+            <div class="field" style="margin-bottom:0;"><label>Cargo (opcional)</label><input id="qd-cargo" list="cargos-existentes" placeholder="Deixe em branco p/ todo o depto"></div>
             <div class="field" style="margin-bottom:0;"><label>Quantidade desejada</label><input type="number" min="0" id="qd-quantidade" placeholder="Ex: 12"></div>
             <div class="field" style="margin-bottom:0;"><button class="btn-primary" id="btn-save-quadro" style="width:100%;">Salvar</button></div>
           </div>
           <div class="err-msg" id="qd-err"></div>
         </div>
         <div class="card">
-          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Desejado</th><th>Ativos</th><th>Faltando</th><th></th></tr></thead>
+          <table><thead><tr><th>Unidade</th><th>Departamento</th><th>Cargo</th><th>Desejado</th><th>Ativos</th><th>Faltando</th><th></th></tr></thead>
           <tbody id="tbl-quadro-desejado"></tbody></table>
         </div>
       </div>
@@ -825,7 +829,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T14-40-00Z';
+  const APP_VERSION = '2026-08-26T16-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1327,6 +1331,13 @@
       const cargos = [...new Set(visibleColaboradores().filter(c=>c.status==='ativo' && c.cargo).map(c=>c.cargo))].sort();
       cargosDatalist.innerHTML = cargos.map(c=>`<option value="${c}">`).join('');
     }
+    const cargoFiltroSel = document.getElementById('rcfilter-cargo');
+    if(cargoFiltroSel){
+      const keep = cargoFiltroSel.value;
+      const cargos = [...new Set(visibleColaboradores().filter(c=>c.cargo).map(c=>c.cargo))].sort();
+      cargoFiltroSel.innerHTML = '<option value="">Todos</option>' + cargos.map(c=>`<option value="${c}">${c}</option>`).join('');
+      cargoFiltroSel.value = cargos.includes(keep) ? keep : '';
+    }
   }
   function applyColabFormPermissions(){
     const u = currentUser();
@@ -1458,7 +1469,7 @@
     logAudit('Colaborador excluído', c.nome);
     toast('Colaborador removido.');
   };
-  ['rcfilter-busca','rcfilter-unidade','rcfilter-status','rcfilter-departamento','rcfilter-data-inicio','rcfilter-data-fim'].forEach(id=>{
+  ['rcfilter-busca','rcfilter-unidade','rcfilter-status','rcfilter-departamento','rcfilter-cargo','rcfilter-data-inicio','rcfilter-data-fim'].forEach(id=>{
     document.addEventListener('input', e=>{ if(e.target && e.target.id===id) renderColaboradores(); });
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderColaboradores(); });
   });
@@ -1467,6 +1478,7 @@
     document.getElementById('rcfilter-unidade').value='';
     document.getElementById('rcfilter-status').value='';
     document.getElementById('rcfilter-departamento').value='';
+    document.getElementById('rcfilter-cargo').value='';
     document.getElementById('rcfilter-data-inicio').value='';
     document.getElementById('rcfilter-data-fim').value='';
     renderColaboradores();
@@ -1635,12 +1647,14 @@
     const uoF = document.getElementById('rcfilter-unidade')?.value || '';
     const stF = document.getElementById('rcfilter-status')?.value || '';
     const deptoF = document.getElementById('rcfilter-departamento')?.value || '';
+    const cargoF = document.getElementById('rcfilter-cargo')?.value || '';
     const dataIni = document.getElementById('rcfilter-data-inicio')?.value || '';
     const dataFim = document.getElementById('rcfilter-data-fim')?.value || '';
     let list = visibleColaboradores()
       .filter(c=>!uoF || c.unidade===uoF)
       .filter(c=>!stF || c.status===stF)
       .filter(c=>!deptoF || c.departamento===deptoF)
+      .filter(c=>!cargoF || c.cargo===cargoF)
       .filter(c=>!dataIni || (c.dataAdmissao||'')>=dataIni)
       .filter(c=>!dataFim || (c.dataAdmissao||'')<=dataFim)
       .filter(c=>!busca || [c.nome,c.cargo,c.matricula].join(' ').toLowerCase().includes(busca))
@@ -2139,29 +2153,31 @@
     return state.quadroDesejado;
   }
   function calcQuadro(q){
-    const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento).length;
+    const ativos = visibleColaboradores().filter(c=>c.status==='ativo' && c.unidade===q.unidade && c.departamento===q.departamento && (!q.cargo || c.cargo===q.cargo)).length;
     return { ativos, faltando: Math.max((Number(q.quantidade)||0) - ativos, 0) };
   }
   document.getElementById('btn-save-quadro')?.addEventListener('click', async ()=>{
     const errEl = document.getElementById('qd-err');
     const unidade = document.getElementById('qd-unidade').value;
     const departamento = document.getElementById('qd-departamento').value;
+    const cargo = document.getElementById('qd-cargo').value.trim();
     const quantidade = Number(document.getElementById('qd-quantidade').value);
     if(!document.getElementById('qd-quantidade').value){ errEl.textContent='Informe a quantidade desejada.'; return; }
     if(!canManageColaborador(unidade)){ errEl.textContent='Você não tem permissão para esta unidade.'; return; }
     errEl.textContent='';
-    // uma unidade+departamento só tem um registro — se já existe, atualiza a quantidade em vez de duplicar
-    const existente = state.quadroDesejado.find(q=>q.unidade===unidade && q.departamento===departamento);
+    // uma combinação unidade+departamento+cargo só tem um registro — se já existe, atualiza a quantidade em vez de duplicar
+    const existente = state.quadroDesejado.find(q=>q.unidade===unidade && q.departamento===departamento && (q.cargo||'')===cargo);
     if(existente){
       existente.quantidade = quantidade;
     } else {
-      state.quadroDesejado.push({ id: uid(), unidade, departamento, quantidade });
+      state.quadroDesejado.push({ id: uid(), unidade, departamento, cargo, quantidade });
     }
     await save.quadroDesejado();
     document.getElementById('qd-quantidade').value = '';
+    document.getElementById('qd-cargo').value = '';
     renderView('rhvagas'); renderView('rhdash');
     toast('Quadro atualizado.');
-    logAudit('Quadro desejado atualizado', `${departamento} — ${unidade} — ${quantidade}`);
+    logAudit('Quadro desejado atualizado', `${departamento}${cargo?' — '+cargo:''} — ${unidade} — ${quantidade}`);
   });
   LOTS.deleteQuadroDesejado = async (id)=>{
     const q = state.quadroDesejado.find(x=>x.id===id);
@@ -2175,13 +2191,14 @@
   function renderQuadroDesejado(){
     const tbl = document.getElementById('tbl-quadro-desejado');
     if(!tbl) return;
-    const list = visibleQuadroDesejado().sort((a,b)=>(a.unidade+a.departamento).localeCompare(b.unidade+b.departamento));
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum quadro cadastrado ainda.</td></tr>'; return; }
+    const list = visibleQuadroDesejado().sort((a,b)=>(a.unidade+a.departamento+(a.cargo||'')).localeCompare(b.unidade+b.departamento+(b.cargo||'')));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum quadro cadastrado ainda.</td></tr>'; return; }
     tbl.innerHTML = list.map(q=>{
       const {ativos, faltando} = calcQuadro(q);
       return `<tr>
         <td>${q.unidade}</td>
         <td>${q.departamento}</td>
+        <td>${q.cargo||'—'}</td>
         <td class="mono">${q.quantidade}</td>
         <td class="mono">${ativos}</td>
         <td class="mono" style="${faltando>0?'color:var(--danger); font-weight:700;':''}">${faltando}</td>
@@ -2584,7 +2601,10 @@
         <td class="mono">${fmtDate(p.dataInicio)}</td>
         <td class="mono">${feitos}/${p.etapas.length}</td>
         <td>${p.status==='concluido'?'<span class="badge badge-ok">Concluído</span>':'<span class="badge badge-pending">Em andamento</span>'}</td>
-        <td><div class="action-links"><button class="icon-btn" onclick="LOTS.openProcesso('${p.id}')">abrir</button></div></td>
+        <td><div class="action-links">
+          <button class="icon-btn" onclick="LOTS.openProcesso('${p.id}')">abrir</button>
+          ${canManageColaborador(processoUnidade(p)) ? `<button class="icon-btn danger" onclick="LOTS.deleteProcesso('${p.id}')">excluir</button>` : ''}
+        </div></td>
       </tr>`;
     }).join('');
   }
@@ -2621,18 +2641,22 @@
     const ativos = todos.filter(c=>c.status!=='desligado');
     const hoje = todayISO();
 
-    const inicio = document.getElementById('rdfilter-inicio')?.value || hoje.slice(0,7)+'-01';
+    const inicioInput = document.getElementById('rdfilter-inicio')?.value || '';
     const fim = document.getElementById('rdfilter-fim')?.value || hoje;
+    // sem filtro: os indicadores pegam o período todo (histórico completo até hoje); só o turnover usa o ano vigente por padrão
+    const inicio = inicioInput || '1900-01-01';
+    const inicioTurnover = inicioInput || (hoje.slice(0,4)+'-01-01');
 
     const listaAtivosPeriodo = todos.filter(c=>c.dataAdmissao && c.dataAdmissao<=fim && (c.status!=='desligado' || !c.dataDesligamento || c.dataDesligamento>fim));
     const listaAdmissoes = todos.filter(c=>c.dataAdmissao && c.dataAdmissao>=inicio && c.dataAdmissao<=fim);
     const listaDesligamentos = todos.filter(c=>c.status==='desligado' && c.dataDesligamento && c.dataDesligamento>=inicio && c.dataDesligamento<=fim);
+    const listaDesligamentosTurnover = inicioInput ? listaDesligamentos : todos.filter(c=>c.status==='desligado' && c.dataDesligamento && c.dataDesligamento>=inicioTurnover && c.dataDesligamento<=fim);
     const idsComFerias = new Set(state.ferias.filter(f=>(f.dataFim||f.dataInicio)>=inicio && f.dataInicio<=fim).map(f=>f.colaboradorId));
     const listaFerias = todos.filter(c=>idsComFerias.has(c.id));
     const listaVagasAbertas = visibleVagas().filter(v=>(v.status==='aberta'||v.status==='em_selecao') && (!v.dataAbertura || v.dataAbertura<=fim));
 
-    const headcountMedio = Math.max(listaAtivosPeriodo.length + listaDesligamentos.length/2, 1);
-    const turnover = Math.round((listaDesligamentos.length/headcountMedio)*100);
+    const headcountMedio = Math.max(listaAtivosPeriodo.length + listaDesligamentosTurnover.length/2, 1);
+    const turnover = Math.round((listaDesligamentosTurnover.length/headcountMedio)*100);
 
     LOTS._dashListas = { ativos: listaAtivosPeriodo, ferias: listaFerias, admissoes: listaAdmissoes, desligamentos: listaDesligamentos, vagas: listaVagasAbertas };
 
@@ -2686,10 +2710,11 @@
       qdTbl.innerHTML = comGap.length ? comGap.map(x=>`<tr>
         <td>${x.q.unidade}</td>
         <td>${x.q.departamento}</td>
+        <td>${x.q.cargo||'—'}</td>
         <td class="mono">${x.q.quantidade}</td>
         <td class="mono">${x.ativos}</td>
         <td class="mono" style="color:var(--danger); font-weight:700;">${x.faltando}</td>
-      </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Nenhuma vaga em aberto no quadro cadastrado.</td></tr>';
+      </tr>`).join('') : '<tr class="empty-row"><td colspan="6">Nenhuma vaga em aberto no quadro cadastrado.</td></tr>';
     }
 
     const procTbl = document.getElementById('rh-dash-processos');
