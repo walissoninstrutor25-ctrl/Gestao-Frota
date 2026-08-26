@@ -620,6 +620,18 @@ function wireMatriculaLookup(matriculaEl, nomeEl) {
 // redesenhar a página inteira (o que resetaria a busca/filtro no meio
 // do clique, causando comportamento estranho com uma lista de 100+
 // itens reaparecendo de repente embaixo do cursor).
+// Acha em qual escala (Motoristas, Líder de Turno, etc.) essa matrícula
+// está cadastrada hoje, pra mostrar o cargo na tabela de Efetivos sem
+// precisar guardar isso separado (e sem ficar desatualizado se a pessoa
+// mudar de função depois).
+function cargoDoEfetivo(matricula) {
+  for (const s of EFETIVOS_SOURCES) {
+    const ds = datasets[s.tabId];
+    if (ds && ds.colaboradores.some((p) => String(p.matricula) === String(matricula))) return s.label;
+  }
+  return null;
+}
+
 function renderEfetivosTable() {
   const entries = Object.entries(edits.driversDb).filter(([, v]) => v.unidade === state.efetivosUnit);
   entries.sort((a, b) => a[1].nome.localeCompare(b[1].nome));
@@ -629,6 +641,7 @@ function renderEfetivosTable() {
     <tr class="${v.afastado ? 'ef-row-afastado' : ''}">
       <td>${v.nome}</td>
       <td>${mat}</td>
+      <td>${cargoDoEfetivo(mat) || '—'}</td>
       <td class="ef-status-cell">
         ${state.editMode ? `
           <label class="ef-afastado-toggle"><input type="checkbox" class="ef-afastado-check" data-mat="${mat}" ${v.afastado ? 'checked' : ''}> Afastado</label>
@@ -639,7 +652,7 @@ function renderEfetivosTable() {
         ` : (v.afastado ? `<span class="ef-badge ef-badge-afastado">🏥 Afastado${v.motivo ? ' — ' + v.motivo : ''}${v.dataRetorno ? ' · retorno ' + formatDataBr(v.dataRetorno) : ''}</span>` : `<span class="ef-badge ef-badge-ativo">Ativo</span>`)}
       </td>
       ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button></td>` : ''}
-    </tr>`).join('') : `<tr><td colspan="${state.editMode ? 4 : 3}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="${state.editMode ? 5 : 4}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
   table.querySelectorAll('.ef-remove-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const nomeRemover = btn.closest('tr').querySelector('td').textContent;
@@ -721,7 +734,7 @@ function renderEfetivos() {
       </div>` : ''}
     <div class="table-scroll">
       <table class="dash-table efetivos-table">
-        <thead><tr><th>Nome</th><th>Matrícula</th><th>Status</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+        <thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Status</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
         <tbody></tbody>
       </table>
     </div>
