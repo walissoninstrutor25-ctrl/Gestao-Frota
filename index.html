@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T07-20-00Z -->
+<!-- APP_BUILD:2026-08-09T08-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1859,7 +1859,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T07-20-00Z';
+  const APP_VERSION = '2026-08-09T08-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1925,7 +1925,7 @@
     }, err=>console.error('listen fail', key, err));
   }
   async function saveProfile(u){
-    await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, authEmail:u.authEmail||null, role:u.role, vehicleId:u.vehicleId||null, uoResponsavel:u.uoResponsavel||null});
+    await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, authEmail:u.authEmail||null, role:u.role, vehicleId:u.vehicleId||null, uoResponsaveis:u.uoResponsaveis||null});
   }
   async function loadAllProfiles(){
     const snap = await db.collection(PROFILES).get();
@@ -2374,13 +2374,29 @@
     return drivers.map(d=>`<option value="${d.id}" ${d.id===selected?'selected':''}>${d.name}</option>`).join('') || '<option value="">Nenhum motorista cadastrado</option>';
   }
 
+  /* ---------------- PERMISSÕES POR UO (compartilhado em todo o sistema) ---------------- */
+  // devolve as UOs do usuário logado (array). Aceita tanto o campo novo (uoResponsaveis, lista)
+  // quanto o antigo (uoResponsavel, texto único) pra não quebrar contas já cadastradas antes.
+  function minhasUOs(){
+    const u = currentUser();
+    if(!u) return [];
+    if(Array.isArray(u.uoResponsaveis) && u.uoResponsaveis.length) return u.uoResponsaveis;
+    if(u.uoResponsavel) return [u.uoResponsavel];
+    return [];
+  }
+  // admin e auxiliar_adm enxergam tudo, de todas as UOs; gestor e adm_uo só das UOs deles; motorista só o próprio veículo
+  function vejoTudo(){
+    const r = currentUser()?.role;
+    return r==='admin' || r==='auxiliar_adm';
+  }
+
   /* ---------------- VEHICLES ---------------- */
-  // admin edita/exclui qualquer UO; gestor só a UO dele; motorista nunca
+  // admin e adm_uo (dentro das UOs dele) editam/excluem; gestor só visualiza; motorista nunca
   function canEditUO(unidade){
     const u = currentUser();
     if(!u) return false;
     if(u.role==='admin') return true;
-    if(u.role==='gestor') return unidade===u.uoResponsavel;
+    if(u.role==='adm_uo') return minhasUOs().includes(unidade);
     return false;
   }
   // auxiliar_adm pode cadastrar/editar veículos (qualquer UO), mas nunca excluir
@@ -2426,7 +2442,7 @@
   function visibleVehicles(){
     const u = currentUser();
     if(u.role==='motorista') return state.vehicles.filter(v=>v.id===u.vehicleId);
-    // gestor de UO agora VÊ todas as unidades (só a edição fica restrita à UO dele)
+    if(u.role==='gestor' || u.role==='adm_uo') return state.vehicles.filter(v=>minhasUOs().includes(v.unidade));
     return state.vehicles;
   }
 
@@ -2598,8 +2614,8 @@
 
   /* ---------------- TRANSFERÊNCIA ENTRE FILIAL ---------------- */
   function transferForm(tipo){
-    const list = tipo==='heavy' ? state.heavyVehicles.filter(v=>v.status!=='inativo')
-               : tipo==='conjunto' ? state.conjuntos.filter(c=>c.status!=='inativo')
+    const list = tipo==='heavy' ? visibleHeavyVehicles().filter(v=>v.status!=='inativo')
+               : tipo==='conjunto' ? visibleConjuntos().filter(c=>c.status!=='inativo')
                : visibleVehicles().filter(v=>v.status!=='inativo');
     const opts = list.map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
     return `
@@ -2886,7 +2902,7 @@
   function visibleFuel(){
     const u = currentUser();
     if(u.role==='motorista') return state.fuel.filter(f=>f.vehicleId===u.vehicleId);
-    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.fuel.filter(f=>ids.includes(f.vehicleId)); } // gestor vê tudo (ids = todas)
+    if(u.role==='gestor' || u.role==='adm_uo'){ const ids=visibleVehicles().map(v=>v.id); return state.fuel.filter(f=>ids.includes(f.vehicleId)); }
     return state.fuel;
   }
   // KM atual do veículo pra base do Controle de Revisão: o maior valor entre o km do
@@ -3346,7 +3362,7 @@
   function visibleCosts(){
     const u = currentUser();
     if(u.role==='motorista') return state.costs.filter(c=>c.vehicleId===u.vehicleId);
-    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.costs.filter(c=>ids.includes(c.vehicleId)); }
+    if(u.role==='gestor' || u.role==='adm_uo'){ const ids=visibleVehicles().map(v=>v.id); return state.costs.filter(c=>ids.includes(c.vehicleId)); }
     return state.costs;
   }
 
@@ -3746,7 +3762,7 @@
   function visibleSinistros(){
     const u = currentUser();
     if(u.role==='motorista') return state.sinistros.filter(s=>s.vehicleId===u.vehicleId);
-    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.sinistros.filter(s=>ids.includes(s.vehicleId)); }
+    if(u.role==='gestor' || u.role==='adm_uo'){ const ids=visibleVehicles().map(v=>v.id); return state.sinistros.filter(s=>ids.includes(s.vehicleId)); }
     return state.sinistros;
   }
 
@@ -3923,7 +3939,14 @@
   }
 
   /* ---------------- FROTA PESADA ---------------- */
-  function visibleHeavyVehicles(){ return state.heavyVehicles; }
+  function visibleHeavyVehicles(){
+    if(!vejoTudo()){ return state.heavyVehicles.filter(v=>minhasUOs().includes(v.unidade)); }
+    return state.heavyVehicles;
+  }
+  function visibleConjuntos(){
+    if(!vejoTudo()){ return state.conjuntos.filter(c=>minhasUOs().includes(c.uo)); }
+    return state.conjuntos;
+  }
   LOTS._editingHeavyId = null;
   function fillHeavyForm(v){
     LOTS._editingHeavyId = v ? v.id : null;
@@ -3945,7 +3968,9 @@
     document.getElementById('btn-register-heavy').textContent = v ? 'Salvar alterações' : 'Cadastrar veículo';
   }
   LOTS.editHeavy = (id)=>{
-    fillHeavyForm(state.heavyVehicles.find(v=>v.id===id));
+    const v = state.heavyVehicles.find(v=>v.id===id);
+    if(!canEditUO(v?.unidade)){ toast('Você só pode editar veículos da sua UO.'); return; }
+    fillHeavyForm(v);
     document.querySelector('#view-heavyfleet .reg-card').scrollIntoView({behavior:'smooth'});
   };
   document.getElementById('btn-register-heavy')?.addEventListener('click', async ()=>{
@@ -3968,9 +3993,14 @@
       status: document.getElementById('hf-status').value
     };
     if(!data.plate || !data.model){ errEl.textContent='Preencha ao menos placa e modelo.'; return; }
+    const id = LOTS._editingHeavyId;
+    const unidadeOriginal = id ? state.heavyVehicles.find(v=>v.id===id)?.unidade : undefined;
+    if(!canEditUO(unidadeOriginal!==undefined ? unidadeOriginal : data.unidade)){
+      errEl.textContent='Você só pode cadastrar/editar veículos da sua própria UO.';
+      return;
+    }
     errEl.textContent='';
 
-    const id = LOTS._editingHeavyId;
     if(id){ Object.assign(state.heavyVehicles.find(v=>v.id===id), data); }
     else { state.heavyVehicles.push({id:uid(), dataCadastro:todayISO(), ...data}); }
     await save.heavyVehicles();
@@ -3982,6 +4012,7 @@
   });
   LOTS.deleteHeavy = async (id)=>{
     const v = state.heavyVehicles.find(x=>x.id===id);
+    if(!canEditUO(v?.unidade)){ toast('Você só pode excluir veículos da sua UO.'); return; }
     state.heavyVehicles = state.heavyVehicles.filter(v=>v.id!==id);
     await save.heavyVehicles();
     renderView('heavyfleet');
@@ -3998,8 +4029,8 @@
     const sel = document.getElementById('emb-vehicle');
     if(!sel) return;
     const keep = sel.value;
-    sel.innerHTML = '<option value="">Selecione</option>' + state.heavyVehicles.map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
-    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    sel.innerHTML = '<option value="">Selecione</option>' + visibleHeavyVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    sel.value = visibleHeavyVehicles().some(v=>v.id===keep) ? keep : '';
     fillEmbarcadosForm();
   }
   function fillEmbarcadosForm(){
@@ -4032,7 +4063,7 @@
   /* ---------------- CONJUNTOS (carretas/reboques) ---------------- */
   function crlvVencendoListConjuntos(){
     const hoje = new Date(todayISO());
-    return state.conjuntos
+    return visibleConjuntos()
       .filter(c=>c.crlvVencimento)
       .map(c=>{
         const venc = new Date(c.crlvVencimento);
@@ -4135,8 +4166,13 @@
       status: document.getElementById('cj-status').value
     };
     if(!data.plate || !data.marca){ errEl.textContent='Preencha ao menos placa e marca.'; return; }
-    errEl.textContent='';
     const id = LOTS._editingConjuntoId;
+    const uoOriginal = id ? state.conjuntos.find(c=>c.id===id)?.uo : undefined;
+    if(!canEditUO(uoOriginal!==undefined ? uoOriginal : data.uo)){
+      errEl.textContent='Você só pode cadastrar/editar conjuntos da sua própria UO.';
+      return;
+    }
+    errEl.textContent='';
     if(id){ Object.assign(state.conjuntos.find(c=>c.id===id), data); }
     else { state.conjuntos.push({id:uid(), dataCadastro:todayISO(), ...data}); }
     await save.conjuntos();
@@ -4146,11 +4182,14 @@
     toast(id ? 'Conjunto atualizado.' : 'Conjunto cadastrado.');
   });
   LOTS.editConjunto = (id)=>{
-    fillConjuntoForm(state.conjuntos.find(c=>c.id===id));
+    const c = state.conjuntos.find(c=>c.id===id);
+    if(!canEditUO(c?.uo)){ toast('Você só pode editar conjuntos da sua UO.'); return; }
+    fillConjuntoForm(c);
     document.querySelector('#view-conjuntocadastro .reg-card').scrollIntoView({behavior:'smooth'});
   };
   LOTS.deleteConjunto = async (id)=>{
     const c = state.conjuntos.find(x=>x.id===id);
+    if(!canEditUO(c?.uo)){ toast('Você só pode excluir conjuntos da sua UO.'); return; }
     state.conjuntos = state.conjuntos.filter(c=>c.id!==id);
     await save.conjuntos();
     renderView('conjuntocadastro'); renderView('conjuntodash');
@@ -4159,8 +4198,8 @@
   function renderConjuntoCadastro(){
     const tbl = document.getElementById('tbl-conjunto');
     if(!tbl) return;
-    if(state.conjuntos.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="12">Nenhum conjunto cadastrado ainda.</td></tr>'; return; }
-    tbl.innerHTML = state.conjuntos.map(c=>{
+    if(visibleConjuntos().length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="12">Nenhum conjunto cadastrado ainda.</td></tr>'; return; }
+    tbl.innerHTML = visibleConjuntos().map(c=>{
       const badge = c.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
       return `<tr>
         <td class="mono">${c.frota||'—'}</td>
@@ -4191,11 +4230,13 @@
     sel.innerHTML = '<option value="">Selecione</option>' + state.heavyVehicles
       .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')))
       .map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
-    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    sel.value = visibleHeavyVehicles().some(v=>v.id===keep) ? keep : '';
   }
   function heavyDocsVencendoList(){
     const hoje = new Date(todayISO());
+    const okIds = visibleHeavyVehicles().map(v=>v.id);
     return state.heavyDocs
+      .filter(d=>okIds.includes(d.vehicleId))
       .filter(d=>d.vencimento)
       .map(d=>{
         const venc = new Date(d.vencimento);
@@ -4257,8 +4298,10 @@
     }
     const tbl = document.getElementById('tbl-heavydocs');
     if(!tbl) return;
-    if(state.heavyDocs.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum documento cadastrado ainda.</td></tr>'; return; }
-    const sorted = state.heavyDocs.slice().sort((a,b)=>a.vencimento.localeCompare(b.vencimento));
+    const okIds = visibleHeavyVehicles().map(v=>v.id);
+    const meusDocs = state.heavyDocs.filter(d=>okIds.includes(d.vehicleId));
+    if(meusDocs.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="6">Nenhum documento cadastrado ainda.</td></tr>'; return; }
+    const sorted = meusDocs.slice().sort((a,b)=>a.vencimento.localeCompare(b.vencimento));
     tbl.innerHTML = sorted.map(d=>{
       const v = state.heavyVehicles.find(x=>x.id===d.vehicleId);
       return `<tr>
@@ -4274,7 +4317,7 @@
 
   function crlvVencendoList(){
     const hoje = new Date(todayISO());
-    return state.heavyVehicles
+    return visibleHeavyVehicles()
       .filter(v=>v.crlvVencimento)
       .map(v=>{
         const venc = new Date(v.crlvVencimento);
@@ -4509,7 +4552,7 @@
   function visibleFines(){
     const u = currentUser();
     if(u.role==='motorista') return state.fines.filter(f=>f.vehicleId===u.vehicleId);
-    if(u.role==='gestor'){ const ids=visibleVehicles().map(v=>v.id); return state.fines.filter(f=>ids.includes(f.vehicleId)); }
+    if(u.role==='gestor' || u.role==='adm_uo'){ const ids=visibleVehicles().map(v=>v.id); return state.fines.filter(f=>ids.includes(f.vehicleId)); }
     return state.fines;
   }
 
@@ -5093,7 +5136,7 @@
 
   /* =============== FROTA PESADA — CUSTOS, SINISTROS, MULTAS, RANKING =============== */
   function heavyVehicleOptions(selectedId){
-    return state.heavyVehicles.map(v=>`<option value="${v.id}" ${v.id===selectedId?'selected':''}>${v.frota?v.frota+' — ':''}${v.plate} — ${v.model}</option>`).join('') || '<option value="">Nenhum veículo cadastrado</option>';
+    return visibleHeavyVehicles().map(v=>`<option value="${v.id}" ${v.id===selectedId?'selected':''}>${v.frota?v.frota+' — ':''}${v.plate} — ${v.model}</option>`).join('') || '<option value="">Nenhum veículo cadastrado</option>';
   }
 
   /* ---- Custos Extras (pesada) ---- */
@@ -5102,7 +5145,7 @@
     if(!sel) return;
     const keep = sel.value;
     sel.innerHTML = '<option value="">Selecione</option>' + heavyVehicleOptions(null);
-    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    sel.value = visibleHeavyVehicles().some(v=>v.id===keep) ? keep : '';
     fillHeavyCostVehicleReadonly();
   }
   function fillHeavyCostVehicleReadonly(){
@@ -5151,7 +5194,7 @@
     if(!vSel) return;
     const keep = vSel.value;
     vSel.innerHTML = '<option value="">Todas</option>' + heavyVehicleOptions(null);
-    vSel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    vSel.value = visibleHeavyVehicles().some(v=>v.id===keep) ? keep : '';
   }
   ['hbicost-start','hbicost-end','hbicost-uo','hbicost-vehicle'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavyCostBI(); });
@@ -5165,7 +5208,7 @@
     const end = document.getElementById('hbicost-end').value;
     const uo = document.getElementById('hbicost-uo').value;
     const vf = document.getElementById('hbicost-vehicle').value;
-    const okVids = state.heavyVehicles.filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
+    const okVids = visibleHeavyVehicles().filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
     return state.heavyCosts.filter(c=>{
       if(!okVids.includes(c.vehicleId)) return false;
       if(start && c.date<start) return false;
@@ -5233,7 +5276,7 @@
     if(!sel) return;
     const keep = sel.value;
     sel.innerHTML = '<option value="">Selecione</option>' + heavyVehicleOptions(null);
-    sel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    sel.value = visibleHeavyVehicles().some(v=>v.id===keep) ? keep : '';
     fillHeavySinVehicleReadonly();
   }
   function fillHeavySinVehicleReadonly(){
@@ -5330,7 +5373,7 @@
     if(!vSel) return;
     const keep = vSel.value;
     vSel.innerHTML = '<option value="">Todas</option>' + heavyVehicleOptions(null);
-    vSel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    vSel.value = visibleHeavyVehicles().some(v=>v.id===keep) ? keep : '';
   }
   ['hbisin-start','hbisin-end','hbisin-uo','hbisin-vehicle'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavySinBI(); });
@@ -5344,7 +5387,7 @@
     const end = document.getElementById('hbisin-end').value;
     const uo = document.getElementById('hbisin-uo').value;
     const vf = document.getElementById('hbisin-vehicle').value;
-    const okVids = state.heavyVehicles.filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
+    const okVids = visibleHeavyVehicles().filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
     return state.heavySinistros.filter(s=>{
       if(!okVids.includes(s.vehicleId)) return false;
       if(start && s.date<start) return false;
@@ -5381,7 +5424,8 @@
     populateHeavySinVehicleSelect();
     renderHeavySinBI();
     const tbl = document.getElementById('tbl-heavysinistros');
-    const list = state.heavySinistros.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    const okIds = visibleHeavyVehicles().map(v=>v.id);
+    const list = state.heavySinistros.filter(s=>okIds.includes(s.vehicleId)).slice().sort((a,b)=>b.date.localeCompare(a.date));
     if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum acidente de trânsito registrado.</td></tr>'; return; }
     tbl.innerHTML = list.map(s=>{
       const v = state.heavyVehicles.find(x=>x.id===s.vehicleId);
@@ -5449,7 +5493,8 @@
   };
   function renderHeavyFines(){
     const tbl = document.getElementById('tbl-heavyfines');
-    const list = state.heavyFines.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    const okIds = visibleHeavyVehicles().map(v=>v.id);
+    const list = state.heavyFines.filter(f=>okIds.includes(f.vehicleId)).slice().sort((a,b)=>b.date.localeCompare(a.date));
     if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhuma multa registrada.</td></tr>'; return; }
     tbl.innerHTML = list.map(f=>{
       const v = state.heavyVehicles.find(x=>x.id===f.vehicleId);
@@ -5472,10 +5517,10 @@
   /* ---- LOTS GO (pesada) — ranking por responsável do ativo ---- */
   function renderHeavyRanking(){
     const tbl = document.getElementById('tbl-heavyranking');
-    const responsaveis = [...new Set(state.heavyVehicles.map(v=>v.responsavel).filter(Boolean))];
+    const responsaveis = [...new Set(visibleHeavyVehicles().map(v=>v.responsavel).filter(Boolean))];
     if(responsaveis.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="5">Cadastre o responsável dos veículos para ver o ranking.</td></tr>'; return; }
     const rows = responsaveis.map(resp=>{
-      const vs = state.heavyVehicles.filter(v=>v.responsavel===resp);
+      const vs = visibleHeavyVehicles().filter(v=>v.responsavel===resp);
       const vids = vs.map(v=>v.id);
       const fines = state.heavyFines.filter(f=>vids.includes(f.vehicleId));
       const pending = fines.filter(f=>f.status!=='paga').length;
@@ -5500,7 +5545,7 @@
     if(!vSel) return;
     const keep = vSel.value;
     vSel.innerHTML = '<option value="">Todas</option>' + heavyVehicleOptions(null);
-    vSel.value = state.heavyVehicles.some(v=>v.id===keep) ? keep : '';
+    vSel.value = visibleHeavyVehicles().some(v=>v.id===keep) ? keep : '';
   }
   ['hdfilter-start','hdfilter-end','hdfilter-uo','hdfilter-vehicle'].forEach(id=>{
     document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderHeavyDash(); });
@@ -5517,14 +5562,14 @@
     const end = document.getElementById('hdfilter-end').value;
     const uo = document.getElementById('hdfilter-uo').value;
     const vf = document.getElementById('hdfilter-vehicle').value;
-    const okVids = state.heavyVehicles.filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
+    const okVids = visibleHeavyVehicles().filter(v=>!uo||v.unidade===uo).filter(v=>!vf||v.id===vf).map(v=>v.id);
     const inRange = d => (!start||d>=start) && (!end||d<=end);
 
     const fines = state.heavyFines.filter(f=>okVids.includes(f.vehicleId) && inRange(f.date));
 
     kpiGrid.innerHTML = [
-      {label:'Veículos ativos', val: state.heavyVehicles.filter(v=>(!uo||v.unidade===uo)&&v.status==='ativo').length},
-      {label:'Veículos inativos', val: state.heavyVehicles.filter(v=>(!uo||v.unidade===uo)&&v.status==='inativo').length},
+      {label:'Veículos ativos', val: visibleHeavyVehicles().filter(v=>(!uo||v.unidade===uo)&&v.status==='ativo').length},
+      {label:'Veículos inativos', val: visibleHeavyVehicles().filter(v=>(!uo||v.unidade===uo)&&v.status==='inativo').length},
       {label:'Multas', val: fmtMoney(fines.reduce((s,f)=>s+f.value,0))},
       {label:'CRLV vencendo/vencido', val: crlvVencendoList().filter(({v})=>!uo||v.unidade===uo).length},
       {label:'Cronotacógrafo vencendo', val: heavyDocsVencendoList().filter(({d})=>{ if(d.tipo!=='Cronotacógrafo') return false; if(!uo) return true; const v=state.heavyVehicles.find(x=>x.id===d.vehicleId); return v && v.unidade===uo; }).length},
@@ -5788,12 +5833,16 @@
       <div class="field"><label>Perfil</label>
         <select id="f-role">
           <option value="auxiliar_adm">Auxiliar ADM</option>
-          <option value="gestor">Gestor de UO</option>
+          <option value="adm_uo">ADM UO (admin só das UOs dele)</option>
+          <option value="gestor">Gestor de UO (só visualização)</option>
           <option value="admin">Administrador</option>
         </select>
       </div>
       <div class="field" id="f-vehicle-wrap" style="display:none;"><label>Veículo vinculado (se motorista)</label><select id="f-vehicle"><option value="">— Nenhum —</option>${vehicleOptions(null)}</select></div>
-      <div class="field" id="f-uo-wrap" style="display:none;"><label>UO responsável (se gestor)</label><select id="f-uo">${UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('')}</select></div>
+      <div class="field" id="f-uo-wrap" style="display:none;">
+        <label>UO(s) responsável — segure Ctrl (ou Cmd no Mac) pra escolher mais de uma</label>
+        <select id="f-uo" multiple size="6">${UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join('')}</select>
+      </div>
       <div class="modal-actions">
         <button class="btn-primary" id="btn-save-user">Salvar</button>
         <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
@@ -5804,7 +5853,7 @@
     document.getElementById('btn-save-user').addEventListener('click', LOTS.saveUser);
     document.getElementById('f-role').addEventListener('change', (e)=>{
       document.getElementById('f-vehicle-wrap').style.display = e.target.value==='motorista' ? 'block' : 'none';
-      document.getElementById('f-uo-wrap').style.display = e.target.value==='gestor' ? 'block' : 'none';
+      document.getElementById('f-uo-wrap').style.display = (e.target.value==='gestor' || e.target.value==='adm_uo') ? 'block' : 'none';
     });
   });
   LOTS.saveUser = async ()=>{
@@ -5813,8 +5862,9 @@
     const password = document.getElementById('f-password').value;
     const role = document.getElementById('f-role').value;
     const vehicleId = document.getElementById('f-vehicle').value || null;
-    const uoResponsavel = document.getElementById('f-uo').value || null;
+    const uoResponsaveis = [...document.getElementById('f-uo').selectedOptions].map(o=>o.value);
     if(!name || !username || password.length<6){ toast('Preencha nome, login e senha (mín. 6 caracteres).'); return; }
+    if((role==='gestor'||role==='adm_uo') && uoResponsaveis.length===0){ toast('Selecione ao menos uma UO.'); return; }
     if(state.users.some(u=>u.username===username)){ toast('Este login já existe.'); return; }
     try{
       // cria no app "secundário" pra não trocar a sessão do admin logado
@@ -5832,7 +5882,7 @@
           throw e1;
         }
       }
-      await saveProfile({id:cred.user.uid, name, username, authEmail, role, vehicleId: role==='motorista'?vehicleId:null, uoResponsavel: role==='gestor'?uoResponsavel:null});
+      await saveProfile({id:cred.user.uid, name, username, authEmail, role, vehicleId: role==='motorista'?vehicleId:null, uoResponsaveis: (role==='gestor'||role==='adm_uo')?uoResponsaveis:null});
       await secondaryAuth.signOut();
       state.users = await loadAllProfiles();
       closeModal(); renderView('users'); renderView('ranking');
