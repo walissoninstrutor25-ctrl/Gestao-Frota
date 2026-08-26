@@ -1695,7 +1695,17 @@ function startApp() {
   setInterval(tickClock, 30000);
   document.getElementById('year').textContent = new Date().getFullYear();
   if (location.protocol !== 'file:' && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // App instalado (PWA) quase nunca é "fechado de verdade" — só fica
+      // em segundo plano e volta ao ser reaberto, sem uma navegação nova.
+      // O navegador só checa se tem sw.js diferente numa navegação nova,
+      // então sem isto um app instalado podia nunca perceber que existe
+      // uma versão mais nova, ficando preso indefinidamente na antiga.
+      // Isto força essa checagem sempre que o app volta a ficar visível.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      });
+    }).catch(() => {});
     // sw.js já ativa sozinho a cada deploy (skipWaiting + clients.claim),
     // mas sem isto a aba só passa a ser controlada pela versão nova no
     // PRÓXIMO carregamento manual — quem já estava com a página aberta
