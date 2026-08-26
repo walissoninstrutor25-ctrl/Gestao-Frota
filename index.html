@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T08-30-00Z -->
+<!-- APP_BUILD:2026-08-09T09-15-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -753,26 +753,16 @@
         </div>
 
         <div class="card">
-          <div class="card-head">
-            <div class="card-title">Lançar abastecimentos (planilha do sistema)</div>
-            <button class="btn-ghost btn-sm" id="btn-fuelsheet-add-row">+ Adicionar linha</button>
-          </div>
+          <div class="card-head"><div class="card-title">Importar planilha de abastecimento</div></div>
           <div class="page-sub" style="margin-bottom:12px;">
-            Preencha as linhas abaixo (pode lançar vários veículos de uma vez, diário ou semanal) e clique em "Salvar lançamentos". Depois de salvar, a planilha limpa sozinha pra você lançar o próximo lote. Os dados ficam salvos no sistema — use os filtros logo abaixo pra consultar o que já foi lançado.
+            Colunas esperadas: <b>PLACA</b>, <b>ODOMETRO</b>, <b>DATA DE ABASTECIMENTO</b>, <b>LITROS ABASTECIDOS</b>, <b>VALOR LITRO</b>, <b>POSTO</b>. A mesma placa pode aparecer várias vezes (um abastecimento por linha) — o sistema soma tudo certinho, sem precisar organizar a planilha antes. Cada linha precisa bater a <u>Placa</u> com um veículo já cadastrado — se alguma linha não bater, <b>nada é importado</b> e o sistema mostra exatamente quais linhas estão com erro, pra você corrigir a planilha (ou o cadastro) e importar de novo. Use pra lançar o lote a cada 15 dias.
           </div>
-          <div class="field" style="max-width:260px; margin-bottom:14px;">
-            <label>Preço do combustível deste lote (R$/litro)</label>
-            <input id="fuelsheet-preco" placeholder="Ex: 6.09">
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-fuel-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field"><button class="btn-primary" id="btn-import-fuel" style="width:100%;">⬆ Importar planilha</button></div>
           </div>
-          <div style="overflow-x:auto;">
-            <table id="fuelsheet-table"><thead><tr>
-              <th style="min-width:170px;">Frota</th><th>Placa</th><th>KM atual</th><th>Litros</th><th>Posto</th><th>Data</th><th></th>
-            </tr></thead>
-            <tbody id="fuelsheet-body"></tbody></table>
-          </div>
-          <datalist id="fuelsheet-vehicle-list"></datalist>
-          <button class="btn-primary" id="btn-fuelsheet-save" style="margin-top:14px;">💾 Salvar lançamentos</button>
-          <div class="err-msg" id="fuelsheet-msg"></div>
+          <div class="err-msg" id="import-fuel-msg"></div>
+          <div id="import-fuel-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06); max-height:300px; overflow-y:auto;"></div>
         </div>
 
         <div class="card">
@@ -1859,7 +1849,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T08-30-00Z';
+  const APP_VERSION = '2026-08-09T09-15-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2878,9 +2868,6 @@
     renderFuelParamsTable();
     populateFuelBIFilters();
     renderFuelBI();
-    // só inicializa a planilha de lançamento na primeira vez (não apaga o que o usuário está digitando a cada re-render)
-    const sheetBody = document.getElementById('fuelsheet-body');
-    if(sheetBody && sheetBody.children.length===0) fuelSheetReset();
     const tbl = document.getElementById('tbl-fuel');
     // usa o mesmo filtro do BI acima (Período, Mês, UO, Veículo) — antes mostrava tudo sem filtrar
     const list = getFuelBIFiltered().slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -2987,112 +2974,78 @@
   }
 
   /* ---------------- planilha de abastecimento dentro do próprio sistema (grid editável) ---------------- */
-  function fuelSheetVehicleOptions(){
-    return state.vehicles
-      .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')))
-      .map(v=>`<option data-id="${v.id}" value="${v.frota||'—'} — ${v.plate}"></option>`).join('');
-  }
-  function fuelSheetRefreshDatalist(){
-    const dl = document.getElementById('fuelsheet-vehicle-list');
-    if(dl) dl.innerHTML = fuelSheetVehicleOptions();
-  }
-  function fuelSheetFindVehicleByLabel(label){
-    const alvo = normKey(label);
-    if(!alvo) return null;
-    return state.vehicles.find(v=>normKey(`${v.frota||'—'} — ${v.plate}`)===alvo) || null;
-  }
-  function fuelSheetAddRow(){
-    const body = document.getElementById('fuelsheet-body');
-    if(!body) return;
-    fuelSheetRefreshDatalist();
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input type="text" class="fs-frota" list="fuelsheet-vehicle-list" placeholder="Digite a frota ou a placa" autocomplete="off"></td>
-      <td class="mono fs-placa">—</td>
-      <td><input type="number" class="fs-km" placeholder="0"></td>
-      <td><input type="number" class="fs-litros" placeholder="0" step="0.01"></td>
-      <td><select class="fs-posto">
-        <option value="">Selecione</option>
-        <option value="R7">R7</option>
-        <option value="COQUEIRO">COQUEIRO</option>
-        <option value="7 MILHAS">7 MILHAS</option>
-      </select></td>
-      <td><input type="date" class="fs-data" value="${todayISO()}"></td>
-      <td><button class="icon-btn danger fs-remove" title="Remover linha">✕</button></td>
-    `;
-    body.appendChild(tr);
-    const frotaInput = tr.querySelector('.fs-frota');
-    frotaInput.addEventListener('input', (e)=>{
-      const v = fuelSheetFindVehicleByLabel(e.target.value);
-      tr.dataset.vehicleId = v ? v.id : '';
-      tr.querySelector('.fs-placa').textContent = v ? v.plate : '—';
-    });
-    tr.querySelector('.fs-remove').addEventListener('click', ()=>{
-      if(body.children.length>1) tr.remove();
-    });
-  }
-  function fuelSheetReset(linhas){
-    const body = document.getElementById('fuelsheet-body');
-    if(!body) return;
-    body.innerHTML = '';
-    for(let i=0;i<(linhas||8);i++) fuelSheetAddRow();
-  }
-  document.getElementById('btn-fuelsheet-add-row')?.addEventListener('click', ()=>fuelSheetAddRow());
+  document.getElementById('btn-import-fuel')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('import-fuel-msg');
+    const errEl = document.getElementById('import-fuel-errors');
+    const fileInput = document.getElementById('import-fuel-file');
+    errEl.style.display='none'; errEl.innerHTML='';
+    if(!fileInput.files.length){ msgEl.textContent='Selecione um arquivo primeiro.'; msgEl.style.color='var(--danger)'; return; }
+    if(typeof XLSX === 'undefined'){ msgEl.textContent='Biblioteca de importação não carregada.'; return; }
+    msgEl.style.color='var(--text-muted)';
+    msgEl.textContent='Lendo planilha…';
+    try{
+      const file = fileInput.files[0];
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array', cellDates:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
 
-  document.getElementById('btn-fuelsheet-save')?.addEventListener('click', async ()=>{
-    const msgEl = document.getElementById('fuelsheet-msg');
-    const precoLote = Number(document.getElementById('fuelsheet-preco').value)||0;
-    if(!precoLote){ msgEl.style.color='var(--danger)'; msgEl.textContent='Informe o preço do combustível (R$/litro) deste lote.'; return; }
+      const erros = [];
+      const validas = [];
+      const okVids = visibleVehicles().map(v=>v.id); // gestor/adm_uo só importam pras UOs deles
+      rows.forEach((row, i)=>{
+        const linha = i+2; // linha 1 = cabeçalho
+        const placaRaw = String(pickCol(row,'placa')||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+        const km = Number(pickCol(row,'odometro','odômetro','km atual','km'))||0;
+        const dataRaw = pickCol(row,'data de abastecimento','data do abastecimento','data','período','periodo');
+        const litros = Number(pickCol(row,'litros abastecidos','litros','quantidade de litros'))||0;
+        const valorLitro = Number(pickCol(row,'valor litro','valor do litro','preco litro','preço litro'))||0;
+        const posto = String(pickCol(row,'posto','nome do posto')||'').trim();
+        if(!placaRaw && !km && !litros) return; // linha em branco, ignora
 
-    const linhas = [...document.querySelectorAll('#fuelsheet-body tr')];
-    const erros = [];
-    const validas = [];
-    linhas.forEach((tr, i)=>{
-      const frotaTexto = tr.querySelector('.fs-frota').value.trim();
-      const vehicleId = tr.dataset.vehicleId || '';
-      const km = Number(tr.querySelector('.fs-km').value)||0;
-      const litros = Number(tr.querySelector('.fs-litros').value)||0;
-      const posto = tr.querySelector('.fs-posto').value;
-      const data = tr.querySelector('.fs-data').value;
-      const linhaNum = i+1;
-      const algoPreenchido = frotaTexto || km || litros;
-      if(!algoPreenchido) return; // linha em branco, ignora
+        const v = state.vehicles.find(x=>x.plate.replace(/[^A-Z0-9]/g,'')===placaRaw);
+        if(!v){ erros.push(`Linha ${linha}: placa "${placaRaw}" não encontrada no cadastro. Corrija a placa na planilha ou cadastre o veículo.`); return; }
+        if(!okVids.includes(v.id)){ erros.push(`Linha ${linha}: placa "${placaRaw}" (Frota ${v.frota||'—'}) não é da sua UO — você não pode importar abastecimento pra ela.`); return; }
+        if(km<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem ODOMETRO válido.`); return; }
+        if(litros<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem LITROS ABASTECIDOS válido.`); return; }
+        if(valorLitro<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem VALOR LITRO válido.`); return; }
 
-      if(!vehicleId){ erros.push(`Linha ${linhaNum}: "${frotaTexto}" não bate com nenhuma frota/placa cadastrada — escolha uma opção da lista.`); return; }
-      const v = vehicleById(vehicleId);
-      if(!v){ erros.push(`Linha ${linhaNum}: veículo não encontrado.`); return; }
-      if(km<=0){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): informe o KM atual.`); return; }
-      if(litros<=0){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): informe a quantidade de litros.`); return; }
-      if(!posto){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): selecione o posto.`); return; }
-      if(!data){ erros.push(`Linha ${linhaNum} (Frota ${v.frota}): informe a data.`); return; }
-      validas.push({v, km, litros, posto, data});
-    });
-
-    if(erros.length>0){
-      msgEl.style.color='var(--danger)';
-      msgEl.innerHTML = `Corrija antes de salvar:<br>` + erros.map(e=>`⚠️ ${e}`).join('<br>');
-      return;
-    }
-    if(validas.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Preencha pelo menos uma linha antes de salvar.'; return; }
-
-    const kmUpdates = {};
-    validas.forEach(({v, km, litros, posto, data})=>{
-      state.fuel.push({
-        id:uid(), vehicleId:v.id, date:data, liters:litros,
-        value: Number((litros*precoLote).toFixed(2)),
-        km:km, station:posto, imported:false
+        const dataISO = excelDateToISO(dataRaw) || todayISO();
+        validas.push({v, km, litros, valorLitro, posto, dataISO});
       });
-      if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
-    });
-    Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
-    await save.fuel();
-    if(Object.keys(kmUpdates).length) await save.vehicles();
 
-    msgEl.style.color='var(--go)';
-    msgEl.textContent = `${validas.length} lançamento(s) salvo(s) a R$ ${precoLote.toFixed(2)}/litro.`;
-    document.getElementById('fuelsheet-preco').value = '';
-    fuelSheetReset();
-    renderView('fuel'); renderView('dashboard'); renderView('vehicles');
+      if(erros.length>0){
+        msgEl.style.color='var(--danger)';
+        msgEl.textContent = `Encontrei ${erros.length} linha(s) com erro. Nada foi importado — corrija e tente de novo.`;
+        errEl.style.display='block';
+        errEl.innerHTML = erros.map(e=>`<div style="margin-bottom:4px;">⚠️ ${e}</div>`).join('');
+        return;
+      }
+      if(validas.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Nenhuma linha válida encontrada na planilha.'; return; }
+
+      const kmUpdates = {};
+      validas.forEach(({v, km, litros, valorLitro, posto, dataISO})=>{
+        state.fuel.push({
+          id:uid(), vehicleId:v.id, date: dataISO, liters:litros,
+          value: Number((litros*valorLitro).toFixed(2)),
+          km: km, station: posto, imported:true
+        });
+        if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
+      });
+      Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
+      await save.fuel();
+      if(Object.keys(kmUpdates).length) await save.vehicles();
+
+      msgEl.style.color='var(--go)';
+      msgEl.textContent = `${validas.length} abastecimento(s) importado(s) com sucesso.`;
+      fileInput.value='';
+      logAudit('Planilha de abastecimento importada', `${validas.length} lançamento(s)`);
+      renderView('fuel'); renderView('dashboard'); renderView('vehicles');
+    }catch(e){
+      console.error(e);
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent='Não foi possível ler esse arquivo. Confira se é um .xlsx, .xls ou .csv válido.';
+    }
   });
 
   /* ---------------- BI DE COMBUSTÍVEL ---------------- */
