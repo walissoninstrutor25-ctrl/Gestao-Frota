@@ -73,7 +73,8 @@ const state = {
   dashUnit: 'todos', // 'todos' | 'MNS' | 'PRA' — filtro de UO no Dashboard
   efetivosUnit: 'MNS', // UO selecionada na aba Motoristas Efetivos
   efetivosSource: 'motoristas', // de qual escala puxar a lista de seleção na aba Efetivos
-  bhFiltro: { de: '', ate: '' }, // período (datas ISO) selecionado na aba Banco de Horas
+  bhFiltro: { de: '', ate: '' }, // período (datas ISO) selecionado na aba Ausência
+  afastadosFiltro: { de: '', ate: '', unidade: '' }, // filtro (previsão de retorno + UO) na aba Afastados
   role: 'visualizador', // 'adm' | 'visualizador' — 'adm' só depois de entrar com a senha, ver showAdmLoginModal()
 };
 
@@ -641,26 +642,22 @@ function cargoDoEfetivo(matricula, driverEntry) {
 }
 
 function renderEfetivosTable() {
-  const entries = Object.entries(edits.driversDb).filter(([, v]) => v.unidade === state.efetivosUnit);
+  // Afastados ficam de fora daqui — têm aba própria (Afastados), separada
+  // do cadastro ativo, por pedido.
+  const entries = Object.entries(edits.driversDb).filter(([, v]) => v.unidade === state.efetivosUnit && !v.afastado);
   entries.sort((a, b) => a[1].nome.localeCompare(b[1].nome));
   const table = document.querySelector('.efetivos-table tbody');
   if (!table) return;
   table.innerHTML = entries.length ? entries.map(([mat, v]) => `
-    <tr class="${v.afastado ? 'ef-row-afastado' : ''}">
+    <tr>
       <td>${v.nome}</td>
       <td>${mat}</td>
       <td>${cargoDoEfetivo(mat, v) || '—'}</td>
-      <td class="ef-status-cell">
-        ${state.editMode ? `
-          <label class="ef-afastado-toggle"><input type="checkbox" class="ef-afastado-check" data-mat="${mat}" ${v.afastado ? 'checked' : ''}> Afastado</label>
-          ${v.afastado ? `
-            <input type="text" class="ef-motivo-input" data-mat="${mat}" placeholder="Motivo (opcional)" value="${(v.motivo || '').replace(/"/g, '&quot;')}">
-            <input type="date" class="ef-retorno-input" data-mat="${mat}" title="Previsão de retorno" value="${v.dataRetorno || ''}">
-          ` : ''}
-        ` : (v.afastado ? `<span class="ef-badge ef-badge-afastado">🏥 Afastado${v.motivo ? ' — ' + v.motivo : ''}${v.dataRetorno ? ' · retorno ' + formatDataBr(v.dataRetorno) : ''}</span>` : `<span class="ef-badge ef-badge-ativo">Ativo</span>`)}
-      </td>
-      ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button></td>` : ''}
-    </tr>`).join('') : `<tr><td colspan="${state.editMode ? 5 : 4}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
+      ${state.editMode ? `<td class="num">
+        <button class="icon-btn ef-afastar-btn" data-mat="${mat}" title="Marcar como afastado">🏥 Afastar</button>
+        <button class="icon-btn danger ef-remove-btn" data-mat="${mat}" title="Remover">🗑</button>
+      </td>` : ''}
+    </tr>`).join('') : `<tr><td colspan="${state.editMode ? 4 : 3}"><div class="empty-state">Nenhum motorista cadastrado nessa UO ainda.</div></td></tr>`;
   table.querySelectorAll('.ef-remove-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const nomeRemover = btn.closest('tr').querySelector('td').textContent;
@@ -674,30 +671,15 @@ function renderEfetivosTable() {
       renderEfetivosTable();
     });
   });
-  table.querySelectorAll('.ef-afastado-check').forEach((cb) => {
-    cb.addEventListener('change', () => {
-      const mat = cb.dataset.mat;
-      if (!edits.driversDb[mat]) return;
-      edits.driversDb[mat].afastado = cb.checked;
-      if (!cb.checked) { delete edits.driversDb[mat].motivo; delete edits.driversDb[mat].dataRetorno; }
+  table.querySelectorAll('.ef-afastar-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const mat = btn.dataset.mat;
+      const nome = edits.driversDb[mat] ? edits.driversDb[mat].nome : '';
+      const ok = await showConfirmModal(`Marcar "${nome}" como afastado? Ele sai daqui e passa a aparecer na aba Afastados, onde dá pra colocar o motivo e a previsão de retorno.`, { confirmLabel: 'Marcar afastado' });
+      if (!ok || !edits.driversDb[mat]) return;
+      edits.driversDb[mat].afastado = true;
       persistEdits();
       renderEfetivosTable();
-    });
-  });
-  table.querySelectorAll('.ef-motivo-input').forEach((input) => {
-    input.addEventListener('change', () => {
-      const mat = input.dataset.mat;
-      if (!edits.driversDb[mat]) return;
-      edits.driversDb[mat].motivo = input.value.trim();
-      persistEdits();
-    });
-  });
-  table.querySelectorAll('.ef-retorno-input').forEach((input) => {
-    input.addEventListener('change', () => {
-      const mat = input.dataset.mat;
-      if (!edits.driversDb[mat]) return;
-      edits.driversDb[mat].dataRetorno = input.value;
-      persistEdits();
     });
   });
 }
@@ -746,7 +728,7 @@ function renderEfetivos() {
       </div>` : ''}
     <div class="table-scroll">
       <table class="dash-table efetivos-table">
-        <thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Status</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+        <thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -836,7 +818,7 @@ function renderBancoHoras() {
 
   app.innerHTML = `
     <div class="panel-head">
-      <h2>Banco de Horas</h2>
+      <h2>Ausência</h2>
       <p>Atestados, faltas e folgas de banco de horas apontados pela escala.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra remover um apontamento.'}</p>
     </div>
     <div class="toolbar-tools" style="margin-bottom:14px">
@@ -882,6 +864,104 @@ function renderBancoHoras() {
       edits.bancoHoras = edits.bancoHoras.filter((r) => r.id !== btn.dataset.id);
       persistEdits();
       renderBancoHoras();
+    });
+  });
+}
+
+// Separado de Efetivos por pedido — Afastados fica numa aba própria em
+// vez de misturado com o resto do cadastro, com filtro de período pela
+// previsão de retorno (dataRetorno).
+function renderAfastados() {
+  const app = document.getElementById('app');
+  const unidadesRef = (Object.values(datasets).find((d) => d && d.unidades) || {}).unidades || [];
+  const { de, ate, unidade } = state.afastadosFiltro;
+
+  const registros = Object.entries(edits.driversDb)
+    .filter(([, v]) => v.afastado)
+    .filter(([, v]) => !unidade || v.unidade === unidade)
+    .filter(([, v]) => (!de || (v.dataRetorno || '') >= de) && (!ate || (v.dataRetorno || '') <= ate))
+    .sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+
+  app.innerHTML = `
+    <div class="panel-head">
+      <h2>Afastados</h2>
+      <p>Motoristas efetivos afastados, separado do cadastro ativo.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra encerrar um afastamento.'}</p>
+    </div>
+    <div class="unit-switch" id="afastadosUnitSwitch">
+      <button class="unit-btn ${!unidade ? 'active' : ''}" data-unit="">Todas as UO</button>
+      ${unidadesRef.map((u) => `<button class="unit-btn ${unidade === u.codigo ? 'active' : ''}" data-unit="${u.codigo}">${u.label}</button>`).join('')}
+    </div>
+    <div class="toolbar-tools" style="margin-bottom:14px">
+      <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">Retorno de</span><input type="date" id="afFiltroDe" value="${de}"></div>
+      <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">até</span><input type="date" id="afFiltroAte" value="${ate}"></div>
+      ${(de || ate) ? `<button class="icon-btn" id="afFiltroLimpar">Limpar filtro</button>` : ''}
+    </div>
+    <div class="table-scroll">
+      <table class="dash-table">
+        <thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>UO</th><th>Motivo</th><th>Retorno previsto</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+        <tbody>${registros.length ? registros.map(([mat, v]) => `
+          <tr>
+            <td>${v.nome}</td>
+            <td>${mat}</td>
+            <td>${cargoDoEfetivo(mat, v) || '—'}</td>
+            <td>${v.unidade || '—'}</td>
+            <td>${state.editMode
+              ? `<input type="text" class="ef-motivo-input af-motivo-input" data-mat="${mat}" placeholder="Motivo (opcional)" value="${(v.motivo || '').replace(/"/g, '&quot;')}">`
+              : (v.motivo || '—')}</td>
+            <td>${state.editMode
+              ? `<input type="date" class="ef-retorno-input af-retorno-input" data-mat="${mat}" value="${v.dataRetorno || ''}">`
+              : (v.dataRetorno ? formatDataBr(v.dataRetorno) : '—')}</td>
+            ${state.editMode ? `<td class="num"><button class="icon-btn" data-mat="${mat}" id="af-fim-${mat}" title="Encerrar afastamento">✔ Retornou</button></td>` : ''}
+          </tr>`).join('') : `<tr><td colspan="${state.editMode ? 7 : 6}"><div class="empty-state">Nenhum motorista afastado${unidade || de || ate ? ' com esse filtro' : ''} no momento.</div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById('afastadosUnitSwitch').querySelectorAll('.unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => { state.afastadosFiltro.unidade = btn.dataset.unit; renderAfastados(); });
+  });
+  const wireFiltro = (id, key) => {
+    document.getElementById(id).addEventListener('change', (e) => {
+      state.afastadosFiltro[key] = e.target.value;
+      renderAfastados();
+    });
+  };
+  wireFiltro('afFiltroDe', 'de');
+  wireFiltro('afFiltroAte', 'ate');
+  const limparBtn = document.getElementById('afFiltroLimpar');
+  if (limparBtn) limparBtn.addEventListener('click', () => { state.afastadosFiltro.de = ''; state.afastadosFiltro.ate = ''; renderAfastados(); });
+
+  app.querySelectorAll('.af-motivo-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      const mat = input.dataset.mat;
+      if (!edits.driversDb[mat]) return;
+      edits.driversDb[mat].motivo = input.value.trim();
+      persistEdits();
+    });
+  });
+  app.querySelectorAll('.af-retorno-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      const mat = input.dataset.mat;
+      if (!edits.driversDb[mat]) return;
+      edits.driversDb[mat].dataRetorno = input.value;
+      persistEdits();
+      renderAfastados(); // pode mudar quem passa no filtro de período
+    });
+  });
+
+  registros.forEach(([mat]) => {
+    const btn = document.getElementById(`af-fim-${mat}`);
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const nome = edits.driversDb[mat] ? edits.driversDb[mat].nome : '';
+      const ok = await showConfirmModal(`Encerrar o afastamento de "${nome}"? Ele volta a aparecer como ativo em Efetivos.`, { confirmLabel: 'Encerrar afastamento' });
+      if (!ok || !edits.driversDb[mat]) return;
+      edits.driversDb[mat].afastado = false;
+      delete edits.driversDb[mat].motivo;
+      delete edits.driversDb[mat].dataRetorno;
+      persistEdits();
+      renderAfastados();
     });
   });
 }
@@ -1976,15 +2056,18 @@ function startApp() {
     const isDash = state.page === 'dashboard';
     const isEf = state.page === 'efetivos';
     const isBh = state.page === 'bancohoras';
-    const isSpecialPage = isDash || isEf || isBh;
+    const isAf = state.page === 'afastados';
+    const isSpecialPage = isDash || isEf || isBh || isAf;
     document.getElementById('escalaTypeSwitch').style.display = isSpecialPage ? 'none' : '';
     document.getElementById('tabs').style.display = isSpecialPage ? 'none' : '';
     document.getElementById('dashboardBtn').textContent = isDash ? '📅 Ver escalas' : '📊 Dashboard';
     document.getElementById('efetivosBtn').textContent = isEf ? '📅 Ver escalas' : '🪪 Efetivos';
-    document.getElementById('bancoHorasBtn').textContent = isBh ? '📅 Ver escalas' : '🕐 Banco de Horas';
+    document.getElementById('bancoHorasBtn').textContent = isBh ? '📅 Ver escalas' : '🕐 Ausência';
+    document.getElementById('afastadosBtn').textContent = isAf ? '📅 Ver escalas' : '🏥 Afastados';
     if (isDash) renderDashboard();
     else if (isEf) renderEfetivos();
     else if (isBh) renderBancoHoras();
+    else if (isAf) renderAfastados();
     else if (datasets[state.activeTab]) renderPanel();
   }
 
@@ -2009,6 +2092,7 @@ function startApp() {
     if (state.page === 'dashboard') renderDashboard();
     else if (state.page === 'efetivos') renderEfetivos();
     else if (state.page === 'bancohoras') renderBancoHoras();
+    else if (state.page === 'afastados') renderAfastados();
     else if (datasets[state.activeTab]) renderPanel();
   });
   logoutBtn.addEventListener('click', () => {
@@ -2025,6 +2109,7 @@ function startApp() {
   document.getElementById('dashboardBtn').addEventListener('click', () => switchPage('dashboard'));
   document.getElementById('efetivosBtn').addEventListener('click', () => switchPage('efetivos'));
   document.getElementById('bancoHorasBtn').addEventListener('click', () => switchPage('bancohoras'));
+  document.getElementById('afastadosBtn').addEventListener('click', () => switchPage('afastados'));
   // Clicar no indicador de sincronização mostra o motivo real de tá
   // Online/Offline — sem precisar abrir o F12/Console do navegador,
   // que a maioria das pessoas não sabe achar.
