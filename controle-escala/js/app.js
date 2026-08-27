@@ -1460,18 +1460,32 @@ function renderTodayStrip(ds, cfg, monthMeta) {
     return;
   }
   const day = now.getDate();
+  const dataIso = isoDateFor(ds.ano, monthMeta.numero, day);
   const pool = visiblePeople();
-  let work = 0, off = 0, nodata = 0;
-  const workingPeople = [], offPeople = [];
+
+  // Agrupado por papel (Turno A/B/C, Folguista, Apoio, etc. — o que
+  // existir nessa escala) em vez de só Trabalhando/Folga geral. Dentro de
+  // cada grupo, separa quem tá de folga normal de quem tem atestado/BH/
+  // falta apontado hoje, pra abrir tudo detalhado ao clicar (ver
+  // showTurnoDetalheModal).
+  const grupos = new Map();
   pool.forEach((p) => {
+    const papel = p.papelNormalizado || '—';
+    if (!grupos.has(papel)) grupos.set(papel, { trabalhando: [], folga: [], bh: [], falta: [], atestado: [] });
+    const g = grupos.get(papel);
     const sched = p.escala[curKey];
     const status = sched ? sched[day - 1] : undefined;
-    if (status === 'W') { work++; workingPeople.push(p); }
-    else if (status === 'O') { off++; offPeople.push(p); }
-    else nodata++;
+    if (status === 'W') { g.trabalhando.push(p); return; }
+    if (status !== 'O') return;
+    const pk = personKey(cfg.id, p);
+    const registro = edits.bancoHoras.find((r) => r.pk === pk && r.data === dataIso);
+    if (registro && registro.tipo === 'BH') g.bh.push(p);
+    else if (registro && registro.tipo === 'FALTA') g.falta.push(p);
+    else if (registro && registro.tipo === 'ATESTADO') g.atestado.push(p);
+    else g.folga.push(p);
   });
-  // Os nomes não ficam mais escritos aqui em linha — clique em cima do
-  // número (Trabalhando/De folga) abre a lista completa em um modal.
+  const papeis = [...grupos.keys()].sort((a, b) => papelPriority(a) - papelPriority(b));
+
   const filtroLabel = [cfg.hasUnits ? 'UO ' + state.unit[cfg.id] : '', state.papel !== 'todos' ? state.papel : '', state.grupo !== 'todos' ? state.grupo : ''].filter(Boolean).join(' · ');
   el.innerHTML = `
     <div class="today-strip">
@@ -1479,44 +1493,49 @@ function renderTodayStrip(ds, cfg, monthMeta) {
         <small>${cfg.label}${filtroLabel ? ' · ' + filtroLabel : ''}</small>
       </div>
       <div class="ts-stats">
-        <button class="ts-stat" id="tsStatWork" type="button"><b>${work}</b><span>Trabalhando</span></button>
-        <button class="ts-stat" id="tsStatOff" type="button"><b>${off}</b><span>De folga</span></button>
+        ${papeis.map((papel, i) => `<button class="ts-stat" data-papel-idx="${i}" type="button"><b>${grupos.get(papel).trabalhando.length}</b><span>${papel}</span></button>`).join('')}
       </div>
     </div>
   `;
-  document.getElementById('tsStatWork').addEventListener('click', () => showPeopleListModal('Trabalhando hoje', workingPeople));
-  document.getElementById('tsStatOff').addEventListener('click', () => showPeopleListModal('De folga hoje', offPeople));
+  el.querySelectorAll('.ts-stat').forEach((btn) => {
+    const papel = papeis[Number(btn.dataset.papelIdx)];
+    btn.addEventListener('click', () => showTurnoDetalheModal(papel, grupos.get(papel)));
+  });
 }
 
-// Lista clicável a partir dos números do quadro "Hoje" — nome, matrícula
-// e turno um embaixo do outro, em vez do resumo em linha só (que fica
-// ilegível quando a lista é grande).
-function showPeopleListModal(title, people) {
+// Detalhe completo de um turno/papel ao clicar no quadro Hoje — quantos
+// e quem em cada situação do dia (não só trabalhando/folga: também
+// banco de horas, falta e atestado apontados).
+function showTurnoDetalheModal(papel, grupo) {
   const backdrop = document.getElementById('modalBackdrop');
-  const sorted = [...people].sort((a, b) => a.nome.localeCompare(b.nome));
-  const rows = sorted.map((p) => `
-    <tr>
-      <td>${p.nome}</td>
-      <td>${p.matricula || '—'}</td>
-      <td>${p.papelNormalizado || '—'}</td>
-    </tr>`).join('');
+  const secoes = [
+    { label: 'Trabalhando', lista: grupo.trabalhando },
+    { label: 'De folga', lista: grupo.folga },
+    { label: 'Banco de horas', lista: grupo.bh },
+    { label: 'Falta', lista: grupo.falta },
+    { label: 'Atestado', lista: grupo.atestado },
+  ];
+  const total = secoes.reduce((n, s) => n + s.lista.length, 0);
   const finish = () => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; };
   backdrop.innerHTML = `
-    <div class="modal people-list-modal">
+    <div class="modal people-list-modal turno-detalhe-modal">
       <div class="modal-head">
-        <h3>${title}</h3>
-        <span>${people.length} colaborador${people.length === 1 ? '' : 'es'}</span>
-        <button class="modal-close" id="peopleListCloseBtn">✕</button>
+        <h3>${papel}</h3>
+        <span>${total} colaborador${total === 1 ? '' : 'es'} hoje</span>
+        <button class="modal-close" id="turnoDetalheCloseBtn">✕</button>
       </div>
       <div class="modal-body">
-        <table class="dash-table">
-          <thead><tr><th>Nome</th><th>Matrícula</th><th>Turno</th></tr></thead>
-          <tbody>${rows || `<tr><td colspan="3"><div class="empty-state">Ninguém nessa lista.</div></td></tr>`}</tbody>
-        </table>
+        ${secoes.map((s) => `
+          <div class="ts-detalhe-secao">
+            <h4>${s.label} <span class="count">${s.lista.length}</span></h4>
+            ${s.lista.length ? `
+              <table class="dash-table"><tbody>${[...s.lista].sort((a, b) => a.nome.localeCompare(b.nome)).map((p) => `<tr><td>${p.nome}</td><td>${p.matricula || '—'}</td></tr>`).join('')}</tbody></table>
+            ` : `<p class="ts-detalhe-vazio">Ninguém nessa categoria.</p>`}
+          </div>`).join('')}
       </div>
     </div>`;
   backdrop.classList.add('open');
-  document.getElementById('peopleListCloseBtn').addEventListener('click', finish);
+  document.getElementById('turnoDetalheCloseBtn').addEventListener('click', finish);
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(); }, { once: true });
 }
 
