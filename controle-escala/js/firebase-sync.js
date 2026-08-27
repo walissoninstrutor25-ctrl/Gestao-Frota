@@ -24,6 +24,17 @@ function setStatus(text, cls) {
   if (el) { el.textContent = text; el.className = "sync-status " + cls; }
 }
 
+// Guarda o último erro pra mostrar num popup ao clicar no indicador —
+// assim dá pra ver o motivo real sem precisar abrir o F12/Console, que
+// nem todo mundo sabe achar.
+window.__firebaseDebug = { lastError: null, projectId: firebaseConfig.projectId };
+function logError(label, err) {
+  const msg = err && err.message ? err.message : String(err);
+  window.__firebaseDebug.lastError = `${label}: ${msg}`;
+  window.__firebaseDebug.lastErrorAt = new Date().toLocaleTimeString("pt-BR");
+  console.error("Firebase:", label, err);
+}
+
 // Comparação que ignora a ordem das chaves. O Firestore não garante
 // devolver um objeto com as propriedades na mesma ordem em que foram
 // gravadas — um JSON.stringify() direto podia achar "diferença" onde não
@@ -36,7 +47,7 @@ function stableStringify(obj) {
 }
 
 function fail(err) {
-  if (err) console.error("Firebase:", err);
+  if (err) logError("conectar", err);
   setStatus("🔴 Offline", "sync-offline");
   window.__firebaseSync = { ready: false, stableStringify };
   window.dispatchEvent(new Event("firebase-sync-ready"));
@@ -83,7 +94,7 @@ async function connect() {
         const snap = await withTimeout(getDoc(ref), 8000);
         return snap.exists() ? snap.data() : null;
       } catch (err) {
-        console.error("Firebase: falha ao buscar dados iniciais", err);
+        logError("buscar dados iniciais", err);
         return null;
       }
     },
@@ -92,7 +103,7 @@ async function connect() {
       try {
         await withTimeout(setDoc(ref, JSON.parse(JSON.stringify(edits))), 8000);
       } catch (err) {
-        console.error("Firebase: falha ao salvar (mudança fica só local até reconectar)", err);
+        logError("salvar (mudança fica só local até reconectar)", err);
       }
     },
     onRemoteChange(callback) {
@@ -103,7 +114,7 @@ async function connect() {
         if (stableStringify(data) === lastPushedJson) return; // eco da própria escrita, já aplicado localmente
         callback(data);
       }, (err) => {
-        console.error("Firebase: conexão em tempo real caiu", err);
+        logError("conexão em tempo real caiu", err);
         setStatus("🔴 Offline", "sync-offline");
       });
     },
@@ -130,6 +141,7 @@ setTimeout(() => { if (!settled) { settled = true; fail(new Error("tempo esgotad
 setTimeout(() => {
   const el = document.getElementById("syncStatus");
   if (el && el.textContent.includes("Conectando")) {
+    if (!window.__firebaseDebug.lastError) window.__firebaseDebug.lastError = "indicador ficou preso em Conectando além de 25s (sem erro específico capturado)";
     el.textContent = "🔴 Offline";
     el.className = "sync-status sync-offline";
   }

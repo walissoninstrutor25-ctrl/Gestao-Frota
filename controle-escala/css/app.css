@@ -66,6 +66,7 @@ button{font-family:inherit;}
 .sync-status{
   font-size:11px; font-weight:600; white-space:nowrap; padding:4px 10px; border-radius:20px;
   background:var(--surface-2); border:1px solid var(--line); color:var(--text-muted);
+  cursor:pointer;
 }
 .sync-status.sync-online{color:var(--accent-strong); border-color:var(--accent-dim); background:var(--accent-tint);}
 .sync-status.sync-offline{color:var(--danger); border-color:var(--danger-dim); background:var(--danger-dim);}
@@ -356,6 +357,9 @@ table.escala .day-col.today-col{background:var(--amber-dim); color:var(--amber);
 .day-cell.work .dot{background:var(--work-fill); color:var(--accent-strong); border:1px solid var(--accent-dim);}
 .day-cell.off .dot{background:var(--off-tint-strong); color:var(--text-muted);}
 .day-cell.off .dot::after{content:'F';}
+.day-cell.atbh .dot{background:var(--danger-dim); color:var(--danger); font-size:7.5px;}
+.day-cell.atbh-at .dot::after{content:'AT';}
+.day-cell.atbh-bh .dot::after{content:'BH';}
 .day-cell.nodata .dot{background:transparent;}
 .day-cell.weekend{background:rgba(138,151,143,0.06);}
 .day-cell.today-col{background:rgba(180,121,31,0.10);}

@@ -1476,6 +1476,11 @@ function renderGrid(ds, cfg, monthMeta) {
   const days = [];
   for (let d = 1; d <= monthMeta.dias; d++) days.push(d);
 
+  // "pk|data" -> tipo, pra mostrar AT/BH no lugar do "F" genérico nos
+  // dias que têm apontamento (ver personRowHtml).
+  const bhLookup = new Map();
+  edits.bancoHoras.forEach((r) => bhLookup.set(`${r.pk}|${r.data}`, r.tipo));
+
   const headCells = days.map((d) => {
     const wk = isWeekend(ds.ano, monthMeta.numero, d);
     const isToday = d === todayDay;
@@ -1493,11 +1498,11 @@ function renderGrid(ds, cfg, monthMeta) {
       const groupPeople = people.filter((p) => p.grupo === g).sort((a, b) => papelPriority(a.papelNormalizado) - papelPriority(b.papelNormalizado));
       const isCollapsed = collapsed.has(g);
       bodyHtml += `<tr class="group-row" data-grupo="${g}"><td colspan="${2 + days.length}">${isCollapsed ? '▸' : '▾'} ${g} <span class="count">${groupPeople.length} colaborador${groupPeople.length === 1 ? '' : 'es'}</span></td></tr>`;
-      if (!isCollapsed) groupPeople.forEach((p) => { bodyHtml += personRowHtml(p, days, monthMeta, ds, todayDay); });
+      if (!isCollapsed) groupPeople.forEach((p) => { bodyHtml += personRowHtml(p, days, monthMeta, ds, todayDay, cfg, bhLookup); });
     });
   } else {
     const sorted = [...people].sort((a, b) => papelPriority(a.papelNormalizado) - papelPriority(b.papelNormalizado));
-    sorted.forEach((p) => { bodyHtml += personRowHtml(p, days, monthMeta, ds, todayDay); });
+    sorted.forEach((p) => { bodyHtml += personRowHtml(p, days, monthMeta, ds, todayDay, cfg, bhLookup); });
   }
 
   wrap.innerHTML = `
@@ -1523,20 +1528,70 @@ function renderGrid(ds, cfg, monthMeta) {
   });
   wrap.querySelectorAll('.person-row').forEach((row) => {
     row.addEventListener('click', (e) => {
-      if (state.editMode && e.target.closest('.day-cell')) return;
+      if (e.target.closest('.day-cell')) return;
       openModal(ds.colaboradores.find((p) => p.__key === row.dataset.key), monthMeta, cfg, ds);
     });
   });
-  if (state.editMode) {
-    wrap.querySelectorAll('.day-cell').forEach((cell) => {
-      cell.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const row = cell.closest('.person-row');
-        const p = ds.colaboradores.find((x) => x.__key === row.dataset.key);
-        toggleDayStatus(p, cfg, ds, monthMeta, parseInt(cell.dataset.day, 10), cell);
-      });
+  wrap.querySelectorAll('.day-cell').forEach((cell) => {
+    cell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const row = cell.closest('.person-row');
+      const p = ds.colaboradores.find((x) => x.__key === row.dataset.key);
+      const day = parseInt(cell.dataset.day, 10);
+      if (state.editMode) toggleDayStatus(p, cfg, ds, monthMeta, day, cell);
+      else markAtOuBhSemEdicao(p, cfg, ds, monthMeta, day, cell);
     });
-  }
+  });
+}
+
+// Pede a senha de BH e, se certa, marca o dia como Atestado/Banco de
+// horas e loga o apontamento. Usado tanto pelo fluxo normal (dentro do
+// modo de edição) quanto pelo fluxo avulso (fora do modo de edição, só
+// com a senha — ver markAtOuBhSemEdicao).
+async function marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo) {
+  const senhaOk = await promptBhPassword();
+  if (!senhaOk) return false;
+
+  const monthKey = monthMeta.chave;
+  const chars = (p.escala[monthKey] || 'O'.repeat(monthMeta.dias)).split('');
+  const idx = day - 1;
+  if (idx < 0 || idx >= chars.length) return false;
+  const pk = personKey(cfg.id, p);
+  const dataIso = isoDateFor(ds.ano, monthMeta.numero, day);
+
+  chars[idx] = 'O';
+  p.escala[monthKey] = chars.join('');
+  edits.dias[pk] = edits.dias[pk] || {};
+  edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
+  edits.dias[pk][monthKey][idx] = 'O';
+  edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
+  edits.bancoHoras.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    pk, data: dataIso,
+    nome: p.nome, matricula: p.matricula || null,
+    turno: p.papelNormalizado || null, lider: p.lider || null,
+    tipo: tipo === 'bh' ? 'BH' : 'ATESTADO',
+  });
+  persistEdits();
+  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh');
+  cellEl.classList.add('off', 'atbh', tipo === 'bh' ? 'atbh-bh' : 'atbh-at');
+  renderCards(ds, cfg, monthMeta);
+  renderTodayStrip(ds, cfg, monthMeta);
+  return true;
+}
+
+// Fora do modo de edição (inclusive pra quem não entrou como ADM), um
+// clique num dia de trabalho só oferece Atestado/Banco de horas — não a
+// folga normal, que continua exigindo edição de verdade. A senha de BH
+// (separada da de ADM) é a única trava aqui.
+async function markAtOuBhSemEdicao(p, cfg, ds, monthMeta, day, cellEl) {
+  const monthKey = monthMeta.chave;
+  const chars = (p.escala[monthKey] || 'O'.repeat(monthMeta.dias)).split('');
+  const idx = day - 1;
+  if (idx < 0 || idx >= chars.length || chars[idx] !== 'W') return; // já de folga, nada a fazer por aqui
+  const tipo = await showFolgaTypeModal(true);
+  if (!tipo) return;
+  await marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo);
 }
 
 async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
@@ -1561,27 +1616,7 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
     const tipo = await showFolgaTypeModal();
     if (!tipo) return; // cancelado
     if (tipo === 'atestado' || tipo === 'bh') {
-      const senhaOk = await promptBhPassword();
-      if (!senhaOk) return;
-
-      chars[idx] = 'O';
-      p.escala[monthKey] = chars.join('');
-      edits.dias[pk] = edits.dias[pk] || {};
-      edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
-      edits.dias[pk][monthKey][idx] = 'O';
-      edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
-      edits.bancoHoras.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        pk, data: dataIso,
-        nome: p.nome, matricula: p.matricula || null,
-        turno: p.papelNormalizado || null, lider: p.lider || null,
-        tipo: tipo === 'bh' ? 'BH' : 'ATESTADO',
-      });
-      persistEdits();
-      cellEl.classList.remove('work', 'off', 'nodata');
-      cellEl.classList.add('off');
-      renderCards(ds, cfg, monthMeta);
-      renderTodayStrip(ds, cfg, monthMeta);
+      await marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo);
       return;
     }
     // tipo === 'folgar' -> segue o fluxo normal abaixo (com a pergunta de
@@ -1615,23 +1650,26 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   edits.dias[pk][monthKey][idx] = next;
   persistEdits();
 
-  cellEl.classList.remove('work', 'off', 'nodata');
+  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh');
   cellEl.classList.add(next === 'W' ? 'work' : 'off');
   renderCards(ds, cfg, monthMeta);
   renderTodayStrip(ds, cfg, monthMeta);
 }
 
 let __keyCounter = 0;
-function personRowHtml(p, days, monthMeta, ds, todayDay) {
+function personRowHtml(p, days, monthMeta, ds, todayDay, cfg, bhLookup) {
   if (!p.__key) p.__key = `k${__keyCounter++}`;
   const sched = p.escala[monthMeta.chave];
+  const pk = cfg ? personKey(cfg.id, p) : null;
   const cells = days.map((d, i) => {
     const status = sched ? sched[i] : undefined;
     const wk = isWeekend(ds.ano, monthMeta.numero, d);
     const isToday = d === todayDay;
     let cls = 'nodata';
     if (status === 'W') cls = 'work'; else if (status === 'O') cls = 'off';
-    return `<td class="day-cell ${cls} ${wk ? 'weekend' : ''} ${isToday ? 'today-col' : ''}" data-day="${d}"><span class="dot"></span></td>`;
+    const tipo = (status === 'O' && pk && bhLookup) ? bhLookup.get(`${pk}|${isoDateFor(ds.ano, monthMeta.numero, d)}`) : null;
+    const atbhCls = tipo === 'BH' ? 'atbh atbh-bh' : tipo === 'ATESTADO' ? 'atbh atbh-at' : '';
+    return `<td class="day-cell ${cls} ${atbhCls} ${wk ? 'weekend' : ''} ${isToday ? 'today-col' : ''}" data-day="${d}"><span class="dot"></span></td>`;
   }).join('');
   return `<tr class="person-row" data-key="${p.__key}">
     <td class="col-nome"><span class="nome">${p.nome}</span>${p.matricula ? `<span class="mat">Mat. ${p.matricula}</span>` : ''}</td>
@@ -1816,7 +1854,7 @@ function showAdmLoginModal() {
 // fluxo de sempre (inclusive a pergunta de repetir o padrão de rotação);
 // atestado/banco de horas pulam isso (são exceções pontuais, não um novo
 // padrão) e vão parar na aba Banco de Horas.
-function showFolgaTypeModal() {
+function showFolgaTypeModal(somenteAtBh) {
   return new Promise((resolve) => {
     const backdrop = document.getElementById('modalBackdrop');
     backdrop.innerHTML = `
@@ -1828,13 +1866,13 @@ function showFolgaTypeModal() {
           <button class="icon-btn" id="folgaTypeCancel">Cancelar</button>
           <button class="icon-btn" id="folgaTypeAtestado">📋 Atestado</button>
           <button class="icon-btn" id="folgaTypeBh">🕐 Banco de horas</button>
-          <button class="icon-btn primary" id="folgaTypeFolgar">Folga normal</button>
+          ${somenteAtBh ? '' : '<button class="icon-btn primary" id="folgaTypeFolgar">Folga normal</button>'}
         </div>
       </div>`;
     backdrop.classList.add('open');
     const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
     document.getElementById('folgaTypeCancel').addEventListener('click', () => finish(null));
-    document.getElementById('folgaTypeFolgar').addEventListener('click', () => finish('folgar'));
+    if (!somenteAtBh) document.getElementById('folgaTypeFolgar').addEventListener('click', () => finish('folgar'));
     document.getElementById('folgaTypeAtestado').addEventListener('click', () => finish('atestado'));
     document.getElementById('folgaTypeBh').addEventListener('click', () => finish('bh'));
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(null); }, { once: true });
@@ -1983,6 +2021,34 @@ function startApp() {
   document.getElementById('dashboardBtn').addEventListener('click', () => switchPage('dashboard'));
   document.getElementById('efetivosBtn').addEventListener('click', () => switchPage('efetivos'));
   document.getElementById('bancoHorasBtn').addEventListener('click', () => switchPage('bancohoras'));
+  // Clicar no indicador de sincronização mostra o motivo real de tá
+  // Online/Offline — sem precisar abrir o F12/Console do navegador,
+  // que a maioria das pessoas não sabe achar.
+  document.getElementById('syncStatus').addEventListener('click', () => {
+    const backdrop = document.getElementById('modalBackdrop');
+    const statusEl = document.getElementById('syncStatus');
+    const dbg = window.__firebaseDebug || {};
+    const sync = window.__firebaseSync || {};
+    backdrop.innerHTML = `
+      <div class="modal confirm-modal">
+        <div class="modal-body">
+          <p class="confirm-msg" style="text-align:left">
+            <b>Status atual:</b> ${statusEl.textContent}<br>
+            <b>Projeto:</b> ${dbg.projectId || '—'}<br>
+            <b>Conectado (ready):</b> ${sync.ready ? 'sim' : 'não'}<br>
+            <b>Último erro:</b> ${dbg.lastError || 'nenhum registrado'}${dbg.lastErrorAt ? ' (' + dbg.lastErrorAt + ')' : ''}
+          </p>
+          <p class="confirm-msg" style="margin-top:10px;font-size:12px;color:var(--text-muted)">Manda um print dessa tela pro suporte se estiver com problema de sincronização.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn primary" id="syncDebugClose">Fechar</button>
+        </div>
+      </div>`;
+    backdrop.classList.add('open');
+    const close = () => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; };
+    document.getElementById('syncDebugClose').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); }, { once: true });
+  });
   document.getElementById('installAppBtn').addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
