@@ -73,6 +73,7 @@ const state = {
   dashUnit: 'todos', // 'todos' | 'MNS' | 'PRA' — filtro de UO no Dashboard
   efetivosUnit: 'MNS', // UO selecionada na aba Motoristas Efetivos
   efetivosSource: 'motoristas', // de qual escala puxar a lista de seleção na aba Efetivos
+  bhFiltro: { de: '', ate: '' }, // período (datas ISO) selecionado na aba Banco de Horas
   role: 'visualizador', // 'adm' | 'visualizador' — 'adm' só depois de entrar com a senha, ver showAdmLoginModal()
 };
 
@@ -102,9 +103,10 @@ function loadEdits() {
       renumeracoes: raw.renumeracoes || {}, // numero antigo -> numero novo (equipamento renomeado)
       metas: raw.metas || {}, // "tabId|turno|UO" -> meta de vagas (controle de vagas do dashboard)
       driversDb: raw.driversDb || {}, // matrícula (string) -> {nome, unidade} — banco central pra autocompletar nome pela matrícula
+      bancoHoras: raw.bancoHoras || [], // [{id, pk, data, nome, matricula, turno, lider, tipo:'BH'|'ATESTADO'}]
     };
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {}, metas: {}, driversDb: {} };
+    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {}, metas: {}, driversDb: {}, bancoHoras: [] };
   }
 }
 
@@ -132,6 +134,10 @@ function personKey(cfgId, p) {
 // mês tem.
 function epochDay(year, monthNumero, day) {
   return Math.floor(Date.UTC(year, monthNumero - 1, day) / 86400000);
+}
+
+function isoDateFor(year, monthNumero, day) {
+  return `${year}-${String(monthNumero).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 // 5x1 = 5 dias de trabalho + 1 de folga (ciclo de 6); 6x2 = 6 + 2 (ciclo
@@ -821,6 +827,65 @@ function renderEfetivos() {
   }
 }
 
+function renderBancoHoras() {
+  const app = document.getElementById('app');
+  const { de, ate } = state.bhFiltro;
+  const registros = edits.bancoHoras
+    .filter((r) => (!de || r.data >= de) && (!ate || r.data <= ate))
+    .sort((a, b) => b.data.localeCompare(a.data));
+
+  app.innerHTML = `
+    <div class="panel-head">
+      <h2>Banco de Horas</h2>
+      <p>Atestados e folgas de banco de horas apontados pela escala.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra remover um apontamento.'}</p>
+    </div>
+    <div class="toolbar-tools" style="margin-bottom:14px">
+      <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">De</span><input type="date" id="bhFiltroDe" value="${de}"></div>
+      <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">Até</span><input type="date" id="bhFiltroAte" value="${ate}"></div>
+      ${(de || ate) ? `<button class="icon-btn" id="bhFiltroLimpar">Limpar filtro</button>` : ''}
+    </div>
+    <div class="table-scroll">
+      <table class="dash-table">
+        <thead><tr><th>Data</th><th>Nome</th><th>Matrícula</th><th>Turno</th><th>Líder</th><th>Tipo</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+        <tbody>${registros.length ? registros.map((r) => `
+          <tr>
+            <td>${formatDataBr(r.data)}</td>
+            <td>${r.nome}</td>
+            <td>${r.matricula || '—'}</td>
+            <td>${r.turno || '—'}</td>
+            <td>${r.lider || '—'}</td>
+            <td><span class="ef-badge ${r.tipo === 'BH' ? 'ef-badge-ativo' : 'ef-badge-afastado'}">${r.tipo === 'BH' ? '🕐 BH' : '📋 Atestado'}</span></td>
+            ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-id="${r.id}" title="Remover">🗑</button></td>` : ''}
+          </tr>`).join('') : `<tr><td colspan="${state.editMode ? 7 : 6}"><div class="empty-state">Nenhum atestado ou banco de horas apontado${de || ate ? ' nesse período' : ''}.</div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const wireFiltro = (id, key) => {
+    document.getElementById(id).addEventListener('change', (e) => {
+      state.bhFiltro[key] = e.target.value;
+      renderBancoHoras();
+    });
+  };
+  wireFiltro('bhFiltroDe', 'de');
+  wireFiltro('bhFiltroAte', 'ate');
+  const limparBtn = document.getElementById('bhFiltroLimpar');
+  if (limparBtn) limparBtn.addEventListener('click', () => { state.bhFiltro = { de: '', ate: '' }; renderBancoHoras(); });
+
+  app.querySelectorAll('.ef-remove-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const nome = row.children[1].textContent;
+      const ok = await showConfirmModal(`Remover o apontamento de "${nome}"?`, { confirmLabel: 'Remover', danger: true });
+      if (!ok) return;
+      edits.bancoHoras = edits.bancoHoras.filter((r) => r.id !== btn.dataset.id);
+      persistEdits();
+      renderBancoHoras();
+    });
+  });
+}
+
 function renderLimpoWarnings() {
   if (!state.editMode) return '';
   const items = [];
@@ -1484,6 +1549,44 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   if (idx < 0 || idx >= chars.length) return;
   const next = chars[idx] === 'W' ? 'O' : 'W';
   const pk = personKey(cfg.id, p);
+  const dataIso = isoDateFor(ds.ano, monthMeta.numero, day);
+
+  if (next === 'W') {
+    // Voltou a trabalhar num dia que tinha registro de atestado/BH —
+    // limpa esse registro pra não ficar um apontamento órfão.
+    const antes = edits.bancoHoras.length;
+    edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
+    if (edits.bancoHoras.length !== antes) persistEdits();
+  } else {
+    const tipo = await showFolgaTypeModal();
+    if (!tipo) return; // cancelado
+    if (tipo === 'atestado' || tipo === 'bh') {
+      const senhaOk = await promptBhPassword();
+      if (!senhaOk) return;
+
+      chars[idx] = 'O';
+      p.escala[monthKey] = chars.join('');
+      edits.dias[pk] = edits.dias[pk] || {};
+      edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
+      edits.dias[pk][monthKey][idx] = 'O';
+      edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
+      edits.bancoHoras.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        pk, data: dataIso,
+        nome: p.nome, matricula: p.matricula || null,
+        turno: p.papelNormalizado || null, lider: p.lider || null,
+        tipo: tipo === 'bh' ? 'BH' : 'ATESTADO',
+      });
+      persistEdits();
+      cellEl.classList.remove('work', 'off', 'nodata');
+      cellEl.classList.add('off');
+      renderCards(ds, cfg, monthMeta);
+      renderTodayStrip(ds, cfg, monthMeta);
+      return;
+    }
+    // tipo === 'folgar' -> segue o fluxo normal abaixo (com a pergunta de
+    // repetir o padrão de rotação, quando aplicável).
+  }
 
   const rot = rotationParamsFor(cfg);
   if (next === 'O' && rot) {
@@ -1709,6 +1812,72 @@ function showAdmLoginModal() {
   });
 }
 
+// Ao marcar um dia como folga, pergunta o motivo — folga normal segue o
+// fluxo de sempre (inclusive a pergunta de repetir o padrão de rotação);
+// atestado/banco de horas pulam isso (são exceções pontuais, não um novo
+// padrão) e vão parar na aba Banco de Horas.
+function showFolgaTypeModal() {
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('modalBackdrop');
+    backdrop.innerHTML = `
+      <div class="modal confirm-modal">
+        <div class="modal-body">
+          <p class="confirm-msg">Marcar esse dia como:</p>
+        </div>
+        <div class="modal-actions" style="flex-wrap:wrap">
+          <button class="icon-btn" id="folgaTypeCancel">Cancelar</button>
+          <button class="icon-btn" id="folgaTypeAtestado">📋 Atestado</button>
+          <button class="icon-btn" id="folgaTypeBh">🕐 Banco de horas</button>
+          <button class="icon-btn primary" id="folgaTypeFolgar">Folga normal</button>
+        </div>
+      </div>`;
+    backdrop.classList.add('open');
+    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
+    document.getElementById('folgaTypeCancel').addEventListener('click', () => finish(null));
+    document.getElementById('folgaTypeFolgar').addEventListener('click', () => finish('folgar'));
+    document.getElementById('folgaTypeAtestado').addEventListener('click', () => finish('atestado'));
+    document.getElementById('folgaTypeBh').addEventListener('click', () => finish('bh'));
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(null); }, { once: true });
+  });
+}
+
+// Segunda senha, separada da senha de ADM — apontar atestado/banco de
+// horas mexe com algo que vira registro pra RH/folha, então pede uma
+// confirmação a mais mesmo já estando em modo de edição.
+const BH_PASSWORD = '112233';
+function promptBhPassword() {
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('modalBackdrop');
+    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
+    const render = (errorMsg) => {
+      backdrop.innerHTML = `
+        <div class="modal confirm-modal">
+          <div class="modal-body">
+            <p class="confirm-msg">Digite a senha para apontar Atestado/Banco de horas:</p>
+            <input type="password" class="modal-input" id="bhPwInput" autocomplete="off">
+            ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="bhPwCancel">Cancelar</button>
+            <button class="icon-btn primary" id="bhPwOk">Confirmar</button>
+          </div>
+        </div>`;
+      backdrop.classList.add('open');
+      const input = document.getElementById('bhPwInput');
+      input.focus();
+      const trySubmit = () => {
+        if (input.value !== BH_PASSWORD) { render('Senha incorreta. Tente de novo.'); return; }
+        finish(true);
+      };
+      document.getElementById('bhPwCancel').addEventListener('click', () => finish(false));
+      document.getElementById('bhPwOk').addEventListener('click', trySubmit);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); trySubmit(); } });
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(false); }, { once: true });
+    };
+    render(null);
+  });
+}
+
 /* ------------------------------------------------------------------ */
 
 function tickClock() {
@@ -1764,12 +1933,16 @@ function startApp() {
     state.page = state.page === page ? 'app' : page;
     const isDash = state.page === 'dashboard';
     const isEf = state.page === 'efetivos';
-    document.getElementById('escalaTypeSwitch').style.display = (isDash || isEf) ? 'none' : '';
-    document.getElementById('tabs').style.display = (isDash || isEf) ? 'none' : '';
+    const isBh = state.page === 'bancohoras';
+    const isSpecialPage = isDash || isEf || isBh;
+    document.getElementById('escalaTypeSwitch').style.display = isSpecialPage ? 'none' : '';
+    document.getElementById('tabs').style.display = isSpecialPage ? 'none' : '';
     document.getElementById('dashboardBtn').textContent = isDash ? '📅 Ver escalas' : '📊 Dashboard';
     document.getElementById('efetivosBtn').textContent = isEf ? '📅 Ver escalas' : '🪪 Efetivos';
+    document.getElementById('bancoHorasBtn').textContent = isBh ? '📅 Ver escalas' : '🕐 Banco de Horas';
     if (isDash) renderDashboard();
     else if (isEf) renderEfetivos();
+    else if (isBh) renderBancoHoras();
     else if (datasets[state.activeTab]) renderPanel();
   }
 
@@ -1793,6 +1966,7 @@ function startApp() {
     document.body.classList.toggle('edit-mode', state.editMode);
     if (state.page === 'dashboard') renderDashboard();
     else if (state.page === 'efetivos') renderEfetivos();
+    else if (state.page === 'bancohoras') renderBancoHoras();
     else if (datasets[state.activeTab]) renderPanel();
   });
   logoutBtn.addEventListener('click', () => {
@@ -1808,6 +1982,7 @@ function startApp() {
   });
   document.getElementById('dashboardBtn').addEventListener('click', () => switchPage('dashboard'));
   document.getElementById('efetivosBtn').addEventListener('click', () => switchPage('efetivos'));
+  document.getElementById('bancoHorasBtn').addEventListener('click', () => switchPage('bancohoras'));
   document.getElementById('installAppBtn').addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
