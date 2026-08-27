@@ -360,6 +360,8 @@ table.escala .day-col.today-col{background:var(--amber-dim); color:var(--amber);
 .day-cell.atbh .dot{background:var(--danger-dim); color:var(--danger); font-size:7.5px;}
 .day-cell.atbh-at .dot::after{content:'AT';}
 .day-cell.atbh-bh .dot::after{content:'BH';}
+.day-cell.atbh-falta .dot{background:var(--danger); color:#fff;}
+.day-cell.atbh-falta .dot::after{content:'FT';}
 .day-cell.nodata .dot{background:transparent;}
 .day-cell.weekend{background:rgba(138,151,143,0.06);}
 .day-cell.today-col{background:rgba(180,121,31,0.10);}

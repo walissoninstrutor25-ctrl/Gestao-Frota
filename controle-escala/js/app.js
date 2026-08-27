@@ -837,7 +837,7 @@ function renderBancoHoras() {
   app.innerHTML = `
     <div class="panel-head">
       <h2>Banco de Horas</h2>
-      <p>Atestados e folgas de banco de horas apontados pela escala.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra remover um apontamento.'}</p>
+      <p>Atestados, faltas e folgas de banco de horas apontados pela escala.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra remover um apontamento.'}</p>
     </div>
     <div class="toolbar-tools" style="margin-bottom:14px">
       <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">De</span><input type="date" id="bhFiltroDe" value="${de}"></div>
@@ -854,7 +854,7 @@ function renderBancoHoras() {
             <td>${r.matricula || '—'}</td>
             <td>${r.turno || '—'}</td>
             <td>${r.lider || '—'}</td>
-            <td><span class="ef-badge ${r.tipo === 'BH' ? 'ef-badge-ativo' : 'ef-badge-afastado'}">${r.tipo === 'BH' ? '🕐 BH' : '📋 Atestado'}</span></td>
+            <td><span class="ef-badge ${r.tipo === 'BH' ? 'ef-badge-ativo' : 'ef-badge-afastado'}">${r.tipo === 'BH' ? '🕐 BH' : r.tipo === 'FALTA' ? '🚫 Falta' : '📋 Atestado'}</span></td>
             ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-id="${r.id}" title="Remover">🗑</button></td>` : ''}
           </tr>`).join('') : `<tr><td colspan="${state.editMode ? 7 : 6}"><div class="empty-state">Nenhum atestado ou banco de horas apontado${de || ate ? ' nesse período' : ''}.</div></td></tr>`}
         </tbody>
@@ -1564,17 +1564,19 @@ async function marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo) {
   edits.dias[pk] = edits.dias[pk] || {};
   edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
   edits.dias[pk][monthKey][idx] = 'O';
+  const tipoLabel = tipo === 'bh' ? 'BH' : tipo === 'falta' ? 'FALTA' : 'ATESTADO';
+  const classeSufixo = tipo === 'bh' ? 'bh' : tipo === 'falta' ? 'falta' : 'at';
   edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
   edits.bancoHoras.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     pk, data: dataIso,
     nome: p.nome, matricula: p.matricula || null,
     turno: p.papelNormalizado || null, lider: p.lider || null,
-    tipo: tipo === 'bh' ? 'BH' : 'ATESTADO',
+    tipo: tipoLabel,
   });
   persistEdits();
-  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh');
-  cellEl.classList.add('off', 'atbh', tipo === 'bh' ? 'atbh-bh' : 'atbh-at');
+  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh', 'atbh-falta');
+  cellEl.classList.add('off', 'atbh', `atbh-${classeSufixo}`);
   renderCards(ds, cfg, monthMeta);
   renderTodayStrip(ds, cfg, monthMeta);
   return true;
@@ -1615,7 +1617,7 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   } else {
     const tipo = await showFolgaTypeModal();
     if (!tipo) return; // cancelado
-    if (tipo === 'atestado' || tipo === 'bh') {
+    if (tipo === 'atestado' || tipo === 'bh' || tipo === 'falta') {
       await marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo);
       return;
     }
@@ -1650,7 +1652,7 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   edits.dias[pk][monthKey][idx] = next;
   persistEdits();
 
-  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh');
+  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh', 'atbh-falta');
   cellEl.classList.add(next === 'W' ? 'work' : 'off');
   renderCards(ds, cfg, monthMeta);
   renderTodayStrip(ds, cfg, monthMeta);
@@ -1668,7 +1670,7 @@ function personRowHtml(p, days, monthMeta, ds, todayDay, cfg, bhLookup) {
     let cls = 'nodata';
     if (status === 'W') cls = 'work'; else if (status === 'O') cls = 'off';
     const tipo = (status === 'O' && pk && bhLookup) ? bhLookup.get(`${pk}|${isoDateFor(ds.ano, monthMeta.numero, d)}`) : null;
-    const atbhCls = tipo === 'BH' ? 'atbh atbh-bh' : tipo === 'ATESTADO' ? 'atbh atbh-at' : '';
+    const atbhCls = tipo === 'BH' ? 'atbh atbh-bh' : tipo === 'FALTA' ? 'atbh atbh-falta' : tipo === 'ATESTADO' ? 'atbh atbh-at' : '';
     return `<td class="day-cell ${cls} ${atbhCls} ${wk ? 'weekend' : ''} ${isToday ? 'today-col' : ''}" data-day="${d}"><span class="dot"></span></td>`;
   }).join('');
   return `<tr class="person-row" data-key="${p.__key}">
@@ -1866,6 +1868,7 @@ function showFolgaTypeModal(somenteAtBh) {
           <button class="icon-btn" id="folgaTypeCancel">Cancelar</button>
           <button class="icon-btn" id="folgaTypeAtestado">📋 Atestado</button>
           <button class="icon-btn" id="folgaTypeBh">🕐 Banco de horas</button>
+          <button class="icon-btn danger" id="folgaTypeFalta">🚫 Falta</button>
           ${somenteAtBh ? '' : '<button class="icon-btn primary" id="folgaTypeFolgar">Folga normal</button>'}
         </div>
       </div>`;
@@ -1875,6 +1878,7 @@ function showFolgaTypeModal(somenteAtBh) {
     if (!somenteAtBh) document.getElementById('folgaTypeFolgar').addEventListener('click', () => finish('folgar'));
     document.getElementById('folgaTypeAtestado').addEventListener('click', () => finish('atestado'));
     document.getElementById('folgaTypeBh').addEventListener('click', () => finish('bh'));
+    document.getElementById('folgaTypeFalta').addEventListener('click', () => finish('falta'));
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(null); }, { once: true });
   });
 }
