@@ -73,7 +73,7 @@ const state = {
   dashUnit: 'todos', // 'todos' | 'MNS' | 'PRA' — filtro de UO no Dashboard
   efetivosUnit: 'MNS', // UO selecionada na aba Motoristas Efetivos
   efetivosSource: 'motoristas', // de qual escala puxar a lista de seleção na aba Efetivos
-  bhFiltro: { de: '', ate: '' }, // período (datas ISO) selecionado na aba Ausência
+  bhFiltro: { de: '', ate: '', unidade: '' }, // período (datas ISO) + UO selecionados na aba Ausência
   dashAusenciaFiltro: { de: '', ate: '' }, // período do card de Ausências/Afastados no Dashboard
   afastadosFiltro: { de: '', ate: '', unidade: '' }, // filtro (previsão de retorno + UO) na aba Afastados
   role: 'visualizador', // 'adm' | 'visualizador' — 'adm' só depois de entrar com a senha, ver showAdmLoginModal()
@@ -810,10 +810,30 @@ function renderEfetivos() {
   }
 }
 
+// Apontamentos antigos (de antes da UO ser gravada no registro) recuperam
+// a UO buscando a pessoa nos dados atuais da escala (por pk ou matrícula)
+// — cobre qualquer motorista, não só quem está cadastrado em Efetivos.
+// driversDb entra só como último recurso.
+function bhUnidade(r) {
+  if (r.unidade) return r.unidade;
+  for (const cfg of TABS) {
+    const ds = datasets[cfg.id];
+    if (!ds) continue;
+    const p = ds.colaboradores.find((c) =>
+      personKey(cfg.id, c) === r.pk ||
+      (r.matricula && c.matricula && String(c.matricula) === String(r.matricula))
+    );
+    if (p && p.unidade) return p.unidade;
+  }
+  return (edits.driversDb[r.matricula] || {}).unidade || '';
+}
+
 function renderBancoHoras() {
   const app = document.getElementById('app');
-  const { de, ate } = state.bhFiltro;
+  const unidadesRef = (Object.values(datasets).find((d) => d && d.unidades) || {}).unidades || [];
+  const { de, ate, unidade } = state.bhFiltro;
   const registros = edits.bancoHoras
+    .filter((r) => !unidade || bhUnidade(r) === unidade)
     .filter((r) => (!de || r.data >= de) && (!ate || r.data <= ate))
     .sort((a, b) => b.data.localeCompare(a.data));
 
@@ -822,6 +842,10 @@ function renderBancoHoras() {
       <h2>Ausência</h2>
       <p>Atestados, faltas e folgas de banco de horas apontados pela escala.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra remover um apontamento.'}</p>
     </div>
+    <div class="unit-switch" id="bhUnitSwitch">
+      <button class="unit-btn ${!unidade ? 'active' : ''}" data-unit="">Todas as UO</button>
+      ${unidadesRef.map((u) => `<button class="unit-btn ${unidade === u.codigo ? 'active' : ''}" data-unit="${u.codigo}">${u.label}</button>`).join('')}
+    </div>
     <div class="toolbar-tools" style="margin-bottom:14px">
       <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">De</span><input type="date" id="bhFiltroDe" value="${de}"></div>
       <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">Até</span><input type="date" id="bhFiltroAte" value="${ate}"></div>
@@ -829,22 +853,26 @@ function renderBancoHoras() {
     </div>
     <div class="table-scroll">
       <table class="dash-table">
-        <thead><tr><th>Data</th><th>Nome</th><th>Matrícula</th><th>Turno</th><th>Líder</th><th>Tipo</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+        <thead><tr><th>Data</th><th>Nome</th><th>Matrícula</th><th>UO</th><th>Turno</th><th>Líder</th><th>Tipo</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
         <tbody>${registros.length ? registros.map((r) => `
           <tr>
             <td>${formatDataBr(r.data)}</td>
             <td>${r.nome}</td>
             <td>${r.matricula || '—'}</td>
+            <td>${bhUnidade(r) || '—'}</td>
             <td>${r.turno || '—'}</td>
             <td>${r.lider || '—'}</td>
             <td><span class="ef-badge ${r.tipo === 'BH' ? 'ef-badge-ativo' : 'ef-badge-afastado'}">${r.tipo === 'BH' ? '🕐 BH' : r.tipo === 'FALTA' ? '🚫 Falta' : '📋 Atestado'}</span></td>
             ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-id="${r.id}" title="Remover">🗑</button></td>` : ''}
-          </tr>`).join('') : `<tr><td colspan="${state.editMode ? 7 : 6}"><div class="empty-state">Nenhum atestado ou banco de horas apontado${de || ate ? ' nesse período' : ''}.</div></td></tr>`}
+          </tr>`).join('') : `<tr><td colspan="${state.editMode ? 8 : 7}"><div class="empty-state">Nenhum atestado ou banco de horas apontado${unidade || de || ate ? ' com esse filtro' : ''}.</div></td></tr>`}
         </tbody>
       </table>
     </div>
   `;
 
+  document.getElementById('bhUnitSwitch').querySelectorAll('.unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => { state.bhFiltro.unidade = btn.dataset.unit; renderBancoHoras(); });
+  });
   const wireFiltro = (id, key) => {
     document.getElementById(id).addEventListener('change', (e) => {
       state.bhFiltro[key] = e.target.value;
@@ -854,7 +882,7 @@ function renderBancoHoras() {
   wireFiltro('bhFiltroDe', 'de');
   wireFiltro('bhFiltroAte', 'ate');
   const limparBtn = document.getElementById('bhFiltroLimpar');
-  if (limparBtn) limparBtn.addEventListener('click', () => { state.bhFiltro = { de: '', ate: '' }; renderBancoHoras(); });
+  if (limparBtn) limparBtn.addEventListener('click', () => { state.bhFiltro.de = ''; state.bhFiltro.ate = ''; renderBancoHoras(); });
 
   app.querySelectorAll('.ef-remove-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -999,7 +1027,7 @@ function renderLimpoWarnings() {
 function dashboardAusenciasHtml() {
   const { de, ate } = state.dashAusenciaFiltro;
   const ausencias = edits.bancoHoras.filter((r) =>
-    (state.dashUnit === 'todos' || r.unidade === state.dashUnit) &&
+    (state.dashUnit === 'todos' || bhUnidade(r) === state.dashUnit) &&
     (!de || r.data >= de) && (!ate || r.data <= ate)
   );
   const porTipo = { ATESTADO: 0, BH: 0, FALTA: 0 };
