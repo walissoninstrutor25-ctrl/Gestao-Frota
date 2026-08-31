@@ -74,6 +74,7 @@ const state = {
   efetivosUnit: 'MNS', // UO selecionada na aba Motoristas Efetivos
   efetivosSource: 'motoristas', // de qual escala puxar a lista de seleção na aba Efetivos
   bhFiltro: { de: '', ate: '' }, // período (datas ISO) selecionado na aba Ausência
+  dashAusenciaFiltro: { de: '', ate: '' }, // período do card de Ausências/Afastados no Dashboard
   afastadosFiltro: { de: '', ate: '', unidade: '' }, // filtro (previsão de retorno + UO) na aba Afastados
   role: 'visualizador', // 'adm' | 'visualizador' — 'adm' só depois de entrar com a senha, ver showAdmLoginModal()
 };
@@ -991,6 +992,59 @@ function renderLimpoWarnings() {
     </div>`;
 }
 
+// Card de composição das ausências (Atestado/BH/Falta em % do período) +
+// Afastados, com filtro de período próprio — respeita a UO selecionada
+// no Dashboard, mas tem seu próprio De/Até (independente do mês da
+// escala, já que ausências são eventos, não uma visão mês a mês).
+function dashboardAusenciasHtml() {
+  const { de, ate } = state.dashAusenciaFiltro;
+  const ausencias = edits.bancoHoras.filter((r) =>
+    (state.dashUnit === 'todos' || r.unidade === state.dashUnit) &&
+    (!de || r.data >= de) && (!ate || r.data <= ate)
+  );
+  const porTipo = { ATESTADO: 0, BH: 0, FALTA: 0 };
+  ausencias.forEach((r) => { if (porTipo[r.tipo] !== undefined) porTipo[r.tipo]++; });
+  const total = ausencias.length;
+  const pct = (n) => total ? Math.round((n / total) * 100) : 0;
+
+  const afastadosCount = Object.values(edits.driversDb).filter((v) =>
+    v.afastado &&
+    (state.dashUnit === 'todos' || v.unidade === state.dashUnit) &&
+    (!de || (v.dataRetorno || '') >= de) && (!ate || (v.dataRetorno || '') <= ate)
+  ).length;
+
+  const meters = [
+    { label: '📋 Atestado', n: porTipo.ATESTADO, cls: 'meter-atestado' },
+    { label: '🕐 Banco de horas', n: porTipo.BH, cls: 'meter-bh' },
+    { label: '🚫 Falta', n: porTipo.FALTA, cls: 'meter-falta' },
+  ];
+
+  return `
+    <div class="ausencias-card">
+      <div class="ausencias-head">
+        <h3>Ausências no período</h3>
+        <div class="ausencias-filtro">
+          <div class="field"><span class="ausencias-filtro-label">De</span><input type="date" id="dashAusDe" value="${de}"></div>
+          <div class="field"><span class="ausencias-filtro-label">Até</span><input type="date" id="dashAusAte" value="${ate}"></div>
+          ${(de || ate) ? `<button class="icon-btn" id="dashAusLimpar">Limpar</button>` : ''}
+        </div>
+      </div>
+      ${total ? `
+        <div class="ausencia-meters">
+          ${meters.map((m) => `
+            <div class="ausencia-meter">
+              <div class="ausencia-meter-head"><span>${m.label}</span><b>${pct(m.n)}% <small>(${m.n})</small></b></div>
+              <div class="ausencia-meter-track"><div class="ausencia-meter-fill ${m.cls}" style="width:${pct(m.n)}%"></div></div>
+            </div>`).join('')}
+        </div>
+      ` : `<p class="ts-detalhe-vazio" style="margin:4px 0 0">Nenhuma ausência registrada${de || ate ? ' nesse período' : ''}.</p>`}
+      <div class="ausencias-afastados">
+        <span class="ausencias-afastados-label">🏥 Afastados${de || ate ? ' com retorno previsto nesse período' : ' no momento'}</span>
+        <b>${afastadosCount}</b>
+      </div>
+    </div>`;
+}
+
 function renderDashboard() {
   const app = document.getElementById('app');
   let totalGeral = 0;
@@ -1018,6 +1072,7 @@ function renderDashboard() {
       <button class="unit-btn ${state.dashUnit === 'todos' ? 'active' : ''}" data-unit="todos">Todas as UO</button>
       ${unidadesRef.map((u) => `<button class="unit-btn ${state.dashUnit === u.codigo ? 'active' : ''}" data-unit="${u.codigo}">${u.label}</button>`).join('')}
     </div>
+    ${dashboardAusenciasHtml()}
     ${renderLimpoWarnings()}
     <div class="dash-roles">${DASHBOARD_ROLES.map(renderDashboardRoleTable).join('')}</div>
   `;
@@ -1025,6 +1080,14 @@ function renderDashboard() {
   document.getElementById('dashUnitSwitch').querySelectorAll('.unit-btn').forEach((btn) => {
     btn.addEventListener('click', () => { state.dashUnit = btn.dataset.unit; renderDashboard(); });
   });
+  const wireAusFiltro = (id, key) => {
+    const elFiltro = document.getElementById(id);
+    if (elFiltro) elFiltro.addEventListener('change', (e) => { state.dashAusenciaFiltro[key] = e.target.value; renderDashboard(); });
+  };
+  wireAusFiltro('dashAusDe', 'de');
+  wireAusFiltro('dashAusAte', 'ate');
+  const dashAusLimparBtn = document.getElementById('dashAusLimpar');
+  if (dashAusLimparBtn) dashAusLimparBtn.addEventListener('click', () => { state.dashAusenciaFiltro = { de: '', ate: '' }; renderDashboard(); });
 
   if (state.editMode) {
     app.querySelectorAll('.meta-input').forEach((input) => {
@@ -1671,6 +1734,7 @@ async function marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo) {
     pk, data: dataIso,
     nome: p.nome, matricula: p.matricula || null,
     turno: p.papelNormalizado || null, lider: p.lider || null,
+    unidade: p.unidade || null,
     tipo: tipoLabel,
   });
   persistEdits();

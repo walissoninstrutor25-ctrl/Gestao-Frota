@@ -197,6 +197,29 @@ main{max-width:1440px; margin:0 auto; padding:18px 20px 60px;}
 .card.accent b{color:var(--accent-strong);}
 
 /* ---------------- dashboard ---------------- */
+.ausencias-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:18px 20px; margin-bottom:16px; box-shadow:var(--shadow-sm);
+}
+.ausencias-head{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px;}
+.ausencias-head h3{margin:0; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.02em; font-size:15px; color:var(--accent-strong);}
+.ausencias-filtro{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.ausencias-filtro-label{font-size:12px; color:var(--text-muted); margin-right:4px;}
+.ausencia-meters{display:flex; flex-direction:column; gap:12px;}
+.ausencia-meter-head{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; font-weight:600; gap:8px; margin-bottom:5px;}
+.ausencia-meter-head b{font-family:'Roboto Mono',monospace; font-weight:700; white-space:nowrap;}
+.ausencia-meter-head b small{font-weight:500; color:var(--text-muted);}
+.ausencia-meter-track{height:10px; border-radius:6px; background:var(--surface-2); overflow:hidden;}
+.ausencia-meter-fill{height:100%; border-radius:6px; transition:width .3s ease;}
+.ausencia-meter-fill.meter-atestado{background:var(--amber);}
+.ausencia-meter-fill.meter-bh{background:var(--accent);}
+.ausencia-meter-fill.meter-falta{background:var(--danger);}
+.ausencias-afastados{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding-top:14px;
+  border-top:1px solid var(--line-soft);
+}
+.ausencias-afastados-label{font-size:13px; font-weight:600; color:var(--text-muted);}
+.ausencias-afastados b{font-family:'Roboto Mono',monospace; font-size:20px; color:var(--danger); white-space:nowrap;}
 .dash-roles{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr)); gap:16px; margin-top:4px;}
 .dash-role{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
