@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T09-15-00Z -->
+<!-- APP_BUILD:2026-08-09T10-15-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1849,7 +1849,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T09-15-00Z';
+  const APP_VERSION = '2026-08-09T10-15-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1881,6 +1881,7 @@
 
   const COLLECTION = 'lots-frota';
   const PROFILES = 'lots-frota-profiles';
+  const FUEL_COLLECTION = 'lots-frota-fuel-entries'; // cada abastecimento é um documento próprio (sem limite de crescimento)
   // app secundário: permite ao admin criar outros usuários sem perder a própria sessão
   const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
   const secondaryAuth = secondaryApp.auth();
@@ -1914,6 +1915,46 @@
       }
     }, err=>console.error('listen fail', key, err));
   }
+
+  /* ---------------- abastecimentos: coleção de verdade (1 documento por lançamento) ----------------
+     evita o limite de 1MB por documento do Firestore, que a versão antiga (tudo num JSON só) ia bater
+     com o tempo, por causa das importações em lote a cada 15 dias. */
+  async function loadFuelEntries(){
+    try{
+      const snap = await db.collection(FUEL_COLLECTION).get();
+      return snap.docs.map(d=>({id:d.id, ...d.data()}));
+    }catch(e){ console.error('load fuel fail', e); return []; }
+  }
+  function listenFuelEntries(){
+    db.collection(FUEL_COLLECTION).onSnapshot(snap=>{
+      state.fuel = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(currentUser()) renderAll();
+    }, err=>console.error('listen fuel fail', err));
+  }
+  async function addFuelEntry(rec){
+    const {id, ...data} = rec;
+    try{ await db.collection(FUEL_COLLECTION).doc(id).set(data); }
+    catch(e){ console.error('add fuel fail', e); toast('Erro ao salvar o abastecimento. Verifique sua conexão.'); throw e; }
+  }
+  async function addFuelEntriesBatch(recs){
+    try{
+      // Firestore aceita até 500 operações por lote — quebra em pedaços se vier uma planilha gigante
+      for(let i=0; i<recs.length; i+=450){
+        const chunk = recs.slice(i, i+450);
+        const batch = db.batch();
+        chunk.forEach(rec=>{
+          const {id, ...data} = rec;
+          batch.set(db.collection(FUEL_COLLECTION).doc(id), data);
+        });
+        await batch.commit();
+      }
+    }catch(e){ console.error('batch fuel fail', e); toast('Erro ao salvar os abastecimentos importados. Verifique sua conexão.'); throw e; }
+  }
+  async function deleteFuelEntry(id){
+    try{ await db.collection(FUEL_COLLECTION).doc(id).delete(); }
+    catch(e){ console.error('delete fuel fail', e); toast('Erro ao excluir. Verifique sua conexão.'); throw e; }
+  }
+
   async function saveProfile(u){
     await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, authEmail:u.authEmail||null, role:u.role, vehicleId:u.vehicleId||null, uoResponsaveis:u.uoResponsaveis||null});
   }
@@ -2017,13 +2058,15 @@
     setLoadingProgress(10, 'Carregando veículos…');
     state.vehicles = await loadShared('lots-vehicles', []);
     setLoadingProgress(22, 'Carregando abastecimentos…');
-    state.fuel     = await loadShared('lots-fuel', []);
-    // limpeza única: remove lançamentos que vieram de importação de planilha (recurso removido)
-    if(state.fuel.some(f=>f.imported)){
-      state.fuel = state.fuel.filter(f=>!f.imported);
-      await saveShared('lots-fuel', state.fuel);
+    state.fuel     = await loadFuelEntries();
+    if(state.fuel.length===0){
+      // migração única: puxa dados que ainda estejam guardados no formato antigo (um "arquivo" só)
+      const fuelAntigo = await loadShared('lots-fuel', []);
+      if(fuelAntigo.length>0){
+        await addFuelEntriesBatch(fuelAntigo);
+        state.fuel = fuelAntigo;
+      }
     }
-    await saveShared('lots-fuel-import-batches', []); // apaga o histórico de planilhas importadas
     setLoadingProgress(32, 'Carregando custos…');
     state.costs    = await loadShared('lots-costs', []);
     setLoadingProgress(42, 'Carregando multas…');
@@ -2094,7 +2137,6 @@
   const save = {
     users: async () => {},
     vehicles: () => saveShared('lots-vehicles', state.vehicles),
-    fuel: () => saveShared('lots-fuel', state.fuel),
     costs: () => saveShared('lots-costs', state.costs),
     fines: () => saveShared('lots-fines', state.fines),
     sinistros: () => saveShared('lots-sinistros', state.sinistros),
@@ -2935,14 +2977,14 @@
     state.fuel.push(rec);
     const v = vehicleById(rec.vehicleId);
     if(v && rec.km > v.km){ v.km = rec.km; await save.vehicles(); }
-    await save.fuel();
+    await addFuelEntry(rec);
     closeModal(); renderView('fuel'); renderView('dashboard');
     toast('Abastecimento registrado.');
   };
   LOTS.deleteFuel = async (id)=>{
     if(!canDelete()){ toast('Seu perfil não pode excluir lançamentos.'); return; }
     state.fuel = state.fuel.filter(f=>f.id!==id);
-    await save.fuel();
+    await deleteFuelEntry(id);
     renderView('fuel'); renderView('dashboard');
   };
 
@@ -3024,16 +3066,19 @@
       if(validas.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Nenhuma linha válida encontrada na planilha.'; return; }
 
       const kmUpdates = {};
+      const novosRegistros = [];
       validas.forEach(({v, km, litros, valorLitro, posto, dataISO})=>{
-        state.fuel.push({
+        const rec = {
           id:uid(), vehicleId:v.id, date: dataISO, liters:litros,
           value: Number((litros*valorLitro).toFixed(2)),
           km: km, station: posto, imported:true
-        });
+        };
+        novosRegistros.push(rec);
+        state.fuel.push(rec);
         if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
       });
       Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
-      await save.fuel();
+      await addFuelEntriesBatch(novosRegistros);
       if(Object.keys(kmUpdates).length) await save.vehicles();
 
       msgEl.style.color='var(--go)';
@@ -6148,7 +6193,7 @@
   // login/entrada é controlado pelo listener auth.onAuthStateChanged acima.
   // aqui só ligamos a sincronização em tempo real dos dados da frota.
   listenShared('lots-vehicles', d => state.vehicles = d);
-  listenShared('lots-fuel',     d => state.fuel = d);
+  listenFuelEntries();
   listenShared('lots-costs',    d => state.costs = d);
   listenShared('lots-fines',    d => state.fines = d);
   listenShared('lots-sinistros', d => state.sinistros = d);
