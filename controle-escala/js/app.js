@@ -89,26 +89,37 @@ const datasets = {}; // tabId -> parsed json
 
 const EDIT_STORAGE_KEY = 'escala:edits:v1';
 
+// Só os campos que o app realmente usa — qualquer outra coisa no objeto
+// bruto (ex.: os campos "_backup_diaN" que o firebase-sync.js grava no
+// mesmo documento como rede de segurança) é ignorada aqui. Usado tanto
+// pra montar "edits" quanto, em bootstrapFirebaseSync, pra "limpar" o
+// dado que vem do Firestore antes de comparar com o local — senão um
+// campo extra que só existe lá faz o app achar que é sempre diferente e
+// recarregar sem parar.
+function normalizeEditsShape(raw) {
+  raw = raw || {};
+  return {
+    contato: raw.contato || {},
+    dias: raw.dias || {},
+    equipe: raw.equipe || {},
+    moves: raw.moves || {},        // numero equipamento -> grupo de destino
+    newEquip: raw.newEquip || {},  // numero equipamento (criado do zero) -> grupo
+    newGrupos: raw.newGrupos || [], // grupos criados do zero (podem estar vazios)
+    novosColaboradores: raw.novosColaboradores || {}, // tabId -> [{__pk, nome, matricula, grupo, papelNormalizado, lider, telefone}]
+    limpo: raw.limpo || {}, // "tabId" ou "tabId|UO" -> true (colaboradores originais da planilha escondidos)
+    rotacao: raw.rotacao || {}, // pk -> epochDay âncora (dia de folga) do padrão 5x1/6x2 dessa pessoa
+    renumeracoes: raw.renumeracoes || {}, // numero antigo -> numero novo (equipamento renomeado)
+    metas: raw.metas || {}, // "tabId|turno|UO" -> meta de vagas (controle de vagas do dashboard)
+    driversDb: raw.driversDb || {}, // matrícula (string) -> {nome, unidade} — banco central pra autocompletar nome pela matrícula
+    bancoHoras: raw.bancoHoras || [], // [{id, pk, data, nome, matricula, turno, lider, tipo:'BH'|'ATESTADO'}]
+  };
+}
+
 function loadEdits() {
   try {
-    const raw = JSON.parse(localStorage.getItem(EDIT_STORAGE_KEY) || '{}');
-    return {
-      contato: raw.contato || {},
-      dias: raw.dias || {},
-      equipe: raw.equipe || {},
-      moves: raw.moves || {},        // numero equipamento -> grupo de destino
-      newEquip: raw.newEquip || {},  // numero equipamento (criado do zero) -> grupo
-      newGrupos: raw.newGrupos || [], // grupos criados do zero (podem estar vazios)
-      novosColaboradores: raw.novosColaboradores || {}, // tabId -> [{__pk, nome, matricula, grupo, papelNormalizado, lider, telefone}]
-      limpo: raw.limpo || {}, // "tabId" ou "tabId|UO" -> true (colaboradores originais da planilha escondidos)
-      rotacao: raw.rotacao || {}, // pk -> epochDay âncora (dia de folga) do padrão 5x1/6x2 dessa pessoa
-      renumeracoes: raw.renumeracoes || {}, // numero antigo -> numero novo (equipamento renomeado)
-      metas: raw.metas || {}, // "tabId|turno|UO" -> meta de vagas (controle de vagas do dashboard)
-      driversDb: raw.driversDb || {}, // matrícula (string) -> {nome, unidade} — banco central pra autocompletar nome pela matrícula
-      bancoHoras: raw.bancoHoras || [], // [{id, pk, data, nome, matricula, turno, lider, tipo:'BH'|'ATESTADO'}]
-    };
+    return normalizeEditsShape(JSON.parse(localStorage.getItem(EDIT_STORAGE_KEY) || '{}'));
   } catch {
-    return { contato: {}, dias: {}, equipe: {}, moves: {}, newEquip: {}, newGrupos: [], novosColaboradores: {}, limpo: {}, rotacao: {}, renumeracoes: {}, metas: {}, driversDb: {}, bancoHoras: [] };
+    return normalizeEditsShape({});
   }
 }
 
@@ -2340,7 +2351,13 @@ function bootstrapFirebaseSync() {
   const onReady = async () => {
     if (!window.__firebaseSync || !window.__firebaseSync.ready) return;
     const stable = window.__firebaseSync.stableStringify;
-    const remote = await window.__firebaseSync.fetchInitial();
+    const remoteRaw = await window.__firebaseSync.fetchInitial();
+    // Normaliza pro mesmo formato de loadEdits() antes de comparar — o
+    // Firestore pode devolver campos que o "edits" local nunca tem (ex.:
+    // a cópia de segurança que firebase-sync.js grava no mesmo
+    // documento), e sem isso a comparação nunca bate, recarregando a
+    // página sem parar à toa.
+    const remote = remoteRaw ? normalizeEditsShape(remoteRaw) : null;
     if (remote) {
       if (stable(remote) !== stable(edits)) {
         reloadForRemoteSync(remote);
@@ -2366,7 +2383,7 @@ function bootstrapFirebaseSync() {
       window.__firebaseSync.pushEdits(edits);
     }
     window.__firebaseSync.onRemoteChange((remoteData) => {
-      reloadForRemoteSync(remoteData);
+      reloadForRemoteSync(normalizeEditsShape(remoteData));
     });
   };
   if (window.__firebaseSync) onReady();

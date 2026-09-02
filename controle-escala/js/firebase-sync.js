@@ -55,6 +55,21 @@ function stableStringify(obj) {
   return "{" + Object.keys(obj).sort().map((k) => JSON.stringify(k) + ":" + stableStringify(obj[k])).join(",") + "}";
 }
 
+// Os campos "_backup_diaN" (ver pushEdits) são gravados no mesmo
+// documento só como rede de segurança — o app.js nunca deve vê-los de
+// volta. Sem isso, toda leitura do Firestore vinha com um campo a mais
+// que o "edits" local nunca tem, a comparação nunca batia, e a página
+// ficava recarregando sem parar (bug real visto em produção: 779
+// recargas numa única aba).
+function stripBackupFields(data) {
+  if (!data) return data;
+  const out = {};
+  for (const k of Object.keys(data)) {
+    if (!k.startsWith("_backup_")) out[k] = data[k];
+  }
+  return out;
+}
+
 function fail(err) {
   if (err) logError("conectar", err);
   setStatus("🔴 Offline", "sync-offline");
@@ -109,7 +124,7 @@ async function connect() {
     async fetchInitial() {
       try {
         const snap = await withTimeout(getDoc(ref), OP_TIMEOUT_MS);
-        return snap.exists() ? snap.data() : null;
+        return snap.exists() ? stripBackupFields(snap.data()) : null;
       } catch (err) {
         logError("buscar dados iniciais", err);
         return null;
@@ -137,7 +152,7 @@ async function connect() {
       onSnapshot(ref, (snap) => {
         setStatus(snap.metadata.fromCache ? "🔴 Offline" : "🟢 Online", snap.metadata.fromCache ? "sync-offline" : "sync-online");
         if (!snap.exists()) return;
-        const data = snap.data();
+        const data = stripBackupFields(snap.data());
         if (stableStringify(data) === lastPushedJson) return; // eco da própria escrita, já aplicado localmente
         callback(data);
       }, (err) => {
