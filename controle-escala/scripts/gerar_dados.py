@@ -152,8 +152,8 @@ def parse_month_sheet(ws, ndays, section_marker_fn):
             continue
 
         nome = a if isinstance(a, str) else None
-        if nome is None or nome == '#REF!':
-            continue  # vacant template slot or broken reference, no real person
+        if nome is None or nome in ('#REF!', '#N/A'):
+            continue  # vacant template slot or broken formula, no real person
 
         papel_col = day1c - 1
         papel = clean(ws.cell(row=r, column=papel_col).value)

@@ -916,8 +916,8 @@ window.DATA_MOTORISTAS_META = {
               "nome": "ANGELICA CAETANO FERREIRA PINHEIRO"
             },
             "B": {
-              "matricula": 31845,
-              "nome": "ANTONIO FRANCISCO ALVES DE OLIVEIRA"
+              "matricula": 32478,
+              "nome": "ALEX SANDRO ANTONIO DA SILVA JUNIOR"
             },
             "C": {
               "matricula": 31542,
@@ -979,8 +979,12 @@ window.DATA_MOTORISTAS_META = {
       ],
       "folguistas": {
         "A": {
-          "matricula": 31752,
-          "nome": "ADRIANO DE JESUS PERES"
+          "matricula": 32285,
+          "nome": "GILMAR LUIZ DE OLIVEIRA"
+        },
+        "B": {
+          "matricula": 32349,
+          "nome": "ELIAS SEVERINO DE SOUZA"
         },
         "C": {
           "matricula": 32472,
@@ -995,6 +999,10 @@ window.DATA_MOTORISTAS_META = {
         {
           "numero": "109",
           "turnos": {
+            "A": {
+              "matricula": 31824,
+              "nome": "CRISTEFANIO MORAES ALVES CABRAL"
+            },
             "B": {
               "matricula": 31788,
               "nome": "VALDENICIO COSME DA SILVA"
@@ -1076,12 +1084,12 @@ window.DATA_MOTORISTAS_META = {
       ],
       "folguistas": {
         "A": {
-          "matricula": 31824,
-          "nome": "CRISTEFANIO MORAES ALVES CABRAL"
+          "matricula": 32397,
+          "nome": "JOSE ANTONIO BRITO HOLANDA"
         },
         "B": {
-          "matricula": 31846,
-          "nome": "JUANES BARBOSA DE OLIVEIRA"
+          "matricula": 32301,
+          "nome": "FRANCISCO ADELSON SOUSA LIMA"
         },
         "C": {
           "matricula": 32207,
@@ -1164,10 +1172,6 @@ window.DATA_MOTORISTAS_META = {
               "matricula": 31768,
               "nome": "JOAO RICARDO PERREIRA"
             },
-            "B": {
-              "matricula": 31793,
-              "nome": "JOSE ROSINALDO FERRIRA DOS SANTOS"
-            },
             "C": {
               "matricula": 31497,
               "nome": "ANTONIO MINERVINO DE FREITAS"
@@ -1204,6 +1208,10 @@ window.DATA_MOTORISTAS_META = {
             "B": {
               "matricula": 31799,
               "nome": "LUIS PAULO DOS SANTOS"
+            },
+            "C": {
+              "matricula": 31803,
+              "nome": "JAILSON VICENTE DA SILVA"
             }
           }
         },
@@ -1215,8 +1223,8 @@ window.DATA_MOTORISTAS_META = {
               "nome": "WILTON PEREIRA OLIVEIRA"
             },
             "B": {
-              "matricula": 31812,
-              "nome": "MAIRON SILVA DUTRA"
+              "matricula": 31791,
+              "nome": "WILLIS VILELA DOS SANTOS"
             },
             "C": {
               "matricula": 31795,
@@ -1228,8 +1236,8 @@ window.DATA_MOTORISTAS_META = {
           "numero": "108",
           "turnos": {
             "A": {
-              "matricula": 31791,
-              "nome": "WILLIS VILELA DOS SANTOS"
+              "matricula": 31801,
+              "nome": "DERIVALDO JESUS SOUZA"
             },
             "B": {
               "matricula": 31828,
@@ -1253,7 +1261,7 @@ window.DATA_MOTORISTAS_META = {
               "nome": "ROSALVO SANTANA PINHEIRO"
             },
             "C": {
-              "matricula": 31539,
+              "matricula": 31760,
               "nome": "CLAUDIO JOSE JOVENCIO"
             }
           }
@@ -1281,10 +1289,6 @@ window.DATA_MOTORISTAS_META = {
           "matricula": 31751,
           "nome": "ADEUSMI ANANIAS DE REZENDE"
         },
-        "B": {
-          "matricula": 31886,
-          "nome": "RONALDO OLEGARIO DA SILVA"
-        },
         "C": {
           "matricula": 32303,
           "nome": "WELLINGTON XAVIER DA SILVA"
@@ -1304,11 +1308,11 @@ window.DATA_MOTORISTAS_META = {
             },
             "B": {
               "matricula": 31832,
-              "nome": "JOSE ALBERTO VIEIRA DOS SANTOS"
+              "nome": "#N/A"
             },
             "C": {
               "matricula": 32348,
-              "nome": "FABIO DOS SANTOS"
+              "nome": "#N/A"
             }
           }
         },
@@ -1320,7 +1324,7 @@ window.DATA_MOTORISTAS_META = {
               "nome": "HERICK CARRIJO REGO"
             },
             "B": {
-              "matricula": 31896,
+              "matricula": 31549,
               "nome": "JOSE CICERO NASCIMENTO DOS SANTOS"
             },
             "C": {
@@ -1382,10 +1386,6 @@ window.DATA_MOTORISTAS_META = {
         }
       ],
       "folguistas": {
-        "A": {
-          "matricula": 31801,
-          "nome": "DERIVALDO JESUS SOUZA"
-        },
         "B": {
           "matricula": 31797,
           "nome": "JOSE JACKSON DE ALMEIDA SANTOS"
@@ -1437,6 +1437,10 @@ window.DATA_MOTORISTAS_META = {
         {
           "numero": "568",
           "turnos": {
+            "A": {
+              "matricula": 31752,
+              "nome": "ADRIANO DE JESUS PERES"
+            },
             "B": {
               "matricula": 32021,
               "nome": "EDER ALVES GOMES"
@@ -1455,8 +1459,8 @@ window.DATA_MOTORISTAS_META = {
               "nome": "VILMAR ANDRADE PEREIRA"
             },
             "B": {
-              "matricula": 32023,
-              "nome": "DEURIVAN BORGES DE SOUSA"
+              "matricula": 31934,
+              "nome": "EDNALDO JOSE FERREIRA RAMOS"
             },
             "C": {
               "matricula": 31933,
@@ -1483,13 +1487,9 @@ window.DATA_MOTORISTAS_META = {
         }
       ],
       "folguistas": {
-        "A": {
-          "matricula": 31831,
-          "nome": "JANIO DA SILVA SANTOS"
-        },
         "B": {
-          "matricula": 31808,
-          "nome": "ADMILSON MESSIAS DA SILVA"
+          "matricula": 32254,
+          "nome": "VALERIA SANTANA DE OLIVEIRA FAINELI"
         },
         "C": {
           "matricula": 32395,
@@ -1525,10 +1525,6 @@ window.DATA_MOTORISTAS_META = {
               "matricula": 31821,
               "nome": "JOSE DEIVERSON BEZERRA DA SILVA"
             },
-            "B": {
-              "matricula": 31830,
-              "nome": "JAIRO RONALDO SILVA DE OLIVEIRA"
-            },
             "C": {
               "matricula": 31794,
               "nome": "ELSON PAULO DA SILVA"
@@ -1550,13 +1546,17 @@ window.DATA_MOTORISTAS_META = {
         }
       ],
       "folguistas": {
+        "A": {
+          "matricula": 32476,
+          "nome": "LILLIANE NUNES CARVALHO"
+        },
         "B": {
           "matricula": 31798,
           "nome": "LAILSON TENORIO TORRES"
         },
         "C": {
-          "matricula": 31803,
-          "nome": "JAILSON VICENTE DA SILVA"
+          "matricula": 32514,
+          "nome": "DARISETE FERREIRA"
         }
       },
       "unidade": "PRA"

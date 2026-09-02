@@ -372,6 +372,27 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     "unidade": "PRA"
   },
   {
+    "nome": "ADRIANO DE JESUS PERES",
+    "grupo": "GRUPO 06",
+    "papel": "A",
+    "papelNormalizado": "Turno A",
+    "escala": {
+      "MARÇO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "ABRIL": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "MAIO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
+      "JUNHO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
+      "JULHO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
+      "AGOSTO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "SETEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "OUTUBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "NOVEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "DEZEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW"
+    },
+    "matricula": 31752,
+    "cargo": "Motorista Canavieiro",
+    "unidade": "PRA"
+  },
+  {
     "nome": "VILMAR ANDRADE PEREIRA",
     "grupo": "GRUPO 06",
     "papel": "A",
@@ -410,27 +431,6 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
       "DEZEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW"
     },
     "matricula": 31806,
-    "cargo": "Motorista Canavieiro",
-    "unidade": "PRA"
-  },
-  {
-    "nome": "JANIO DA SILVA SANTOS",
-    "grupo": "GRUPO 06",
-    "papel": "A",
-    "papelNormalizado": "Turno A",
-    "escala": {
-      "MARÇO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "ABRIL": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "MAIO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "JUNHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "JULHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "AGOSTO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "SETEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "OUTUBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
-    },
-    "matricula": 31831,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -498,7 +498,7 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     "unidade": "PRA"
   },
   {
-    "nome": "DEURIVAN BORGES DE SOUSA",
+    "nome": "EDNALDO JOSE FERREIRA RAMOS",
     "grupo": "GRUPO 06",
     "papel": "B",
     "papelNormalizado": "Turno B",
@@ -514,7 +514,7 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
       "NOVEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
       "DEZEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW"
     },
-    "matricula": 32023,
+    "matricula": 31934,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -540,7 +540,7 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
     "unidade": "PRA"
   },
   {
-    "nome": "ADMILSON MESSIAS DA SILVA",
+    "nome": "VALERIA SANTANA DE OLIVEIRA FAINELI",
     "grupo": "GRUPO 06",
     "papel": "B",
     "papelNormalizado": "Turno B",
@@ -556,7 +556,7 @@ window.DATA_MOTORISTAS_GRUPO_06 = [
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 31808,
+    "matricula": 32254,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },

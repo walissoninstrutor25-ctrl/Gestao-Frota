@@ -42,7 +42,7 @@ O script já contorna alguns problemas encontrados nas planilhas originais
 (e vai continuar contornando, se a próxima planilha tiver os mesmos
 problemas):
 
-- Linhas/matrículas quebradas (`#REF!`) são ignoradas.
+- Linhas/matrículas quebradas (`#REF!`, `#N/A`) são ignoradas.
 - Vagas em aberto (linha sem nome) não entram na lista de colaboradores.
 - A identidade de cada colaborador é resolvida pelo **nome**, não pela
   matrícula — a matrícula, nas planilhas de origem, ocasionalmente muda de

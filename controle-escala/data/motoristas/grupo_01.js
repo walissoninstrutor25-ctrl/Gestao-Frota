@@ -479,7 +479,7 @@ window.DATA_MOTORISTAS_GRUPO_01 = [
     "unidade": "PRA"
   },
   {
-    "nome": "ADRIANO DE JESUS PERES",
+    "nome": "GILMAR LUIZ DE OLIVEIRA",
     "grupo": "GRUPO 01",
     "papel": "A",
     "papelNormalizado": "Turno A",
@@ -495,7 +495,7 @@ window.DATA_MOTORISTAS_GRUPO_01 = [
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 31752,
+    "matricula": 32285,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -521,7 +521,7 @@ window.DATA_MOTORISTAS_GRUPO_01 = [
     "unidade": "PRA"
   },
   {
-    "nome": "ANTONIO FRANCISCO ALVES DE OLIVEIRA",
+    "nome": "ALEX SANDRO ANTONIO DA SILVA JUNIOR",
     "grupo": "GRUPO 01",
     "papel": "B",
     "papelNormalizado": "Turno B",
@@ -537,7 +537,7 @@ window.DATA_MOTORISTAS_GRUPO_01 = [
       "NOVEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
       "DEZEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW"
     },
-    "matricula": 31845,
+    "matricula": 32478,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -601,6 +601,27 @@ window.DATA_MOTORISTAS_GRUPO_01 = [
       "DEZEMBRO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW"
     },
     "matricula": 31762,
+    "cargo": "Motorista Canavieiro",
+    "unidade": "PRA"
+  },
+  {
+    "nome": "ELIAS SEVERINO DE SOUZA",
+    "grupo": "GRUPO 01",
+    "papel": "B",
+    "papelNormalizado": "Turno B",
+    "escala": {
+      "MARÇO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "ABRIL": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "MAIO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "JUNHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "JULHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "AGOSTO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "SETEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "OUTUBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
+      "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
+      "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
+    },
+    "matricula": 32349,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },

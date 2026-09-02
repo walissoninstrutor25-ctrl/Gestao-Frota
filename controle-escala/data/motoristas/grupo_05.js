@@ -501,48 +501,6 @@ window.DATA_MOTORISTAS_GRUPO_05 = [
     "unidade": "PRA"
   },
   {
-    "nome": "DERIVALDO JESUS SOUZA",
-    "grupo": "GRUPO 05",
-    "papel": "A",
-    "papelNormalizado": "Turno A",
-    "escala": {
-      "MARÇO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "ABRIL": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "MAIO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "JUNHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "JULHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "AGOSTO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "SETEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "OUTUBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
-    },
-    "matricula": 31801,
-    "cargo": "Motorista Canavieiro",
-    "unidade": "PRA"
-  },
-  {
-    "nome": "JOSE ALBERTO VIEIRA DOS SANTOS",
-    "grupo": "GRUPO 05",
-    "papel": "B",
-    "papelNormalizado": "Turno B",
-    "escala": {
-      "MARÇO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
-      "ABRIL": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
-      "MAIO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "JUNHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "JULHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "AGOSTO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "SETEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "OUTUBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "NOVEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
-    },
-    "matricula": 31832,
-    "cargo": "Motorista Canavieiro",
-    "unidade": "PRA"
-  },
-  {
     "nome": "JOSE CICERO NASCIMENTO DOS SANTOS",
     "grupo": "GRUPO 05",
     "papel": "B",
@@ -559,7 +517,7 @@ window.DATA_MOTORISTAS_GRUPO_05 = [
       "NOVEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
       "DEZEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW"
     },
-    "matricula": 31896,
+    "matricula": 31549,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -644,27 +602,6 @@ window.DATA_MOTORISTAS_GRUPO_05 = [
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
     "matricula": 31797,
-    "cargo": "Motorista Canavieiro",
-    "unidade": "PRA"
-  },
-  {
-    "nome": "FABIO DOS SANTOS",
-    "grupo": "GRUPO 05",
-    "papel": "C",
-    "papelNormalizado": "Turno C",
-    "escala": {
-      "MARÇO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
-      "ABRIL": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
-      "MAIO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "JUNHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "JULHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "AGOSTO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "SETEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "OUTUBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "NOVEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
-    },
-    "matricula": 32348,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -770,6 +707,7 @@ window.DATA_MOTORISTAS_GRUPO_05 = [
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
     "matricula": 32474,
+    "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   }
 ];

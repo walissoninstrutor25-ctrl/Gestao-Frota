@@ -261,6 +261,27 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     "unidade": "PRA"
   },
   {
+    "nome": "LILLIANE NUNES CARVALHO",
+    "grupo": "GRUPO 07",
+    "papel": "A",
+    "papelNormalizado": "Turno A",
+    "escala": {
+      "MARÇO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "ABRIL": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "MAIO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "JUNHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "JULHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "AGOSTO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "SETEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "OUTUBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
+      "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
+      "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
+    },
+    "matricula": 32476,
+    "cargo": "Motorista Canavieiro",
+    "unidade": "PRA"
+  },
+  {
     "nome": "GLEIDSON DA SILVA MENDONCA",
     "grupo": "GRUPO 07",
     "papel": "B",
@@ -278,27 +299,6 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
       "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
     },
     "matricula": 31829,
-    "cargo": "Motorista Canavieiro",
-    "unidade": "PRA"
-  },
-  {
-    "nome": "JAIRO RONALDO SILVA DE OLIVEIRA",
-    "grupo": "GRUPO 07",
-    "papel": "B",
-    "papelNormalizado": "Turno B",
-    "escala": {
-      "MARÇO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "ABRIL": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "MAIO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
-      "JUNHO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
-      "JULHO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "AGOSTO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "SETEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "OUTUBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "NOVEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "DEZEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW"
-    },
-    "matricula": 31830,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -408,7 +408,7 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
     "unidade": "PRA"
   },
   {
-    "nome": "JAILSON VICENTE DA SILVA",
+    "nome": "DARISETE FERREIRA",
     "grupo": "GRUPO 07",
     "papel": "C",
     "papelNormalizado": "Turno C",
@@ -424,7 +424,7 @@ window.DATA_MOTORISTAS_GRUPO_07 = [
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 31803,
+    "matricula": 32514,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   }

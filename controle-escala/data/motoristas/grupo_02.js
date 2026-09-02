@@ -396,6 +396,26 @@ window.DATA_MOTORISTAS_GRUPO_02 = [
     "unidade": "MNS"
   },
   {
+    "nome": "CRISTEFANIO MORAES ALVES CABRAL",
+    "grupo": "GRUPO 02",
+    "papel": "A",
+    "papelNormalizado": "Turno A",
+    "escala": {
+      "MARÇO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
+      "ABRIL": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
+      "JUNHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "JULHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "AGOSTO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "SETEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "OUTUBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "NOVEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
+    },
+    "matricula": 31824,
+    "cargo": "Motorista Canavieiro",
+    "unidade": "PRA"
+  },
+  {
     "nome": "PAULO BARBOSA DA SILVA",
     "grupo": "GRUPO 02",
     "papel": "A",
@@ -480,7 +500,7 @@ window.DATA_MOTORISTAS_GRUPO_02 = [
     "unidade": "PRA"
   },
   {
-    "nome": "CRISTEFANIO MORAES ALVES CABRAL",
+    "nome": "JOSE ANTONIO BRITO HOLANDA",
     "grupo": "GRUPO 02",
     "papel": "A",
     "papelNormalizado": "Turno A",
@@ -496,7 +516,7 @@ window.DATA_MOTORISTAS_GRUPO_02 = [
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 31824,
+    "matricula": 32397,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -606,7 +626,7 @@ window.DATA_MOTORISTAS_GRUPO_02 = [
     "unidade": "PRA"
   },
   {
-    "nome": "JUANES BARBOSA DE OLIVEIRA",
+    "nome": "FRANCISCO ADELSON SOUSA LIMA",
     "grupo": "GRUPO 02",
     "papel": "B",
     "papelNormalizado": "Turno B",
@@ -622,7 +642,7 @@ window.DATA_MOTORISTAS_GRUPO_02 = [
       "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
       "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
     },
-    "matricula": 31846,
+    "matricula": 32301,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },

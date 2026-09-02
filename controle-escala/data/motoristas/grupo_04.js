@@ -438,7 +438,7 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     "unidade": "PRA"
   },
   {
-    "nome": "WILLIS VILELA DOS SANTOS",
+    "nome": "DERIVALDO JESUS SOUZA",
     "grupo": "GRUPO 04",
     "papel": "A",
     "papelNormalizado": "Turno A",
@@ -454,7 +454,7 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
       "NOVEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
       "DEZEMBRO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW"
     },
-    "matricula": 31791,
+    "matricula": 31801,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -543,7 +543,7 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     "unidade": "PRA"
   },
   {
-    "nome": "MAIRON SILVA DUTRA",
+    "nome": "WILLIS VILELA DOS SANTOS",
     "grupo": "GRUPO 04",
     "papel": "B",
     "papelNormalizado": "Turno B",
@@ -559,7 +559,7 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
       "NOVEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
       "DEZEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW"
     },
-    "matricula": 31812,
+    "matricula": 31791,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -627,23 +627,23 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
     "unidade": "PRA"
   },
   {
-    "nome": "RONALDO OLEGARIO DA SILVA",
+    "nome": "JAILSON VICENTE DA SILVA",
     "grupo": "GRUPO 04",
-    "papel": "B",
-    "papelNormalizado": "Turno B",
+    "papel": "C",
+    "papelNormalizado": "Turno C",
     "escala": {
-      "MARÇO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "ABRIL": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
-      "MAIO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "JUNHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
-      "JULHO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
-      "AGOSTO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "SETEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
-      "OUTUBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "NOVEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWW",
-      "DEZEMBRO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO"
+      "MARÇO": "OWWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
+      "ABRIL": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWO",
+      "MAIO": "WWWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "JUNHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
+      "JULHO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW",
+      "AGOSTO": "WWWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "SETEMBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWW",
+      "OUTUBRO": "WWOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "NOVEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWW",
+      "DEZEMBRO": "WOWWWWWOWWWWWOWWWWWOWWWWWOWWWWW"
     },
-    "matricula": 31886,
+    "matricula": 31803,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
@@ -706,7 +706,7 @@ window.DATA_MOTORISTAS_GRUPO_04 = [
       "NOVEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOW",
       "DEZEMBRO": "WWWWOWWWWWOWWWWWOWWWWWOWWWWWOWW"
     },
-    "matricula": 31539,
+    "matricula": 31760,
     "cargo": "Motorista Canavieiro",
     "unidade": "PRA"
   },
