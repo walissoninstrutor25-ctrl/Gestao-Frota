@@ -2328,6 +2328,15 @@ function bootstrapFirebaseSync() {
       // só repete esses mesmos dados) é lida como mudança nova e recarrega
       // a página à toa.
       window.__firebaseSync.markSynced(edits);
+      // fetchInitial() acabou de confirmar uma leitura real do Firestore
+      // — dá pra mostrar Online aqui em vez de esperar a primeira
+      // confirmação do listener em tempo real (onRemoteChange/onSnapshot),
+      // que numa rede de celular mais lenta pode demorar bem mais que uma
+      // leitura comum e deixava o indicador preso em "Conectando…" à toa.
+      // (fetchInitial() devolve null tanto quando não existe documento
+      // ainda quanto quando a busca falhou, então esse aviso só entra
+      // aqui, no caminho em que a leitura comprovadamente funcionou.)
+      if (window.__firebaseSync.markOnline) window.__firebaseSync.markOnline();
     } else {
       // nada salvo ainda no Firebase (primeira vez) — sobe o que já
       // existe localmente pra virar o ponto de partida compartilhado

@@ -89,6 +89,14 @@ async function connect() {
     markSynced(edits) {
       lastPushedJson = stableStringify(edits);
     },
+    // Chamado pelo app.js assim que fetchInitial() confirma uma leitura
+    // real do Firestore — mostra Online sem esperar a primeira confirmação
+    // do listener em tempo real (onRemoteChange), que pode demorar mais
+    // que isso numa rede ruim e deixava o indicador preso em
+    // "Conectando…" à toa mesmo com a leitura já funcionando.
+    markOnline() {
+      setStatus("🟢 Online", "sync-online");
+    },
     async fetchInitial() {
       try {
         const snap = await withTimeout(getDoc(ref), 8000);
