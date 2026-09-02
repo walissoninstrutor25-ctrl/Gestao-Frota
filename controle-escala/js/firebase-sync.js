@@ -118,7 +118,17 @@ async function connect() {
     async pushEdits(edits) {
       lastPushedJson = stableStringify(edits);
       try {
-        await withTimeout(setDoc(ref, JSON.parse(JSON.stringify(edits))), OP_TIMEOUT_MS);
+        const payload = JSON.parse(JSON.stringify(edits));
+        await withTimeout(setDoc(ref, payload), OP_TIMEOUT_MS);
+        // Cópia de segurança rotativa (um campo por dia da semana, 7 no
+        // total, dentro do mesmo documento — merge:true preserva os
+        // outros dias). Pedido separado, sem "await" e com erro ignorado
+        // de propósito: não pode atrasar nem derrubar o salvamento
+        // principal (já vimos essa conexão ser sensível a prazo). Serve
+        // só pra recuperação manual se um dia um aparelho desatualizado
+        // sobrescrever dados mais novos de novo — o app nunca lê de volta.
+        const backupField = `_backup_dia${new Date().getDay()}`;
+        setDoc(ref, { [backupField]: { em: new Date().toISOString(), dados: payload } }, { merge: true }).catch(() => {});
       } catch (err) {
         logError("salvar (mudança fica só local até reconectar)", err);
       }
