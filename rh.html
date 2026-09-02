@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-02T19-18-52Z -->
+<!-- APP_BUILD:2026-09-02T19-42-11Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -820,7 +820,7 @@
           <div><div class="page-title">SSMA</div><div class="page-sub">CNH, toxicológico e ASO dos colaboradores ativos</div></div>
         </div>
         <div class="filter-bar">
-          <div class="filter-field"><label>Busca</label><input id="ssmafilter-busca" placeholder="Nome, cargo, CPF…"></div>
+          <div class="filter-field"><label>Busca</label><input id="ssmafilter-busca" placeholder="Nome, cargo, matrícula…"></div>
           <div class="filter-field"><label>Unidade</label>
             <select id="ssmafilter-unidade"><option value="">Todas</option>
               <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
@@ -848,7 +848,7 @@
 
         <div class="card">
           <table><thead><tr>
-            <th>Nome</th><th>Cargo</th><th>Operação</th><th>CPF</th>
+            <th>Nome</th><th>Cargo</th><th>Operação</th><th>Matrícula</th>
             <th>CNH</th><th>Validade CNH</th><th>Validade Toxicológico CNH</th>
             <th>Admissão/Periódico</th><th>Toxicológico LOTS</th>
             <th>Próximo vencimento ASO</th><th></th>
@@ -914,7 +914,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-02T19-18-52Z';
+  const APP_VERSION = '2026-09-02T19-42-11Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -3088,7 +3088,7 @@
     const vencF = document.getElementById('ssmafilter-vencimento')?.value || '';
     const base = visibleColaboradores().filter(c=>c.status==='ativo')
       .filter(c=>!uoF || c.unidade===uoF)
-      .filter(c=>!busca || [c.nome,c.cargo,c.cpf].join(' ').toLowerCase().includes(busca))
+      .filter(c=>!busca || [c.nome,c.cargo,c.matricula,c.cpf].join(' ').toLowerCase().includes(busca))
       .sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
 
     const todasLinhas = base.map(c=>{
@@ -3128,7 +3128,7 @@
       <td>${c.nome}</td>
       <td>${c.cargo||'—'}</td>
       <td>${c.unidade||'—'}</td>
-      <td class="mono">${c.cpf||'—'}</td>
+      <td class="mono">${c.matricula||'—'}</td>
       <td>${r.cnh||'—'}</td>
       <td class="mono">${fmtDate(r.validadeCnh)}</td>
       <td class="mono">${fmtDate(r.validadeToxCnh)}</td>
@@ -3145,7 +3145,7 @@
     const proximoAso = calcProximoVencimentoAso(r.admissaoPeriodico);
     return `
       <div class="modal-title">SSMA — ${c?.nome||'—'}</div>
-      <div class="page-sub" style="margin-bottom:14px;">${c?.cargo||'—'} · ${c?.unidade||'—'} · CPF ${c?.cpf||'—'}</div>
+      <div class="page-sub" style="margin-bottom:14px;">${c?.cargo||'—'} · ${c?.unidade||'—'} · Matrícula ${c?.matricula||'—'} · CPF ${c?.cpf||'—'}</div>
 
       <div class="card" style="padding:12px; margin-bottom:14px;">
         <div class="field-row">
@@ -3312,7 +3312,9 @@
     return buscarDataComRotulo(linhas, ['DATA DA COLETA','DATA DE COLETA','COLETA REALIZADA EM','DATA COLETA']);
   }
   function extrairDataAdmissaoPeriodico(linhas){
-    return buscarDataComRotulo(linhas, ['DATA DO EXAME CLINICO OCUPACIONAL','DATA DO EXAME CLINICO','DATA DO EXAME','DATA DE EMISSAO DO ASO','DATA DO ASO','ASO EMITIDO EM']);
+    // "Data de fechamento do ASO" é o rótulo real usado pela Porto Saúde (validado com laudo de exemplo);
+    // os demais são variações comuns de outras clínicas/PCMSOs
+    return buscarDataComRotulo(linhas, ['DATA DE FECHAMENTO DO ASO','DATA DO FECHAMENTO DO ASO','FECHAMENTO DO ASO','DATA DO EXAME CLINICO OCUPACIONAL','DATA DO EXAME CLINICO','DATA DE EMISSAO DO ASO','DATA DO ASO','ASO EMITIDO EM']);
   }
 
   LOTS.lerPdfSsma = async (colaboradorId, tipo)=>{
