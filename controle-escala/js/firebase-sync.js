@@ -26,8 +26,11 @@ function setStatus(text, cls) {
 
 // Guarda o último erro pra mostrar num popup ao clicar no indicador —
 // assim dá pra ver o motivo real sem precisar abrir o F12/Console, que
-// nem todo mundo sabe achar.
-window.__firebaseDebug = { lastError: null, projectId: firebaseConfig.projectId };
+// nem todo mundo sabe achar. O build vem do "?v=" com que este próprio
+// módulo foi carregado — dá pra confirmar se um aparelho já pegou a
+// versão mais nova só olhando essa telinha, sem precisar adivinhar.
+const BUILD = new URL(import.meta.url).searchParams.get("v") || "?";
+window.__firebaseDebug = { lastError: null, projectId: firebaseConfig.projectId, build: BUILD };
 function logError(label, err) {
   const msg = err && err.message ? err.message : String(err);
   window.__firebaseDebug.lastError = `${label}: ${msg}`;

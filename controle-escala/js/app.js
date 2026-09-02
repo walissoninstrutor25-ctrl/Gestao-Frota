@@ -2282,6 +2282,7 @@ function startApp() {
       <div class="modal confirm-modal">
         <div class="modal-body">
           <p class="confirm-msg" style="text-align:left">
+            <b>Versão do app:</b> ${dbg.build || '—'}<br>
             <b>Status atual:</b> ${statusEl.textContent}<br>
             <b>Projeto:</b> ${dbg.projectId || '—'}<br>
             <b>Conectado (ready):</b> ${sync.ready ? 'sim' : 'não'}<br>
