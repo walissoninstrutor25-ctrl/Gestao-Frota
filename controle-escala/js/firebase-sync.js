@@ -101,18 +101,7 @@ async function connect() {
     async pushEdits(edits) {
       lastPushedJson = stableStringify(edits);
       try {
-        const payload = JSON.parse(JSON.stringify(edits));
-        // Cópia de segurança rotativa: um campo extra por dia da semana
-        // (7 no total, sempre no mesmo documento — não precisa de outra
-        // regra de segurança). merge:true faz os campos normais da escala
-        // se comportarem exatamente como um setDoc() cheio de sempre (eles
-        // sempre vêm todos preenchidos em "edits"), mas preserva os
-        // _backup_diaN de OUTROS dias em vez de apagar por cima. Existe só
-        // pra dar um jeito de recuperar manualmente se um aparelho
-        // desatualizado um dia sobrescrever dados mais novos sem querer —
-        // o app nunca lê esses campos de volta.
-        const backupField = `_backup_dia${new Date().getDay()}`;
-        await withTimeout(setDoc(ref, { ...payload, [backupField]: { em: new Date().toISOString(), dados: payload } }, { merge: true }), 8000);
+        await withTimeout(setDoc(ref, JSON.parse(JSON.stringify(edits))), 8000);
       } catch (err) {
         logError("salvar (mudança fica só local até reconectar)", err);
       }
