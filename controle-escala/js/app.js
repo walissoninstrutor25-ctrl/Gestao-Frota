@@ -810,6 +810,49 @@ function renderEfetivos() {
   }
 }
 
+const MESES_NOMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+// Ano de referência pros filtros de período (Ausência/Afastados/Dashboard)
+// — pega de qualquer dataset carregado, já que esses filtros não estão
+// presos a uma aba de escala específica.
+function anoRefEscalas() {
+  return (Object.values(datasets).find((d) => d && d.ano) || {}).ano || new Date().getFullYear();
+}
+
+function monthBounds(ano, mesNumero) {
+  return { de: isoDateFor(ano, mesNumero, 1), ate: isoDateFor(ano, mesNumero, new Date(ano, mesNumero, 0).getDate()) };
+}
+
+// <select> de "mês inteiro" pra preencher De/Até de uma vez, usado nos
+// filtros de período de Ausência, Afastados e Dashboard. Fica sincronizado
+// sozinho: se De/Até batem exatamente com um mês inteiro ele mostra
+// selecionado, senão volta pro placeholder (ex: quando o filtro foi
+// digitado a mão ou limpo).
+function monthSelectHtml(id, de, ate) {
+  const ano = anoRefEscalas();
+  let selecionado = '';
+  for (let m = 1; m <= 12; m++) {
+    const b = monthBounds(ano, m);
+    if (b.de === de && b.ate === ate) { selecionado = String(m); break; }
+  }
+  const opts = MESES_NOMES.map((nome, i) => `<option value="${i + 1}" ${selecionado === String(i + 1) ? 'selected' : ''}>${nome}</option>`).join('');
+  return `<select id="${id}" title="Selecionar o mês inteiro"><option value="">Mês…</option>${opts}</select>`;
+}
+
+// Wire genérico do <select> de mês: ao escolher, sobrescreve de/ate do
+// filtro informado (state[filtroKey]) com o mês inteiro e re-renderiza.
+function wireMonthSelect(id, filtroKey, renderFn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('change', (e) => {
+    if (!e.target.value) return;
+    const b = monthBounds(anoRefEscalas(), Number(e.target.value));
+    state[filtroKey].de = b.de;
+    state[filtroKey].ate = b.ate;
+    renderFn();
+  });
+}
+
 // Apontamentos antigos (de antes da UO ser gravada no registro) recuperam
 // a UO buscando a pessoa nos dados atuais da escala (por pk ou matrícula)
 // — cobre qualquer motorista, não só quem está cadastrado em Efetivos.
@@ -849,6 +892,7 @@ function renderBancoHoras() {
     <div class="toolbar-tools" style="margin-bottom:14px">
       <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">De</span><input type="date" id="bhFiltroDe" value="${de}"></div>
       <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">Até</span><input type="date" id="bhFiltroAte" value="${ate}"></div>
+      <div class="field">${monthSelectHtml('bhFiltroMes', de, ate)}</div>
       ${(de || ate) ? `<button class="icon-btn" id="bhFiltroLimpar">Limpar filtro</button>` : ''}
     </div>
     <div class="table-scroll">
@@ -881,6 +925,7 @@ function renderBancoHoras() {
   };
   wireFiltro('bhFiltroDe', 'de');
   wireFiltro('bhFiltroAte', 'ate');
+  wireMonthSelect('bhFiltroMes', 'bhFiltro', renderBancoHoras);
   const limparBtn = document.getElementById('bhFiltroLimpar');
   if (limparBtn) limparBtn.addEventListener('click', () => { state.bhFiltro.de = ''; state.bhFiltro.ate = ''; renderBancoHoras(); });
 
@@ -923,6 +968,7 @@ function renderAfastados() {
     <div class="toolbar-tools" style="margin-bottom:14px">
       <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">Retorno de</span><input type="date" id="afFiltroDe" value="${de}"></div>
       <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">até</span><input type="date" id="afFiltroAte" value="${ate}"></div>
+      <div class="field">${monthSelectHtml('afFiltroMes', de, ate)}</div>
       ${(de || ate) ? `<button class="icon-btn" id="afFiltroLimpar">Limpar filtro</button>` : ''}
     </div>
     <div class="table-scroll">
@@ -958,6 +1004,7 @@ function renderAfastados() {
   };
   wireFiltro('afFiltroDe', 'de');
   wireFiltro('afFiltroAte', 'ate');
+  wireMonthSelect('afFiltroMes', 'afastadosFiltro', renderAfastados);
   const limparBtn = document.getElementById('afFiltroLimpar');
   if (limparBtn) limparBtn.addEventListener('click', () => { state.afastadosFiltro.de = ''; state.afastadosFiltro.ate = ''; renderAfastados(); });
 
@@ -1054,6 +1101,7 @@ function dashboardAusenciasHtml() {
         <div class="ausencias-filtro">
           <div class="field"><span class="ausencias-filtro-label">De</span><input type="date" id="dashAusDe" value="${de}"></div>
           <div class="field"><span class="ausencias-filtro-label">Até</span><input type="date" id="dashAusAte" value="${ate}"></div>
+          <div class="field">${monthSelectHtml('dashAusMes', de, ate)}</div>
           ${(de || ate) ? `<button class="icon-btn" id="dashAusLimpar">Limpar</button>` : ''}
         </div>
       </div>
@@ -1114,6 +1162,7 @@ function renderDashboard() {
   };
   wireAusFiltro('dashAusDe', 'de');
   wireAusFiltro('dashAusAte', 'ate');
+  wireMonthSelect('dashAusMes', 'dashAusenciaFiltro', renderDashboard);
   const dashAusLimparBtn = document.getElementById('dashAusLimpar');
   if (dashAusLimparBtn) dashAusLimparBtn.addEventListener('click', () => { state.dashAusenciaFiltro = { de: '', ate: '' }; renderDashboard(); });
 
