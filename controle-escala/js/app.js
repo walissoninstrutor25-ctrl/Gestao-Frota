@@ -74,7 +74,7 @@ const state = {
   efetivosUnit: 'MNS', // UO selecionada na aba Motoristas Efetivos
   efetivosSource: 'motoristas', // de qual escala puxar a lista de seleção na aba Efetivos
   bhFiltro: { de: '', ate: '', unidade: '' }, // período (datas ISO) + UO selecionados na aba Ausência
-  dashAusenciaFiltro: { de: '', ate: '' }, // período do card de Ausências/Afastados no Dashboard
+  dashAusenciaFiltro: { de: '', ate: '', turno: '' }, // período + turno do card de Ausências/Afastados no Dashboard
   afastadosFiltro: { de: '', ate: '', unidade: '' }, // filtro (previsão de retorno + UO) na aba Afastados
   role: 'visualizador', // 'adm' | 'visualizador' — 'adm' só depois de entrar com a senha, ver showAdmLoginModal()
 };
@@ -883,7 +883,7 @@ function renderBancoHoras() {
   app.innerHTML = `
     <div class="panel-head">
       <h2>Ausência</h2>
-      <p>Atestados, faltas e folgas de banco de horas apontados pela escala.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra remover um apontamento.'}</p>
+      <p>Atestados, faltas, DSR e folgas de banco de horas apontados pela escala.${state.editMode ? '' : ' Ative o modo de edição (✏️ Editar) pra remover um apontamento.'}</p>
     </div>
     <div class="unit-switch" id="bhUnitSwitch">
       <button class="unit-btn ${!unidade ? 'active' : ''}" data-unit="">Todas as UO</button>
@@ -906,7 +906,7 @@ function renderBancoHoras() {
             <td>${bhUnidade(r) || '—'}</td>
             <td>${r.turno || '—'}</td>
             <td>${r.lider || '—'}</td>
-            <td><span class="ef-badge ${r.tipo === 'BH' ? 'ef-badge-ativo' : 'ef-badge-afastado'}">${r.tipo === 'BH' ? '🕐 BH' : r.tipo === 'FALTA' ? '🚫 Falta' : '📋 Atestado'}</span></td>
+            <td><span class="ef-badge ${r.tipo === 'BH' ? 'ef-badge-ativo' : r.tipo === 'DSR' ? 'ef-badge-neutro' : 'ef-badge-afastado'}">${r.tipo === 'BH' ? '🕐 BH' : r.tipo === 'FALTA' ? '🚫 Falta' : r.tipo === 'DSR' ? '🗓️ DSR' : '📋 Atestado'}</span></td>
             ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-id="${r.id}" title="Remover">🗑</button></td>` : ''}
           </tr>`).join('') : `<tr><td colspan="${state.editMode ? 8 : 7}"><div class="empty-state">Nenhum atestado ou banco de horas apontado${unidade || de || ate ? ' com esse filtro' : ''}.</div></td></tr>`}
         </tbody>
@@ -1072,12 +1072,13 @@ function renderLimpoWarnings() {
 // no Dashboard, mas tem seu próprio De/Até (independente do mês da
 // escala, já que ausências são eventos, não uma visão mês a mês).
 function dashboardAusenciasHtml() {
-  const { de, ate } = state.dashAusenciaFiltro;
-  const ausencias = edits.bancoHoras.filter((r) =>
-    (state.dashUnit === 'todos' || bhUnidade(r) === state.dashUnit) &&
-    (!de || r.data >= de) && (!ate || r.data <= ate)
+  const { de, ate, turno } = state.dashAusenciaFiltro;
+  const porUnidade = edits.bancoHoras.filter((r) => state.dashUnit === 'todos' || bhUnidade(r) === state.dashUnit);
+  const turnosRef = [...new Set(porUnidade.map((r) => r.turno).filter(Boolean))].sort();
+  const ausencias = porUnidade.filter((r) =>
+    (!de || r.data >= de) && (!ate || r.data <= ate) && (!turno || r.turno === turno)
   );
-  const porTipo = { ATESTADO: 0, BH: 0, FALTA: 0 };
+  const porTipo = { ATESTADO: 0, BH: 0, DSR: 0, FALTA: 0 };
   ausencias.forEach((r) => { if (porTipo[r.tipo] !== undefined) porTipo[r.tipo]++; });
   const total = ausencias.length;
   const pct = (n) => total ? Math.round((n / total) * 100) : 0;
@@ -1091,6 +1092,7 @@ function dashboardAusenciasHtml() {
   const meters = [
     { label: '📋 Atestado', n: porTipo.ATESTADO, cls: 'meter-atestado' },
     { label: '🕐 Banco de horas', n: porTipo.BH, cls: 'meter-bh' },
+    { label: '🗓️ DSR', n: porTipo.DSR, cls: 'meter-dsr' },
     { label: '🚫 Falta', n: porTipo.FALTA, cls: 'meter-falta' },
   ];
 
@@ -1102,7 +1104,8 @@ function dashboardAusenciasHtml() {
           <div class="field"><span class="ausencias-filtro-label">De</span><input type="date" id="dashAusDe" value="${de}"></div>
           <div class="field"><span class="ausencias-filtro-label">Até</span><input type="date" id="dashAusAte" value="${ate}"></div>
           <div class="field">${monthSelectHtml('dashAusMes', de, ate)}</div>
-          ${(de || ate) ? `<button class="icon-btn" id="dashAusLimpar">Limpar</button>` : ''}
+          <div class="field"><select id="dashAusTurno"><option value="">Todos os turnos</option>${turnosRef.map((t) => `<option value="${t}" ${turno === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+          ${(de || ate || turno) ? `<button class="icon-btn" id="dashAusLimpar">Limpar</button>` : ''}
         </div>
       </div>
       ${total ? `
@@ -1113,7 +1116,7 @@ function dashboardAusenciasHtml() {
               <div class="ausencia-meter-track"><div class="ausencia-meter-fill ${m.cls}" style="width:${pct(m.n)}%"></div></div>
             </div>`).join('')}
         </div>
-      ` : `<p class="ts-detalhe-vazio" style="margin:4px 0 0">Nenhuma ausência registrada${de || ate ? ' nesse período' : ''}.</p>`}
+      ` : `<p class="ts-detalhe-vazio" style="margin:4px 0 0">Nenhuma ausência registrada${de || ate || turno ? ' com esse filtro' : ''}.</p>`}
       <div class="ausencias-afastados">
         <span class="ausencias-afastados-label">🏥 Afastados${de || ate ? ' com retorno previsto nesse período' : ' no momento'}</span>
         <b>${afastadosCount}</b>
@@ -1163,8 +1166,10 @@ function renderDashboard() {
   wireAusFiltro('dashAusDe', 'de');
   wireAusFiltro('dashAusAte', 'ate');
   wireMonthSelect('dashAusMes', 'dashAusenciaFiltro', renderDashboard);
+  const dashAusTurnoEl = document.getElementById('dashAusTurno');
+  if (dashAusTurnoEl) dashAusTurnoEl.addEventListener('change', (e) => { state.dashAusenciaFiltro.turno = e.target.value; renderDashboard(); });
   const dashAusLimparBtn = document.getElementById('dashAusLimpar');
-  if (dashAusLimparBtn) dashAusLimparBtn.addEventListener('click', () => { state.dashAusenciaFiltro = { de: '', ate: '' }; renderDashboard(); });
+  if (dashAusLimparBtn) dashAusLimparBtn.addEventListener('click', () => { state.dashAusenciaFiltro = { de: '', ate: '', turno: '' }; renderDashboard(); });
 
   if (state.editMode) {
     app.querySelectorAll('.meta-input').forEach((input) => {
@@ -1611,7 +1616,7 @@ function renderTodayStrip(ds, cfg, monthMeta) {
   const grupos = new Map();
   pool.forEach((p) => {
     const papel = p.papelNormalizado || '—';
-    if (!grupos.has(papel)) grupos.set(papel, { trabalhando: [], folga: [], bh: [], falta: [], atestado: [] });
+    if (!grupos.has(papel)) grupos.set(papel, { trabalhando: [], folga: [], bh: [], dsr: [], falta: [], atestado: [] });
     const g = grupos.get(papel);
     const sched = p.escala[curKey];
     const status = sched ? sched[day - 1] : undefined;
@@ -1620,6 +1625,7 @@ function renderTodayStrip(ds, cfg, monthMeta) {
     const pk = personKey(cfg.id, p);
     const registro = edits.bancoHoras.find((r) => r.pk === pk && r.data === dataIso);
     if (registro && registro.tipo === 'BH') g.bh.push(p);
+    else if (registro && registro.tipo === 'DSR') g.dsr.push(p);
     else if (registro && registro.tipo === 'FALTA') g.falta.push(p);
     else if (registro && registro.tipo === 'ATESTADO') g.atestado.push(p);
     else g.folga.push(p);
@@ -1652,6 +1658,7 @@ function showTurnoDetalheModal(papel, grupo) {
     { label: 'Trabalhando', lista: grupo.trabalhando },
     { label: 'De folga', lista: grupo.folga },
     { label: 'Banco de horas', lista: grupo.bh },
+    { label: 'DSR', lista: grupo.dsr },
     { label: 'Falta', lista: grupo.falta },
     { label: 'Atestado', lista: grupo.atestado },
   ];
@@ -1803,8 +1810,8 @@ async function marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo) {
   edits.dias[pk] = edits.dias[pk] || {};
   edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
   edits.dias[pk][monthKey][idx] = 'O';
-  const tipoLabel = tipo === 'bh' ? 'BH' : tipo === 'falta' ? 'FALTA' : 'ATESTADO';
-  const classeSufixo = tipo === 'bh' ? 'bh' : tipo === 'falta' ? 'falta' : 'at';
+  const tipoLabel = tipo === 'bh' ? 'BH' : tipo === 'falta' ? 'FALTA' : tipo === 'dsr' ? 'DSR' : 'ATESTADO';
+  const classeSufixo = tipo === 'bh' ? 'bh' : tipo === 'falta' ? 'falta' : tipo === 'dsr' ? 'dsr' : 'at';
   edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
   edits.bancoHoras.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1815,7 +1822,7 @@ async function marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo) {
     tipo: tipoLabel,
   });
   persistEdits();
-  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh', 'atbh-falta');
+  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh', 'atbh-falta', 'atbh-dsr');
   cellEl.classList.add('off', 'atbh', `atbh-${classeSufixo}`);
   renderCards(ds, cfg, monthMeta);
   renderTodayStrip(ds, cfg, monthMeta);
@@ -1857,7 +1864,7 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   } else {
     const tipo = await showFolgaTypeModal();
     if (!tipo) return; // cancelado
-    if (tipo === 'atestado' || tipo === 'bh' || tipo === 'falta') {
+    if (tipo === 'atestado' || tipo === 'bh' || tipo === 'falta' || tipo === 'dsr') {
       await marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo);
       return;
     }
@@ -1892,7 +1899,7 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   edits.dias[pk][monthKey][idx] = next;
   persistEdits();
 
-  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh', 'atbh-falta');
+  cellEl.classList.remove('work', 'off', 'nodata', 'atbh', 'atbh-at', 'atbh-bh', 'atbh-falta', 'atbh-dsr');
   cellEl.classList.add(next === 'W' ? 'work' : 'off');
   renderCards(ds, cfg, monthMeta);
   renderTodayStrip(ds, cfg, monthMeta);
@@ -1910,7 +1917,7 @@ function personRowHtml(p, days, monthMeta, ds, todayDay, cfg, bhLookup) {
     let cls = 'nodata';
     if (status === 'W') cls = 'work'; else if (status === 'O') cls = 'off';
     const tipo = (status === 'O' && pk && bhLookup) ? bhLookup.get(`${pk}|${isoDateFor(ds.ano, monthMeta.numero, d)}`) : null;
-    const atbhCls = tipo === 'BH' ? 'atbh atbh-bh' : tipo === 'FALTA' ? 'atbh atbh-falta' : tipo === 'ATESTADO' ? 'atbh atbh-at' : '';
+    const atbhCls = tipo === 'BH' ? 'atbh atbh-bh' : tipo === 'FALTA' ? 'atbh atbh-falta' : tipo === 'DSR' ? 'atbh atbh-dsr' : tipo === 'ATESTADO' ? 'atbh atbh-at' : '';
     return `<td class="day-cell ${cls} ${atbhCls} ${wk ? 'weekend' : ''} ${isToday ? 'today-col' : ''}" data-day="${d}"><span class="dot"></span></td>`;
   }).join('');
   return `<tr class="person-row" data-key="${p.__key}">
@@ -2108,6 +2115,7 @@ function showFolgaTypeModal(somenteAtBh) {
           <button class="icon-btn" id="folgaTypeCancel">Cancelar</button>
           <button class="icon-btn" id="folgaTypeAtestado">📋 Atestado</button>
           <button class="icon-btn" id="folgaTypeBh">🕐 Banco de horas</button>
+          <button class="icon-btn" id="folgaTypeDsr">🗓️ DSR</button>
           <button class="icon-btn danger" id="folgaTypeFalta">🚫 Falta</button>
           ${somenteAtBh ? '' : '<button class="icon-btn primary" id="folgaTypeFolgar">Folga normal</button>'}
         </div>
@@ -2118,6 +2126,7 @@ function showFolgaTypeModal(somenteAtBh) {
     if (!somenteAtBh) document.getElementById('folgaTypeFolgar').addEventListener('click', () => finish('folgar'));
     document.getElementById('folgaTypeAtestado').addEventListener('click', () => finish('atestado'));
     document.getElementById('folgaTypeBh').addEventListener('click', () => finish('bh'));
+    document.getElementById('folgaTypeDsr').addEventListener('click', () => finish('dsr'));
     document.getElementById('folgaTypeFalta').addEventListener('click', () => finish('falta'));
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(null); }, { once: true });
   });
