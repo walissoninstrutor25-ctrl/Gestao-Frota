@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-02T18-49-10Z -->
+<!-- APP_BUILD:2026-09-02T19-18-52Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -15,6 +15,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
   :root{
     --bg:#eef4f0;
@@ -837,6 +838,14 @@
           <button class="btn-ghost" id="btn-clear-ssmafilter">Limpar</button>
         </div>
         <div class="kpi-grid" id="ssma-kpi-grid"></div>
+
+        <div class="card" id="card-ssma-vencimentos">
+          <div class="card-head"><div class="card-title">Painel de vencimentos de ASO</div></div>
+          <div class="page-sub" style="margin:-6px 0 10px 2px;">Colaboradores com ASO vencido ou a vencer em até 30 dias, do mais urgente para o menos urgente.</div>
+          <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Unidade</th><th>Vence em</th><th>Situação</th></tr></thead>
+          <tbody id="ssma-dash-vencimentos"></tbody></table>
+        </div>
+
         <div class="card">
           <table><thead><tr>
             <th>Nome</th><th>Cargo</th><th>Operação</th><th>CPF</th>
@@ -905,7 +914,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-02T18-49-10Z';
+  const APP_VERSION = '2026-09-02T19-18-52Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -992,6 +1001,18 @@
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  }
+  // salva o PDF como está, sem reamostrar (igual à foto, mas sem redimensionar)
+  function fileParaDataUrl(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  if(window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }
   const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
   const secondaryAuth = secondaryApp.auth();
@@ -3087,6 +3108,21 @@
       ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
     }
 
+    const dashTbl = document.getElementById('ssma-dash-vencimentos');
+    if(dashTbl){
+      const urgentes = todasLinhas.filter(x=>x.status==='vencido'||x.status==='alerta')
+        .sort((a,b)=>(a.proximoAso||'').localeCompare(b.proximoAso||''));
+      dashTbl.innerHTML = urgentes.length ? urgentes.map(({c,proximoAso,status})=>{
+        const dias = diasEntre(todayISO(), proximoAso);
+        const situacao = status==='vencido' ? `Vencido há ${Math.abs(dias)}d` : `Vence em ${dias}d`;
+        return `<tr>
+          <td>${c.nome}</td><td>${c.cargo||'—'}</td><td>${c.unidade||'—'}</td>
+          <td class="mono">${fmtDate(proximoAso)}</td>
+          <td class="mono ${vencimentoClasse(status)}">${situacao}</td>
+        </tr>`;
+      }).join('') : '<tr class="empty-row"><td colspan="5">Nenhum vencimento de ASO vencido ou próximo.</td></tr>';
+    }
+
     if(linhas.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="11">Nenhum colaborador encontrado.</td></tr>'; return; }
     tbl.innerHTML = linhas.map(({c,r,proximoAso,status})=>`<tr>
       <td>${c.nome}</td>
@@ -3105,10 +3141,36 @@
   function ssmaForm(colaboradorId){
     const c = colaboradorById(colaboradorId);
     const r = ssmaRecordFor(colaboradorId);
+    const docs = state.ssmaDocs[colaboradorId] || {};
     const proximoAso = calcProximoVencimentoAso(r.admissaoPeriodico);
     return `
       <div class="modal-title">SSMA — ${c?.nome||'—'}</div>
       <div class="page-sub" style="margin-bottom:14px;">${c?.cargo||'—'} · ${c?.unidade||'—'} · CPF ${c?.cpf||'—'}</div>
+
+      <div class="card" style="padding:12px; margin-bottom:14px;">
+        <div class="field-row">
+          <div class="field">
+            <label>Anexar PDF da CNH (lê e preenche sozinho)</label>
+            <input type="file" id="sf-file-cnh" accept="application/pdf">
+            <div class="page-sub" id="sf-status-cnh" style="margin:6px 0 0;">${docs.pdfCnh ? '📎 PDF já anexado.' : 'Nenhum PDF anexado ainda.'}</div>
+            <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+              <button type="button" class="btn-ghost" onclick="LOTS.lerPdfSsma('${colaboradorId}','cnh')">Ler PDF e preencher</button>
+              ${docs.pdfCnh ? `<button type="button" class="btn-ghost" onclick="LOTS.removerPdfSsma('${colaboradorId}','cnh')">Remover PDF</button>` : ''}
+            </div>
+          </div>
+          <div class="field">
+            <label>Anexar PDF de Admissão/Periódico + Toxicológico (lê e preenche sozinho)</label>
+            <input type="file" id="sf-file-aso" accept="application/pdf">
+            <div class="page-sub" id="sf-status-aso" style="margin:6px 0 0;">${docs.pdfAso ? '📎 PDF já anexado.' : 'Nenhum PDF anexado ainda.'}</div>
+            <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+              <button type="button" class="btn-ghost" onclick="LOTS.lerPdfSsma('${colaboradorId}','aso')">Ler PDF e preencher</button>
+              ${docs.pdfAso ? `<button type="button" class="btn-ghost" onclick="LOTS.removerPdfSsma('${colaboradorId}','aso')">Remover PDF</button>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="page-sub" style="margin:8px 2px 0;">Funciona com PDFs de texto (a maioria dos laudos digitais). Depois de ler, confira sempre os campos abaixo antes de salvar.</div>
+      </div>
+
       <div class="field-row">
         <div class="field"><label>Nº CNH</label><input id="sf-cnh" value="${(r.cnh||'').replace(/"/g,'&quot;')}"></div>
         <div class="field"><label>Validade CNH</label><input type="date" id="sf-validade-cnh" value="${r.validadeCnh||''}"></div>
@@ -3150,6 +3212,166 @@
     renderSsma();
     toast('Dados de SSMA salvos.');
     logAudit('SSMA atualizado', colaboradorById(colaboradorId)?.nome||colaboradorId);
+  };
+
+  /* ---------------- SSMA — leitura automática de PDF ---------------- */
+  // Só funciona para PDFs digitais (com texto selecionável). PDF que é foto/print
+  // escaneado não tem texto pra ler — nesse caso os campos ficam em branco pra
+  // preenchimento manual (leitura de imagem exigiria um serviço de OCR pago à parte).
+  const SSMA_PDF_TAMANHO_MAX = 550*1024; // ~550KB por arquivo, pra nao estourar o limite de 1MB do documento (que guarda os 2 PDFs juntos)
+
+  function isoFromBr(dataBr){
+    const m = String(dataBr||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(!m) return '';
+    const [_, d, mes, a] = m;
+    if(+mes<1 || +mes>12 || +d<1 || +d>31) return '';
+    return `${a}-${mes}-${d}`;
+  }
+  function semAcento(s){
+    return String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  }
+  function somenteDigitos(s){ return String(s||'').replace(/\D/g,''); }
+
+  async function extrairLinhasPdf(arrayBuffer){
+    const doc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+    const linhas = [];
+    for(let p=1; p<=doc.numPages; p++){
+      const page = await doc.getPage(p);
+      const content = await page.getTextContent();
+      const porLinha = [];
+      content.items.forEach(it=>{
+        if(!it.str || !it.str.trim()) return;
+        const y = Math.round(it.transform[5]);
+        let linha = porLinha.find(l=>Math.abs(l.y-y)<=2);
+        if(!linha){ linha = {y, itens:[]}; porLinha.push(linha); }
+        linha.itens.push({x: it.transform[4], str: it.str});
+      });
+      porLinha.sort((a,b)=>b.y-a.y);
+      porLinha.forEach(l=>{
+        l.itens.sort((a,b)=>a.x-b.x);
+        const texto = l.itens.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+        if(texto) linhas.push(texto);
+      });
+    }
+    return linhas;
+  }
+  // procura um rotulo (sem acento) numa linha e devolve o trecho logo depois dele até o
+  // fim da linha — assim, quando duas datas de rotulos diferentes caem na mesma linha
+  // (comum em laudos), cada rotulo só enxerga o texto que vem depois dele, não antes
+  function valorAposRotulo(linhaOriginal, rotulo){
+    const linhaBusca = semAcento(linhaOriginal);
+    const idx = linhaBusca.indexOf(rotulo);
+    if(idx===-1) return null;
+    return linhaOriginal.slice(idx+rotulo.length).replace(/^[:\s.-]+/,'');
+  }
+  function buscarDataComRotulo(linhas, rotulos){
+    for(let i=0;i<linhas.length;i++){
+      for(const rotulo of rotulos){
+        const valor = valorAposRotulo(linhas[i], rotulo);
+        if(valor==null) continue;
+        let m = valor.match(/\d{2}\/\d{2}\/\d{4}/);
+        if(m) return isoFromBr(m[0]);
+        if(linhas[i+1]){ m = linhas[i+1].match(/\d{2}\/\d{2}\/\d{4}/); if(m) return isoFromBr(m[0]); }
+      }
+    }
+    return '';
+  }
+  function extrairCpfDoDoc(linhas){
+    const secaoIdx = linhas.findIndex(l=>/DOADOR|CONDUTOR|COLABORADOR|PACIENTE|FUNCIONARIO/.test(semAcento(l)));
+    const janela = secaoIdx!==-1 ? linhas.slice(secaoIdx, secaoIdx+8) : linhas;
+    for(const l of janela){ const m = l.match(/\d{3}\.\d{3}\.\d{3}-\d{2}/); if(m) return m[0]; }
+    for(const l of linhas){ const m = l.match(/\d{3}\.\d{3}\.\d{3}-\d{2}/); if(m) return m[0]; }
+    return '';
+  }
+  function extrairNumeroRegistroCnh(linhas){
+    for(const l of linhas){
+      const busca = semAcento(l);
+      if(busca.includes('REGISTRO')){
+        const m = l.match(/\d[\d.\s]{8,14}\d/);
+        if(m){ const digitos = somenteDigitos(m[0]); if(digitos.length>=9 && digitos.length<=11) return digitos; }
+      }
+    }
+    return '';
+  }
+  function extrairValidadesCnh(linhas){
+    let validadeCnh = '', validadeTox = '';
+    linhas.forEach((l, i)=>{
+      const busca = semAcento(l);
+      if(!busca.includes('VALIDADE')) return;
+      const ehToxicologico = busca.includes('TOXICOLOGICO') || (linhas[i-1] && semAcento(linhas[i-1]).includes('TOXICOLOGICO'));
+      let m = l.match(/\d{2}\/\d{2}\/\d{4}/);
+      if(!m && linhas[i+1]) m = linhas[i+1].match(/\d{2}\/\d{2}\/\d{4}/);
+      if(!m) return;
+      const iso = isoFromBr(m[0]);
+      if(ehToxicologico && !validadeTox) validadeTox = iso;
+      else if(!ehToxicologico && !validadeCnh) validadeCnh = iso;
+    });
+    return {cnh: validadeCnh, tox: validadeTox};
+  }
+  function extrairDataToxicologicoLots(linhas){
+    return buscarDataComRotulo(linhas, ['DATA DA COLETA','DATA DE COLETA','COLETA REALIZADA EM','DATA COLETA']);
+  }
+  function extrairDataAdmissaoPeriodico(linhas){
+    return buscarDataComRotulo(linhas, ['DATA DO EXAME CLINICO OCUPACIONAL','DATA DO EXAME CLINICO','DATA DO EXAME','DATA DE EMISSAO DO ASO','DATA DO ASO','ASO EMITIDO EM']);
+  }
+
+  LOTS.lerPdfSsma = async (colaboradorId, tipo)=>{
+    const inputId = tipo==='cnh' ? 'sf-file-cnh' : 'sf-file-aso';
+    const input = document.getElementById(inputId);
+    const file = input?.files?.[0];
+    if(!file){ toast('Selecione um arquivo PDF primeiro.'); return; }
+    if(file.type!=='application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){ toast('Selecione um arquivo em PDF.'); return; }
+    if(file.size > SSMA_PDF_TAMANHO_MAX){ toast('PDF muito grande (máx. ~550KB). Comprima o arquivo ou preencha os campos manualmente.'); return; }
+    if(!window.pdfjsLib){ toast('A biblioteca de leitura de PDF não carregou. Verifique sua internet e tente novamente.'); return; }
+    toast('Lendo PDF...');
+    try{
+      const buffer = await file.arrayBuffer();
+      const linhas = await extrairLinhasPdf(buffer.slice(0));
+      const dataUrl = await fileParaDataUrl(file);
+      await salvarDocSsma(colaboradorId, tipo==='cnh'?'pdfCnh':'pdfAso', dataUrl);
+
+      const c = colaboradorById(colaboradorId);
+      const cpfDoc = extrairCpfDoDoc(linhas);
+      if(cpfDoc && c?.cpf && somenteDigitos(cpfDoc)!==somenteDigitos(c.cpf)){
+        toast('Atenção: o CPF do PDF não confere com o do colaborador selecionado. Confira se anexou o documento certo.');
+      }
+
+      let algumCampo = false;
+      if(tipo==='cnh'){
+        const numero = extrairNumeroRegistroCnh(linhas);
+        const validades = extrairValidadesCnh(linhas);
+        if(numero){ document.getElementById('sf-cnh').value = numero; algumCampo = true; }
+        if(validades.cnh){ document.getElementById('sf-validade-cnh').value = validades.cnh; algumCampo = true; }
+        if(validades.tox){ document.getElementById('sf-validade-tox-cnh').value = validades.tox; algumCampo = true; }
+        document.getElementById('sf-status-cnh').textContent = '📎 PDF anexado.';
+      } else {
+        const dataColeta = extrairDataToxicologicoLots(linhas);
+        const dataAdmPer = extrairDataAdmissaoPeriodico(linhas);
+        if(dataColeta){ document.getElementById('sf-tox-lots').value = dataColeta; algumCampo = true; }
+        if(dataAdmPer){
+          document.getElementById('sf-admissao-periodico').value = dataAdmPer;
+          document.getElementById('sf-admissao-periodico').dispatchEvent(new Event('change'));
+          algumCampo = true;
+        }
+        document.getElementById('sf-status-aso').textContent = '📎 PDF anexado.';
+      }
+      if(!algumCampo && !cpfDoc && linhas.length===0){
+        toast('Esse PDF parece ser uma imagem/foto (sem texto pra ler). O documento foi anexado, mas preencha os campos manualmente.');
+      } else if(!algumCampo){
+        toast('PDF anexado, mas não consegui identificar os dados automaticamente. Preencha os campos manualmente.');
+      } else {
+        toast('PDF lido! Confira os dados preenchidos antes de salvar.');
+      }
+    }catch(err){
+      console.error('leitura pdf ssma falhou', err);
+      toast('Não consegui ler esse PDF automaticamente. O documento pode ser anexado e os campos preenchidos manualmente.');
+    }
+  };
+  LOTS.removerPdfSsma = async (colaboradorId, tipo)=>{
+    await removerDocSsma(colaboradorId, tipo==='cnh'?'pdfCnh':'pdfAso');
+    const statusEl = document.getElementById(tipo==='cnh'?'sf-status-cnh':'sf-status-aso');
+    if(statusEl) statusEl.textContent = 'Nenhum PDF anexado ainda.';
+    toast('PDF removido.');
   };
 
   /* ---------------- USUÁRIOS ---------------- */
