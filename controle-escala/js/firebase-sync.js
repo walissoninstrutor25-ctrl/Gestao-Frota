@@ -17,7 +17,13 @@ const firebaseConfig = {
 
 const SDK_VERSION = "10.13.2";
 const DOC_PATH = ["escala", "edits"]; // coleção "escala", documento "edits"
-const CONNECT_TIMEOUT_MS = 12000;
+// Numa rede de celular mais lenta (ou com a operadora atravancando
+// especificamente o tráfego do Firestore), uma leitura/escrita pode
+// legitimamente passar de 8s sem estar realmente offline — só devagar.
+// Esses prazos foram alargados depois de ver esse erro exato acontecer
+// ("buscar dados iniciais: tempo esgotado") numa conexão 4G real.
+const CONNECT_TIMEOUT_MS = 20000;
+const OP_TIMEOUT_MS = 20000; // getDoc/setDoc individuais
 
 function setStatus(text, cls) {
   const el = document.getElementById("syncStatus");
@@ -102,7 +108,7 @@ async function connect() {
     },
     async fetchInitial() {
       try {
-        const snap = await withTimeout(getDoc(ref), 8000);
+        const snap = await withTimeout(getDoc(ref), OP_TIMEOUT_MS);
         return snap.exists() ? snap.data() : null;
       } catch (err) {
         logError("buscar dados iniciais", err);
@@ -112,7 +118,7 @@ async function connect() {
     async pushEdits(edits) {
       lastPushedJson = stableStringify(edits);
       try {
-        await withTimeout(setDoc(ref, JSON.parse(JSON.stringify(edits))), 8000);
+        await withTimeout(setDoc(ref, JSON.parse(JSON.stringify(edits))), OP_TIMEOUT_MS);
       } catch (err) {
         logError("salvar (mudança fica só local até reconectar)", err);
       }
@@ -149,11 +155,12 @@ setTimeout(() => { if (!settled) { settled = true; fail(new Error("tempo esgotad
 // muito bem estar funcionando mesmo sem a primeira confirmação do
 // onSnapshot ainda ter chegado, e desligar isso seria pior que só um
 // indicador desatualizado.
+const STATUS_SAFETY_MS = CONNECT_TIMEOUT_MS + OP_TIMEOUT_MS + 5000; // folga sobre o pior caso: conectar + 1 operação, ambos no limite
 setTimeout(() => {
   const el = document.getElementById("syncStatus");
   if (el && el.textContent.includes("Conectando")) {
-    if (!window.__firebaseDebug.lastError) window.__firebaseDebug.lastError = "indicador ficou preso em Conectando além de 25s (sem erro específico capturado)";
+    if (!window.__firebaseDebug.lastError) window.__firebaseDebug.lastError = `indicador ficou preso em Conectando além de ${Math.round(STATUS_SAFETY_MS / 1000)}s (sem erro específico capturado)`;
     el.textContent = "🔴 Offline";
     el.className = "sync-status sync-offline";
   }
-}, 25000);
+}, STATUS_SAFETY_MS);

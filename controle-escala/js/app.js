@@ -2286,7 +2286,8 @@ function startApp() {
             <b>Status atual:</b> ${statusEl.textContent}<br>
             <b>Projeto:</b> ${dbg.projectId || '—'}<br>
             <b>Conectado (ready):</b> ${sync.ready ? 'sim' : 'não'}<br>
-            <b>Último erro:</b> ${dbg.lastError || 'nenhum registrado'}${dbg.lastErrorAt ? ' (' + dbg.lastErrorAt + ')' : ''}
+            <b>Último erro:</b> ${dbg.lastError || 'nenhum registrado'}${dbg.lastErrorAt ? ' (' + dbg.lastErrorAt + ')' : ''}<br>
+            <b>Recarregou por sync nesta aba:</b> ${sessionStorage.getItem('escala:syncReloadCount') || '0'}
           </p>
           <p class="confirm-msg" style="margin-top:10px;font-size:12px;color:var(--text-muted)">Manda um print dessa tela pro suporte se estiver com problema de sincronização.</p>
         </div>
@@ -2313,6 +2314,19 @@ function startApp() {
 // se tiver, recarrega já com ela. Dali em diante, qualquer edição de
 // qualquer pessoa conectada recarrega a página sozinha pra todo mundo
 // ficar vendo a mesma coisa (sem precisar apertar F5).
+// Conta quantas vezes essa aba recarregou por causa de dado remoto
+// diferente — se esse número subir rápido, é sinal de loop (mesma classe
+// de bug já vista antes nesse projeto: um "eco" da própria escrita sendo
+// lido como mudança nova). Fica visível na telinha de diagnóstico em vez
+// de depender de alguém notar um flash na tela.
+function reloadForRemoteSync(remoteData) {
+  const key = 'escala:syncReloadCount';
+  const count = (parseInt(sessionStorage.getItem(key) || '0', 10) || 0) + 1;
+  sessionStorage.setItem(key, String(count));
+  localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(remoteData));
+  location.reload();
+}
+
 function bootstrapFirebaseSync() {
   const onReady = async () => {
     if (!window.__firebaseSync || !window.__firebaseSync.ready) return;
@@ -2320,8 +2334,7 @@ function bootstrapFirebaseSync() {
     const remote = await window.__firebaseSync.fetchInitial();
     if (remote) {
       if (stable(remote) !== stable(edits)) {
-        localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(remote));
-        location.reload();
+        reloadForRemoteSync(remote);
         return;
       }
       // já está tudo igual — marca como sincronizado antes de assinar
@@ -2344,8 +2357,7 @@ function bootstrapFirebaseSync() {
       window.__firebaseSync.pushEdits(edits);
     }
     window.__firebaseSync.onRemoteChange((remoteData) => {
-      localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(remoteData));
-      location.reload();
+      reloadForRemoteSync(remoteData);
     });
   };
   if (window.__firebaseSync) onReady();
