@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-26T22-10-00Z -->
+<!-- APP_BUILD:2026-09-02T18-49-10Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -106,8 +106,13 @@
   .brand{font-family:'Oswald',sans-serif; font-size:15px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:0 8px 20px 8px; display:flex; align-items:center; gap:8px;}
   .brand-logo-img{height:30px; width:auto; object-fit:contain;}
   .brand-sub-only small{display:block; font-size:8px; color:var(--text-muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase;}
-  .nav-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; color:var(--accent); background:var(--surface-2); font-size:13.5px; font-weight:600; border-left:2px solid var(--accent); margin-bottom:2px;}
+  .nav-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; color:var(--text-muted); background:transparent; font-size:13.5px; font-weight:600; border-left:2px solid transparent; margin-bottom:2px; cursor:pointer;}
+  .nav-item:hover{color:var(--text); background:var(--surface-2);}
+  .nav-item.active{color:var(--accent); background:var(--surface-2); border-left:2px solid var(--accent);}
   .nav-ico{width:16px; text-align:center; font-family:'Roboto Mono',monospace; font-size:12px;}
+  .venc-ok{color:var(--go);}
+  .venc-alerta{color:#a5710f; font-weight:700;}
+  .venc-vencido{color:var(--danger); font-weight:700;}
   .subtab-bar{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:22px; border-bottom:1px solid var(--line); padding-bottom:2px;}
   .subtab{padding:9px 14px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; border-radius:6px 6px 0 0;}
   .subtab:hover{color:var(--text); background:var(--surface-2);}
@@ -350,7 +355,8 @@
         <img src="assets/lots-logo.png" alt="LOTS Group" class="brand-logo-img">
         <span class="brand-sub-only"><small>GESTÃO DE RH LOTS</small></span>
       </div>
-      <div class="nav-item"><span class="nav-ico">▤</span> Recursos Humanos</div>
+      <div class="nav-item active" id="nav-modulo-rh"><span class="nav-ico">▤</span> Recursos Humanos</div>
+      <div class="nav-item" id="nav-modulo-ssma"><span class="nav-ico">⛑</span> SSMA</div>
       <div class="sidebar-footer">
         <div class="status-pill" id="online-status"><span class="status-dot"></span><span id="online-status-text">Online</span></div>
         <div class="who">
@@ -807,6 +813,41 @@
         </div>
       </div>
 
+      <!-- SSMA -->
+      <div class="view" id="view-ssma">
+        <div class="topbar">
+          <div><div class="page-title">SSMA</div><div class="page-sub">CNH, toxicológico e ASO dos colaboradores ativos</div></div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Busca</label><input id="ssmafilter-busca" placeholder="Nome, cargo, CPF…"></div>
+          <div class="filter-field"><label>Unidade</label>
+            <select id="ssmafilter-unidade"><option value="">Todas</option>
+              <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
+              <option value="4818-NRAV">4818-NRAV</option><option value="4813-NRA">4813-NRA</option>
+              <option value="4830-PPAV">4830-PPAV</option><option value="4812-PPA">4812-PPA</option>
+            </select>
+          </div>
+          <div class="filter-field"><label>Situação do ASO</label>
+            <select id="ssmafilter-vencimento">
+              <option value="">Todas</option>
+              <option value="vencido">Vencido</option>
+              <option value="alerta">Vence em até 30 dias</option>
+            </select>
+          </div>
+          <button class="btn-ghost" id="btn-clear-ssmafilter">Limpar</button>
+        </div>
+        <div class="kpi-grid" id="ssma-kpi-grid"></div>
+        <div class="card">
+          <table><thead><tr>
+            <th>Nome</th><th>Cargo</th><th>Operação</th><th>CPF</th>
+            <th>CNH</th><th>Validade CNH</th><th>Validade Toxicológico CNH</th>
+            <th>Admissão/Periódico</th><th>Toxicológico LOTS</th>
+            <th>Próximo vencimento ASO</th><th></th>
+          </tr></thead>
+          <tbody id="tbl-ssma"></tbody></table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -864,7 +905,7 @@
     });
   }
 
-  const APP_VERSION = '2026-08-26T22-10-00Z';
+  const APP_VERSION = '2026-09-02T18-49-10Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -907,6 +948,29 @@
       snap.docs.forEach(d=>{ map[d.id] = d.data().data; });
       return map;
     }catch(e){ console.error('fotos load fail', e); return {}; }
+  }
+  // PDFs de CNH/ASO ficam numa coleção própria (um documento por colaborador), pelo
+  // mesmo motivo das fotos: manter o JSON principal de colaboradores sempre pequeno
+  const SSMA_DOCS_COLLECTION = 'lots-rh-ssma-docs';
+  // sempre grava o objeto inteiro (não usa merge:true — mais simples e evita apagar
+  // o outro PDF do mesmo colaborador por engano)
+  async function salvarDocSsma(colaboradorId, campo, dataUrl){
+    state.ssmaDocs[colaboradorId] = { ...(state.ssmaDocs[colaboradorId]||{}), [campo]: dataUrl };
+    try{ await db.collection(SSMA_DOCS_COLLECTION).doc(colaboradorId).set(state.ssmaDocs[colaboradorId]); }
+    catch(e){ console.error('ssma doc save fail', e); toast('Não foi possível salvar o PDF.'); }
+  }
+  async function removerDocSsma(colaboradorId, campo){
+    state.ssmaDocs[colaboradorId] = { ...(state.ssmaDocs[colaboradorId]||{}), [campo]: null };
+    try{ await db.collection(SSMA_DOCS_COLLECTION).doc(colaboradorId).set(state.ssmaDocs[colaboradorId]); }
+    catch(e){ console.error('ssma doc delete fail', e); }
+  }
+  async function loadAllSsmaDocs(){
+    try{
+      const snap = await db.collection(SSMA_DOCS_COLLECTION).get();
+      const map = {};
+      snap.docs.forEach(d=>{ map[d.id] = d.data(); });
+      return map;
+    }catch(e){ console.error('ssma docs load fail', e); return {}; }
   }
   // recorta a imagem em quadrado e reduz o tamanho antes de salvar (evita fotos gigantes)
   function resizeImageToDataUrl(file, maxSize){
@@ -1052,7 +1116,7 @@
   /* ---------------- estado ---------------- */
   let state = {
     users:[], colaboradores:[], ferias:[], vagas:[], processos:[], auditLog:[], quadroDesejado:[], fotos:{},
-    orgLayout:{},
+    orgLayout:{}, ssma:[], ssmaDocs:{},
     currentProfile:null
   };
 
@@ -1067,8 +1131,10 @@
     state.processos = await loadShared('processos', []);
     state.quadroDesejado = await loadShared('quadro-desejado', []);
     state.orgLayout = await loadShared('org-layout', {});
+    state.ssma = await loadShared('ssma', []);
     setLoadingProgress(80, 'Carregando fotos…');
     state.fotos = await loadAllFotos();
+    state.ssmaDocs = await loadAllSsmaDocs();
     state.auditLog = await loadShared('audit-log', []);
     setLoadingProgress(100, 'Pronto');
   }
@@ -1081,6 +1147,7 @@
     processos: () => saveShared('processos', state.processos),
     quadroDesejado: () => saveShared('quadro-desejado', state.quadroDesejado),
     orgLayout: () => saveShared('org-layout', state.orgLayout),
+    ssma: () => saveShared('ssma', state.ssma),
     auditLog: () => saveShared('audit-log', state.auditLog)
   };
 
@@ -1253,6 +1320,27 @@
     document.getElementById('view-'+name).classList.add('active');
     renderView(name);
   }
+
+  /* ---------------- MÓDULOS (Recursos Humanos x SSMA) ---------------- */
+  let ultimaViewRh = 'rhdash';
+  document.getElementById('nav-modulo-rh')?.addEventListener('click', ()=>switchModulo('rh'));
+  document.getElementById('nav-modulo-ssma')?.addEventListener('click', ()=>switchModulo('ssma'));
+  function switchModulo(nome){
+    document.getElementById('nav-modulo-rh').classList.toggle('active', nome==='rh');
+    document.getElementById('nav-modulo-ssma').classList.toggle('active', nome==='ssma');
+    document.getElementById('subtabs-rh').style.display = nome==='rh' ? 'flex' : 'none';
+    if(nome==='ssma'){
+      document.querySelectorAll('.subtab[data-view]').forEach(n=>n.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      document.getElementById('view-ssma').classList.add('active');
+      renderSsma();
+    } else {
+      switchView(ultimaViewRh);
+    }
+  }
+  document.querySelectorAll('.subtab[data-view]').forEach(el=>{
+    el.addEventListener('click', ()=>{ ultimaViewRh = el.dataset.view; });
+  });
 
   function enterApp(){
     document.getElementById('login-screen').style.display='none';
@@ -2944,6 +3032,126 @@
     }
   }
 
+  /* ---------------- SSMA ---------------- */
+  function ssmaRecordFor(colaboradorId){
+    return state.ssma.find(s=>s.colaboradorId===colaboradorId) || { colaboradorId, cnh:'', validadeCnh:'', validadeToxCnh:'', admissaoPeriodico:'', toxicologicoLots:'' };
+  }
+  function calcProximoVencimentoAso(dataBase){
+    return dataBase ? addMonths(dataBase, 12) : '';
+  }
+  function vencimentoStatus(dataVenc){
+    if(!dataVenc) return '';
+    const hoje = todayISO();
+    if(dataVenc < hoje) return 'vencido';
+    if(diasEntre(hoje, dataVenc) <= 30) return 'alerta';
+    return 'ok';
+  }
+  function vencimentoClasse(status){
+    return status==='vencido' ? 'venc-vencido' : status==='alerta' ? 'venc-alerta' : status==='ok' ? 'venc-ok' : '';
+  }
+  ['ssmafilter-busca','ssmafilter-unidade','ssmafilter-vencimento'].forEach(id=>{
+    document.addEventListener('input', e=>{ if(e.target && e.target.id===id) renderSsma(); });
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderSsma(); });
+  });
+  document.getElementById('btn-clear-ssmafilter')?.addEventListener('click', ()=>{
+    document.getElementById('ssmafilter-busca').value='';
+    document.getElementById('ssmafilter-unidade').value='';
+    document.getElementById('ssmafilter-vencimento').value='';
+    renderSsma();
+  });
+  function renderSsma(){
+    const tbl = document.getElementById('tbl-ssma');
+    if(!tbl) return;
+    const busca = (document.getElementById('ssmafilter-busca')?.value||'').trim().toLowerCase();
+    const uoF = document.getElementById('ssmafilter-unidade')?.value || '';
+    const vencF = document.getElementById('ssmafilter-vencimento')?.value || '';
+    const base = visibleColaboradores().filter(c=>c.status==='ativo')
+      .filter(c=>!uoF || c.unidade===uoF)
+      .filter(c=>!busca || [c.nome,c.cargo,c.cpf].join(' ').toLowerCase().includes(busca))
+      .sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+
+    const todasLinhas = base.map(c=>{
+      const r = ssmaRecordFor(c.id);
+      const proximoAso = calcProximoVencimentoAso(r.admissaoPeriodico);
+      return { c, r, proximoAso, status: vencimentoStatus(proximoAso) };
+    });
+    const linhas = vencF ? todasLinhas.filter(x=>x.status===vencF) : todasLinhas;
+
+    const kpiGrid = document.getElementById('ssma-kpi-grid');
+    if(kpiGrid){
+      kpiGrid.innerHTML = [
+        {label:'Colaboradores monitorados', val: todasLinhas.length},
+        {label:'ASO vencido', val: todasLinhas.filter(x=>x.status==='vencido').length, color:'var(--danger)'},
+        {label:'ASO vence em até 30 dias', val: todasLinhas.filter(x=>x.status==='alerta').length, color:'#a5710f'},
+        {label:'Sem data cadastrada', val: todasLinhas.filter(x=>x.status==='').length}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+
+    if(linhas.length===0){ tbl.innerHTML = '<tr class="empty-row"><td colspan="11">Nenhum colaborador encontrado.</td></tr>'; return; }
+    tbl.innerHTML = linhas.map(({c,r,proximoAso,status})=>`<tr>
+      <td>${c.nome}</td>
+      <td>${c.cargo||'—'}</td>
+      <td>${c.unidade||'—'}</td>
+      <td class="mono">${c.cpf||'—'}</td>
+      <td>${r.cnh||'—'}</td>
+      <td class="mono">${fmtDate(r.validadeCnh)}</td>
+      <td class="mono">${fmtDate(r.validadeToxCnh)}</td>
+      <td class="mono">${fmtDate(r.admissaoPeriodico)}</td>
+      <td class="mono">${fmtDate(r.toxicologicoLots)}</td>
+      <td class="mono ${vencimentoClasse(status)}">${proximoAso ? fmtDate(proximoAso) : '—'}</td>
+      <td><button class="icon-btn" onclick="LOTS.abrirSsmaEdit('${c.id}')">editar</button></td>
+    </tr>`).join('');
+  }
+  function ssmaForm(colaboradorId){
+    const c = colaboradorById(colaboradorId);
+    const r = ssmaRecordFor(colaboradorId);
+    const proximoAso = calcProximoVencimentoAso(r.admissaoPeriodico);
+    return `
+      <div class="modal-title">SSMA — ${c?.nome||'—'}</div>
+      <div class="page-sub" style="margin-bottom:14px;">${c?.cargo||'—'} · ${c?.unidade||'—'} · CPF ${c?.cpf||'—'}</div>
+      <div class="field-row">
+        <div class="field"><label>Nº CNH</label><input id="sf-cnh" value="${(r.cnh||'').replace(/"/g,'&quot;')}"></div>
+        <div class="field"><label>Validade CNH</label><input type="date" id="sf-validade-cnh" value="${r.validadeCnh||''}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Validade Toxicológico da CNH</label><input type="date" id="sf-validade-tox-cnh" value="${r.validadeToxCnh||''}"></div>
+        <div class="field"><label>Toxicológico LOTS</label><input type="date" id="sf-tox-lots" value="${r.toxicologicoLots||''}"></div>
+      </div>
+      <div class="field"><label>Admissão/Periódico (data do último ASO)</label><input type="date" id="sf-admissao-periodico" value="${r.admissaoPeriodico||''}"></div>
+      <div class="page-sub" id="sf-proximo-aso-preview">Próximo vencimento de ASO: <strong>${proximoAso ? fmtDate(proximoAso) : '—'}</strong> <span style="color:var(--text-faint);">(admissão/periódico + 1 ano)</span></div>
+      <div class="err-msg" id="sf-err"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.salvarSsma('${colaboradorId}')">Salvar</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  LOTS.abrirSsmaEdit = (colaboradorId)=>{
+    const c = colaboradorById(colaboradorId);
+    if(!c) return;
+    openModal(ssmaForm(colaboradorId));
+    document.getElementById('sf-admissao-periodico').addEventListener('change', (e)=>{
+      const proximo = calcProximoVencimentoAso(e.target.value);
+      document.getElementById('sf-proximo-aso-preview').innerHTML = `Próximo vencimento de ASO: <strong>${proximo ? fmtDate(proximo) : '—'}</strong> <span style="color:var(--text-faint);">(admissão/periódico + 1 ano)</span>`;
+    });
+  };
+  LOTS.salvarSsma = async (colaboradorId)=>{
+    const dados = {
+      colaboradorId,
+      cnh: document.getElementById('sf-cnh').value.trim(),
+      validadeCnh: document.getElementById('sf-validade-cnh').value,
+      validadeToxCnh: document.getElementById('sf-validade-tox-cnh').value,
+      admissaoPeriodico: document.getElementById('sf-admissao-periodico').value,
+      toxicologicoLots: document.getElementById('sf-tox-lots').value
+    };
+    const idx = state.ssma.findIndex(s=>s.colaboradorId===colaboradorId);
+    if(idx>=0) state.ssma[idx] = dados; else state.ssma.push(dados);
+    await save.ssma();
+    closeModal();
+    renderSsma();
+    toast('Dados de SSMA salvos.');
+    logAudit('SSMA atualizado', colaboradorById(colaboradorId)?.nome||colaboradorId);
+  };
+
   /* ---------------- USUÁRIOS ---------------- */
   function renderUsers(){
     renderAuditLog();
@@ -3039,9 +3247,10 @@
     else if(name==='rhferias') renderFeriasAfastamentos();
     else if(name==='rhprocessos') renderProcessos();
     else if(name==='users') renderUsers();
+    else if(name==='ssma') renderSsma();
   }
   function renderAll(){
-    ['rhdash','rhcolab','rhorg','rhvagas','rhferias','rhprocessos','users'].forEach(renderView);
+    ['rhdash','rhcolab','rhorg','rhvagas','rhferias','rhprocessos','users','ssma'].forEach(renderView);
     wrapTablesForScroll();
   }
   function wrapTablesForScroll(){
