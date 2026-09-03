@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T16-22-47Z -->
+<!-- APP_BUILD:2026-09-03T20-20-14Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -418,6 +418,13 @@
           <tbody id="rh-dash-vencimentos"></tbody></table>
         </div>
 
+        <div class="card" id="card-rh-ferias-proporcionais">
+          <div class="card-head"><div class="card-title">Férias proporcionais</div></div>
+          <div class="page-sub" style="margin:-6px 0 10px 2px;">Dias de férias acumulados no período aquisitivo atual (2,5 dias por mês completo desde a última data-base de admissão). Confira sempre o cálculo oficial da folha antes de tomar ação.</div>
+          <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Unidade</th><th>Meses no período</th><th>Dias proporcionais</th></tr></thead>
+          <tbody id="rh-dash-ferias-proporcionais"></tbody></table>
+        </div>
+
         <div class="card" id="card-rh-headcount">
           <div class="card-head"><div class="card-title">Quadro por unidade</div></div>
           <table><thead><tr><th>Unidade</th><th>Ativos</th><th>Em férias</th><th>Afastados</th><th>Total</th></tr></thead>
@@ -590,7 +597,7 @@
         </div>
         <div class="kpi-grid" id="rc-kpi-grid"></div>
         <div class="card">
-          <table><thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Unidade</th><th>Admissão</th><th>Supervisor</th><th>Status</th><th></th></tr></thead>
+          <table><thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Unidade</th><th>Admissão</th><th>Desligamento</th><th>Supervisor</th><th>Status</th><th></th></tr></thead>
           <tbody id="tbl-colab"></tbody></table>
         </div>
       </div>
@@ -736,7 +743,7 @@
               </select>
             </div>
             <div class="field"><label>Data início</label><input type="date" id="rf2-inicio"></div>
-            <div class="field"><label>Data fim</label><input type="date" id="rf2-fim"></div>
+            <div class="field"><label>Data fim (deixe em branco se não souber quando volta)</label><input type="date" id="rf2-fim"></div>
           </div>
           <div class="field"><label>Observações</label><input id="rf2-obs" placeholder="Opcional"></div>
           <button class="btn-primary reg-submit" id="btn-save-ferias">Registrar</button>
@@ -937,7 +944,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T16-22-47Z';
+  const APP_VERSION = '2026-09-03T20-20-14Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1451,7 +1458,7 @@
     const hoje = todayISO();
     state.colaboradores.forEach(c=>{
       if(c.status==='desligado') return;
-      const ativo = state.ferias.find(f=>f.colaboradorId===c.id && f.dataInicio<=hoje && (f.dataFim||f.dataInicio)>=hoje);
+      const ativo = state.ferias.find(f=>f.colaboradorId===c.id && f.dataInicio<=hoje && (!f.dataFim || f.dataFim>=hoje));
       c.status = ativo ? (ativo.tipo==='ferias' ? 'ferias' : 'afastado') : 'ativo';
     });
   }
@@ -1902,7 +1909,7 @@
 
     const tbl = document.getElementById('tbl-colab');
     if(!tbl) return;
-    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="8">Nenhum colaborador encontrado.</td></tr>'; return; }
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="9">Nenhum colaborador encontrado.</td></tr>'; return; }
     tbl.innerHTML = list.map(c=>{
       const sup = colaboradorById(c.supervisorId);
       return `<tr>
@@ -1911,6 +1918,7 @@
         <td>${c.cargo||'—'}</td>
         <td>${c.unidade||'—'}</td>
         <td class="mono">${fmtDate(c.dataAdmissao)}</td>
+        <td class="mono">${c.status==='desligado' ? fmtDate(c.dataDesligamento) : '—'}</td>
         <td>${sup?sup.nome:'—'}</td>
         <td>${rhStatusBadge(c.status)}</td>
         <td><div class="action-links">
@@ -2595,10 +2603,9 @@
   /* ---------------- FÉRIAS E AFASTAMENTOS ---------------- */
   function feriasStatus(f){
     const hoje = todayISO();
-    const fim = f.dataFim || f.dataInicio;
     if(f.dataInicio > hoje) return 'agendado';
-    if(fim < hoje) return 'concluido';
-    return 'em_andamento';
+    if(f.dataFim && f.dataFim < hoje) return 'concluido';
+    return 'em_andamento'; // sem data fim = sem previsão de retorno, considera em andamento
   }
   function feriasStatusBadge(status){
     if(status==='agendado') return '<span class="badge badge-pending">Agendado</span>';
@@ -2618,7 +2625,7 @@
     errEl.textContent='';
     const novo = {
       id: uid(), colaboradorId, tipo: document.getElementById('rf2-tipo').value,
-      dataInicio: inicio, dataFim: fim || inicio,
+      dataInicio: inicio, dataFim: fim || '', // sem fim = sem previsão de retorno
       observacoes: document.getElementById('rf2-obs').value.trim(),
       dataCadastro: todayISO()
     };
@@ -2665,7 +2672,7 @@
     let list = state.ferias.filter(f=>okIds.includes(f.colaboradorId))
       .filter(f=>!colabF||f.colaboradorId===colabF)
       .filter(f=>!tipoF||f.tipo===tipoF)
-      .filter(f=>!dataIni || (f.dataFim||f.dataInicio) >= dataIni)
+      .filter(f=>!dataIni || (!f.dataFim || f.dataFim>=dataIni))
       .filter(f=>!dataFim || (f.dataInicio) <= dataFim)
       .map(f=>({...f, _status: feriasStatus(f)}))
       .filter(f=>!stF||f._status===stF)
@@ -2688,12 +2695,12 @@
     if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum registro encontrado.</td></tr>'; return; }
     tbl.innerHTML = list.map(f=>{
       const c = colaboradorById(f.colaboradorId);
-      const dias = diasEntre(f.dataInicio, f.dataFim||f.dataInicio)+1;
+      const dias = diasEntre(f.dataInicio, f.dataFim||todayISO())+1;
       return `<tr>
         <td>${c?c.nome:'—'}</td>
         <td>${RH_TIPO_LABEL[f.tipo]||f.tipo}</td>
         <td class="mono">${fmtDate(f.dataInicio)}</td>
-        <td class="mono">${fmtDate(f.dataFim)}</td>
+        <td class="mono">${f.dataFim ? fmtDate(f.dataFim) : 'Sem previsão'}</td>
         <td class="mono">${dias}</td>
         <td>${feriasStatusBadge(f._status)}</td>
         <td><div class="action-links">
@@ -3095,10 +3102,11 @@
     const inicioTurnover = inicioInput || (hoje.slice(0,4)+'-01-01');
 
     const listaAtivosPeriodo = todos.filter(c=>c.dataAdmissao && c.dataAdmissao<=fim && (c.status!=='desligado' || !c.dataDesligamento || c.dataDesligamento>fim));
-    const listaAdmissoes = todos.filter(c=>c.dataAdmissao && c.dataAdmissao>=inicio && c.dataAdmissao<=fim);
+    // não conta como admissão do período quem já saiu da empresa antes do fim do período selecionado
+    const listaAdmissoes = todos.filter(c=>c.dataAdmissao && c.dataAdmissao>=inicio && c.dataAdmissao<=fim && (c.status!=='desligado' || !c.dataDesligamento || c.dataDesligamento>fim));
     const listaDesligamentos = todos.filter(c=>c.status==='desligado' && c.dataDesligamento && c.dataDesligamento>=inicio && c.dataDesligamento<=fim);
     const listaDesligamentosTurnover = inicioInput ? listaDesligamentos : todos.filter(c=>c.status==='desligado' && c.dataDesligamento && c.dataDesligamento>=inicioTurnover && c.dataDesligamento<=fim);
-    const idsComFerias = new Set(state.ferias.filter(f=>(f.dataFim||f.dataInicio)>=inicio && f.dataInicio<=fim).map(f=>f.colaboradorId));
+    const idsComFerias = new Set(state.ferias.filter(f=>(!f.dataFim || f.dataFim>=inicio) && f.dataInicio<=fim).map(f=>f.colaboradorId));
     const listaFerias = todos.filter(c=>idsComFerias.has(c.id));
     const listaVagasAbertas = visibleVagas().filter(v=>(v.status==='aberta'||v.status==='em_selecao') && (!v.dataAbertura || v.dataAbertura<=fim));
 
@@ -3133,6 +3141,21 @@
         <td class="mono">${fmtDate(x.deadline)}</td>
         <td class="mono" style="${x.dias<0?'color:var(--danger);':''}">${x.dias<0?'Vencido há '+Math.abs(x.dias)+'d':x.dias+' dias'}</td>
       </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Nenhum vencimento próximo.</td></tr>';
+    }
+
+    const propTbl = document.getElementById('rh-dash-ferias-proporcionais');
+    if(propTbl){
+      const proporcionais = ativos.filter(c=>c.status==='ativo'||c.status==='ferias').filter(c=>c.dataAdmissao).map(c=>{
+        const meses = monthsBetween(c.dataAdmissao, hoje);
+        const mesesNoPeriodo = meses % 12;
+        const diasProporcionais = Math.floor(mesesNoPeriodo * 30/12);
+        return {c, mesesNoPeriodo, diasProporcionais};
+      }).sort((a,b)=>b.diasProporcionais-a.diasProporcionais);
+      propTbl.innerHTML = proporcionais.length ? proporcionais.map(x=>`<tr>
+        <td>${x.c.nome}</td><td>${x.c.cargo||'—'}</td><td>${x.c.unidade||'—'}</td>
+        <td class="mono">${x.mesesNoPeriodo}</td>
+        <td class="mono">${x.diasProporcionais}</td>
+      </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Nenhum colaborador com data de admissão cadastrada.</td></tr>';
     }
 
     const hcTbl = document.getElementById('rh-dash-headcount');
