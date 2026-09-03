@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T12-45-00Z -->
+<!-- APP_BUILD:2026-08-09T13-15-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -508,7 +508,6 @@
         <div class="subtab" data-view="ranking">Premiação</div>
         <div class="subtab" data-view="bu">BU</div>
         <div class="subtab" data-view="tires">Controle de Pneus</div>
-        <div class="subtab" data-view="users" id="nav-users">Usuários</div>
       </div>
       <div class="subtab-bar" id="subtabs-heavy" style="display:none;">
         <div class="subtab active" data-view="heavydash">Painel</div>
@@ -523,6 +522,7 @@
       </div>
       <div class="subtab-bar" id="subtabs-config" style="display:none;">
         <div class="subtab active" data-view="config">Configurações</div>
+        <div class="subtab" data-view="users" id="nav-users">Usuários</div>
       </div>
 
       <!-- DASHBOARD -->
@@ -749,20 +749,7 @@
           <button class="btn-primary" id="btn-new-fuel">+ Registrar manualmente</button>
         </div>
 
-        <div class="card">
-          <div class="card-head"><div class="card-title">Importar planilha de abastecimento</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">
-            Colunas esperadas: <b>PLACA</b>, <b>ODOMETRO</b>, <b>DATA DE ABASTECIMENTO</b>, <b>LITROS ABASTECIDOS</b>, <b>VALOR LITRO</b>, <b>POSTO</b>. A mesma placa pode aparecer várias vezes (um abastecimento por linha) — o sistema soma tudo certinho, sem precisar organizar a planilha antes. Cada linha precisa bater a <u>Placa</u> com um veículo já cadastrado — se alguma linha não bater, <b>nada é importado</b> e o sistema mostra exatamente quais linhas estão com erro, pra você corrigir a planilha (ou o cadastro) e importar de novo. Use pra lançar o lote a cada 15 dias.
-          </div>
-          <div class="field-grid-4" style="align-items:end;">
-            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-fuel-file" accept=".xlsx,.xls,.csv"></div>
-            <div class="field"><button class="btn-primary" id="btn-import-fuel" style="width:100%;">⬆ Importar planilha</button></div>
-          </div>
-          <div class="err-msg" id="import-fuel-msg"></div>
-          <div id="import-fuel-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06); max-height:300px; overflow-y:auto;"></div>
-        </div>
-
-        <div class="page-sub" style="margin:-6px 0 6px 2px;">⚙️ A Meta de Consumo por veículo agora fica em <b>Configurações</b>, no menu lateral.</div>
+        <div class="page-sub" style="margin:-6px 0 6px 2px;">⚙️ A importação de planilha de abastecimento e a Meta de Consumo por veículo agora ficam em <b>Configurações</b>, no menu lateral.</div>
 
         <div class="lane accent"></div>
 
@@ -1081,18 +1068,7 @@
           <div><div class="page-title">Premiação</div><div class="page-sub">Ranking, premiação e importação de dados</div></div>
         </div>
 
-        <div class="card import-card">
-          <div class="card-head"><div class="card-title">Importar planilha de premiação</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">
-            Colunas esperadas: <b>Matrícula</b>, <b>Colaborador</b>, <b>Atividade</b>, <b>Unidade</b>, <b>Turno</b>, <b>Valor</b>, <b>Período</b> (e opcionalmente <b>Categoria</b>: Locação, Manutenção, Lavagem ou Avarias). Pode importar todo mês — os dados se somam ao histórico, sem apagar nada.
-          </div>
-          <div class="field-grid-4" style="align-items:end;">
-            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="lg-import-file" accept=".xlsx,.xls,.csv"></div>
-            <div class="field"><label>Mês de referência (se a planilha não tiver "Período")</label><input type="month" id="lg-import-month"></div>
-            <div class="field"><button class="btn-primary" id="btn-import-lotsgo" style="width:100%;">⬆ Importar planilha</button></div>
-          </div>
-          <div class="err-msg" id="lg-import-msg"></div>
-        </div>
+        <div class="page-sub" style="margin:-6px 0 6px 2px;">⚙️ A importação de planilha de premiação agora fica em <b>Configurações</b>, no menu lateral.</div>
 
         <div class="lane accent"></div>
         <div class="card">
@@ -1769,6 +1745,33 @@
             </div>
           </div>
         </div>
+
+        <div class="lane accent"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Importar planilha de abastecimento</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">
+            Colunas esperadas: <b>PLACA</b>, <b>ODOMETRO</b>, <b>DATA DE ABASTECIMENTO</b>, <b>LITROS ABASTECIDOS</b>, <b>VALOR LITRO</b>, <b>POSTO</b>. A mesma placa pode aparecer várias vezes (um abastecimento por linha) — o sistema soma tudo certinho, sem precisar organizar a planilha antes. Cada linha precisa bater a <u>Placa</u> com um veículo já cadastrado — se alguma linha não bater, <b>nada é importado</b> e o sistema mostra exatamente quais linhas estão com erro, pra você corrigir a planilha (ou o cadastro) e importar de novo. Use pra lançar o lote a cada 15 dias.
+          </div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-fuel-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field"><button class="btn-primary" id="btn-import-fuel" style="width:100%;">⬆ Importar planilha</button></div>
+          </div>
+          <div class="err-msg" id="import-fuel-msg"></div>
+          <div id="import-fuel-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06); max-height:300px; overflow-y:auto;"></div>
+        </div>
+
+        <div class="card import-card">
+          <div class="card-head"><div class="card-title">Importar planilha de premiação</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">
+            Colunas esperadas: <b>Matrícula</b>, <b>Colaborador</b>, <b>Atividade</b>, <b>Unidade</b>, <b>Turno</b>, <b>Valor</b>, <b>Período</b> (e opcionalmente <b>Categoria</b>: Locação, Manutenção, Lavagem ou Avarias). Pode importar todo mês — os dados se somam ao histórico, sem apagar nada.
+          </div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="lg-import-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field"><label>Mês de referência (se a planilha não tiver "Período")</label><input type="month" id="lg-import-month"></div>
+            <div class="field"><button class="btn-primary" id="btn-import-lotsgo" style="width:100%;">⬆ Importar planilha</button></div>
+          </div>
+          <div class="err-msg" id="lg-import-msg"></div>
+        </div>
       </div>
 
     </div>
@@ -1865,7 +1868,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T12-45-00Z';
+  const APP_VERSION = '2026-08-09T13-15-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
