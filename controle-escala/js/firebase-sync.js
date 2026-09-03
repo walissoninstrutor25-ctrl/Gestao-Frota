@@ -131,10 +131,21 @@ async function connect() {
       }
     },
     async pushEdits(edits) {
-      lastPushedJson = stableStringify(edits);
       try {
         const payload = JSON.parse(JSON.stringify(edits));
         await withTimeout(setDoc(ref, payload), OP_TIMEOUT_MS);
+        // Só marca como "já mandei isso" depois que o setDoc acima
+        // realmente confirmou — numa rede ruim, se marcasse antes
+        // (como era) e o envio falhasse/travasse, o app achava que já
+        // tinha salvo uma coisa que na verdade nunca chegou no
+        // Firestore; aí a próxima leitura do estado real (mais antigo)
+        // era lida como "mudança de outro aparelho" e recarregava a
+        // página por cima da edição que nunca foi salva. Usa "payload"
+        // (a cópia exata que foi enviada), não "edits" de novo — se
+        // outra edição mudou "edits" enquanto esse envio esperava
+        // resposta, "edits" já não é mais o que realmente foi salvo
+        // agora.
+        lastPushedJson = stableStringify(payload);
         // Cópia de segurança rotativa (um campo por dia da semana, 7 no
         // total, dentro do mesmo documento — merge:true preserva os
         // outros dias). Pedido separado, sem "await" e com erro ignorado
