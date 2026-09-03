@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T11-00-00Z -->
+<!-- APP_BUILD:2026-08-09T11-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -809,12 +809,12 @@
         <div class="bi-grid">
           <div class="card">
             <div class="card-head"><div class="card-title">🏆 Top 10 — Melhor média (km/L)</div></div>
-            <table><thead><tr><th>Pos.</th><th>Veículo</th><th>UO</th><th>Média real</th><th>Meta</th></tr></thead>
+            <table><thead><tr><th>Pos.</th><th>Frota</th><th>Placa</th><th>UO</th><th>Média real</th><th>Meta</th></tr></thead>
             <tbody id="bifuel-top-best"></tbody></table>
           </div>
           <div class="card">
             <div class="card-head"><div class="card-title">⚠ Top 10 — Pior média (km/L)</div></div>
-            <table><thead><tr><th>Pos.</th><th>Veículo</th><th>UO</th><th>Média real</th><th>Meta</th></tr></thead>
+            <table><thead><tr><th>Pos.</th><th>Frota</th><th>Placa</th><th>UO</th><th>Média real</th><th>Meta</th></tr></thead>
             <tbody id="bifuel-top-worst"></tbody></table>
           </div>
         </div>
@@ -826,9 +826,14 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><div class="card-title">Histórico de abastecimentos</div></div>
-          <table><thead><tr><th>Data</th><th>Frota</th><th>Veículo</th><th>Litros</th><th>Valor</th><th>KM</th><th>Posto</th><th></th></tr></thead>
-          <tbody id="tbl-fuel"></tbody></table>
+          <div class="card-head">
+            <div class="card-title">Histórico de abastecimentos</div>
+            <button class="btn-ghost btn-sm" id="btn-toggle-fuel-history">👁️ Ver histórico</button>
+          </div>
+          <div id="fuel-history-wrap" style="display:none;">
+            <table><thead><tr><th>Data</th><th>Frota</th><th>Veículo</th><th>Litros</th><th>Valor</th><th>KM</th><th>Posto</th><th></th></tr></thead>
+            <tbody id="tbl-fuel"></tbody></table>
+          </div>
         </div>
       </div>
 
@@ -1167,9 +1172,14 @@
         <div class="kpi-grid" id="bilg-kpi-grid"></div>
 
         <div class="card">
-          <div class="card-head"><div class="card-title">Lançamentos importados</div></div>
-          <table><thead><tr><th>Período</th><th>Matrícula</th><th>Colaborador</th><th>Atividade</th><th>Unidade</th><th>Turno</th><th>Valor</th><th></th></tr></thead>
-          <tbody id="tbl-lotsgo-entries"></tbody></table>
+          <div class="card-head">
+            <div class="card-title">Lançamentos importados</div>
+            <button class="btn-ghost btn-sm" id="btn-toggle-lotsgo-entries">👁️ Ver lançamentos</button>
+          </div>
+          <div id="lotsgo-entries-wrap" style="display:none;">
+            <table><thead><tr><th>Período</th><th>Matrícula</th><th>Colaborador</th><th>Atividade</th><th>Unidade</th><th>Turno</th><th>Valor</th><th></th></tr></thead>
+            <tbody id="tbl-lotsgo-entries"></tbody></table>
+          </div>
         </div>
 
         <div class="card">
@@ -1849,7 +1859,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T11-00-00Z';
+  const APP_VERSION = '2026-08-09T11-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2459,7 +2469,7 @@
         <td><span class="plate">${v.plate}</span></td>
         <td>${v.model}</td>
         <td>${v.unidade||'—'}</td>
-        <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
+        <td class="mono">${Math.round(Number(v.km)).toLocaleString('pt-BR')} km</td>
         <td>${v.locadora||'—'}</td>
         <td class="mono">${v.valorLocacao?fmtMoney(v.valorLocacao)+' / '+(v.periodicidade||''):'—'}</td>
         <td class="mono">${kmLimite}</td>
@@ -2884,6 +2894,18 @@
     wrap.style.display = abrindo ? 'block' : 'none';
     e.target.textContent = abrindo ? '🙈 Ocultar metas cadastradas' : '👁️ Ver metas cadastradas';
   });
+  document.getElementById('btn-toggle-fuel-history')?.addEventListener('click', (e)=>{
+    const wrap = document.getElementById('fuel-history-wrap');
+    const abrindo = wrap.style.display==='none';
+    wrap.style.display = abrindo ? 'block' : 'none';
+    e.target.textContent = abrindo ? '🙈 Ocultar histórico' : '👁️ Ver histórico';
+  });
+  document.getElementById('btn-toggle-lotsgo-entries')?.addEventListener('click', (e)=>{
+    const wrap = document.getElementById('lotsgo-entries-wrap');
+    const abrindo = wrap.style.display==='none';
+    wrap.style.display = abrindo ? 'block' : 'none';
+    e.target.textContent = abrindo ? '🙈 Ocultar lançamentos' : '👁️ Ver lançamentos';
+  });
 
   // filtro compartilhado do BI de combustível (usado no KPI, no histórico e nos rankings)
   function getFuelBIFiltered(){
@@ -2922,9 +2944,9 @@
         <td class="mono">${fmtDate(f.date)}</td>
         <td class="mono">${v?.frota||'—'}</td>
         <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
-        <td class="mono">${f.liters} L</td>
+        <td class="mono">${Number(f.liters).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:3})} L</td>
         <td class="mono">${fmtMoney(f.value)}</td>
-        <td class="mono">${Number(f.km).toLocaleString('pt-BR')} km</td>
+        <td class="mono">${Math.round(Number(f.km)).toLocaleString('pt-BR')} km</td>
         <td>${f.station||'—'}</td>
         <td><div class="action-links">${canDelete() ? `<button class="icon-btn danger" onclick="LOTS.deleteFuel('${f.id}')">excluir</button>` : ''}</div></td>
       </tr>`;
@@ -3144,9 +3166,9 @@
         <td class="mono">${fmtDate(f.date)}</td>
         <td class="mono">${v?.frota||'—'}</td>
         <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
-        <td class="mono">${f.liters} L</td>
+        <td class="mono">${Number(f.liters).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:3})} L</td>
         <td class="mono">${fmtMoney(f.value)}</td>
-        <td class="mono">${Number(f.km).toLocaleString('pt-BR')} km</td>
+        <td class="mono">${Math.round(Number(f.km)).toLocaleString('pt-BR')} km</td>
         <td>${f.station||'—'}</td>
         <td><div class="action-links">${canDelete() ? `<button class="icon-btn danger" onclick="LOTS.deleteFuel('${f.id}')">excluir</button>` : ''}</div></td>
       </tr>`;
@@ -3211,7 +3233,8 @@
     const ranked = comMedia.slice().sort((a,b)=>b.mediaReal-a.mediaReal);
     const rowHtml = (p,i)=>`<tr>
       <td><span class="rank-pos">${i+1}º</span></td>
-      <td>${p.vehicle.frota?p.vehicle.frota+' — ':''}<span class="plate">${p.vehicle.plate}</span></td>
+      <td class="mono">${p.vehicle.frota||'—'}</td>
+      <td><span class="plate">${p.vehicle.plate}</span></td>
       <td>${p.vehicle.unidade||'—'}</td>
       <td class="mono">${p.mediaReal.toFixed(2)} km/L</td>
       <td class="mono">${p.vehicle.consumoEsperado?p.vehicle.consumoEsperado.toFixed(2)+' km/L':'—'}</td>
@@ -3220,7 +3243,7 @@
     const bestBody = document.getElementById('bifuel-top-best');
     const worstBody = document.getElementById('bifuel-top-worst');
     if(ranked.length===0){
-      bestBody.innerHTML = worstBody.innerHTML = '<tr class="empty-row"><td colspan="5">Sem dados suficientes para calcular médias no período.</td></tr>';
+      bestBody.innerHTML = worstBody.innerHTML = '<tr class="empty-row"><td colspan="6">Sem dados suficientes para calcular médias no período.</td></tr>';
     } else {
       bestBody.innerHTML = ranked.slice(0,10).map(rowHtml).join('');
       worstBody.innerHTML = ranked.slice().reverse().slice(0,10).map(rowHtml).join('');
@@ -4370,7 +4393,7 @@
         <td><span class="plate">${v.plate}</span></td>
         <td>${v.model}</td>
         <td>${v.unidade||'—'}</td>
-        <td class="mono">${Number(v.km).toLocaleString('pt-BR')} km</td>
+        <td class="mono">${Math.round(Number(v.km)).toLocaleString('pt-BR')} km</td>
         <td>${(v.responsavel==='ATIVOS'?'ATVOS':v.responsavel)||'—'}</td>
         <td class="mono">${v.crlv||'—'}</td>
         <td class="mono">${v.crlvVencimento?fmtDate(v.crlvVencimento):'—'}</td>
@@ -5809,9 +5832,9 @@
         <td>${t.marca||'—'} ${t.modelo||''}</td>
         <td class="mono">${t.fogo||'—'}</td>
         <td class="mono">${dotHtml}</td>
-        <td class="mono">${Number(t.kmInstalacao).toLocaleString('pt-BR')} km</td>
-        <td class="mono">${Number(t.kmAtual).toLocaleString('pt-BR')} km <button class="icon-btn" onclick="LOTS.updateTireKm('${t.id}')">atualizar</button></td>
-        <td class="mono ${rodado>60000?'rank-bad':''}">${rodado.toLocaleString('pt-BR')} km</td>
+        <td class="mono">${Math.round(Number(t.kmInstalacao)).toLocaleString('pt-BR')} km</td>
+        <td class="mono">${Math.round(Number(t.kmAtual)).toLocaleString('pt-BR')} km <button class="icon-btn" onclick="LOTS.updateTireKm('${t.id}')">atualizar</button></td>
+        <td class="mono ${rodado>60000?'rank-bad':''}">${Math.round(rodado).toLocaleString('pt-BR')} km</td>
         <td>${statusBadge(t.status)}</td>
         <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteTire('${t.id}')">excluir</button></div></td>
       </tr>`;
@@ -5989,7 +6012,7 @@
 
     const kpis = [
       {label:'Veículos ativos', val: vlist.filter(v=>v.status==='ativo').length},
-      {label:'KM percorridos', val: kmPercorridos.toLocaleString('pt-BR')+' km'},
+      {label:'KM percorridos', val: Math.round(kmPercorridos).toLocaleString('pt-BR')+' km'},
       {label:'Consumo médio', val: consumoMedio.toFixed(2)+' km/L'},
       {label:'Custo total', val: fmtMoney(totalGeral)},
       {label:'Multas', val: fmtMoney(totalFines)}
@@ -6044,7 +6067,7 @@
           <td><span class="plate">${r.v.plate}</span></td>
           <td>${r.v.unidade||'—'}</td>
           <td class="mono">${Math.round(r.km0).toLocaleString('pt-BR')} km</td>
-          <td class="mono" style="color:var(--danger); font-weight:700;">${r.faltam===0 ? '<span class="badge badge-danger">Vencida</span>' : r.faltam.toLocaleString('pt-BR')+' km'}</td>
+          <td class="mono" style="color:var(--danger); font-weight:700;">${r.faltam===0 ? '<span class="badge badge-danger">Vencida</span>' : Math.round(r.faltam).toLocaleString('pt-BR')+' km'}</td>
         </tr>`).join('');
       }
     }
@@ -6081,9 +6104,9 @@
           <td class="mono">${r.v.frota||'—'}</td>
           <td><span class="plate">${r.v.plate}</span></td>
           <td>${r.v.unidade||'—'}</td>
-          <td class="mono">${r.kmAtual.toLocaleString('pt-BR')} km</td>
-          <td class="mono">${r.limiteAnual.toLocaleString('pt-BR')} km</td>
-          <td class="mono" style="color:${corRestante(r.kmRestante)}; font-weight:700;">${r.kmRestante.toLocaleString('pt-BR')} km</td>
+          <td class="mono">${Math.round(r.kmAtual).toLocaleString('pt-BR')} km</td>
+          <td class="mono">${Math.round(r.limiteAnual).toLocaleString('pt-BR')} km</td>
+          <td class="mono" style="color:${corRestante(r.kmRestante)}; font-weight:700;">${Math.round(r.kmRestante).toLocaleString('pt-BR')} km</td>
           <td class="mono" style="color:${r.custoTotal>0?'var(--danger)':''};">${r.custoTotal>0 ? fmtMoney(r.custoTotal) : (r.excedente>0 ? 'modelo sem tarifa cadastrada' : '—')}</td>
           <td>${r.custoTotal>0 ? `<button class="icon-btn danger" onclick="LOTS.lancarCustoExcedente('${r.v.id}', ${r.custoTotal.toFixed(2)}, ${r.excedente})">lançar como custo extra</button>` : ''}</td>
         </tr>`).join('');
