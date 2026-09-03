@@ -2577,11 +2577,21 @@ function startApp() {
 // de bug já vista antes nesse projeto: um "eco" da própria escrita sendo
 // lido como mudança nova). Fica visível na telinha de diagnóstico em vez
 // de depender de alguém notar um flash na tela.
+// Trava de segurança: se essa aba já recarregou demais sozinha (sinal de
+// loop, seja lá qual for a causa), para de recarregar em vez de ficar
+// piscando sem parar — os dados mais novos já ficam salvos no
+// localStorage de qualquer jeito, então um F5 manual (ou reabrir o app)
+// já mostra tudo atualizado; só o recarregamento automático é que some.
+const RELOAD_LOOP_LIMIT = 3;
 function reloadForRemoteSync(remoteData) {
   const key = 'escala:syncReloadCount';
   const count = (parseInt(sessionStorage.getItem(key) || '0', 10) || 0) + 1;
   sessionStorage.setItem(key, String(count));
   localStorage.setItem(EDIT_STORAGE_KEY, JSON.stringify(remoteData));
+  if (count > RELOAD_LOOP_LIMIT) {
+    if (window.__firebaseDebug) window.__firebaseDebug.lastError = `recarregamento automático pausado depois de ${count} vezes nesta aba (provável loop) — os dados mais novos já estão salvos; atualize a página manualmente pra vê-los`;
+    return;
+  }
   location.reload();
 }
 
