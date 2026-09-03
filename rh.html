@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-02T19-42-11Z -->
+<!-- APP_BUILD:2026-09-03T10-51-42Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -16,6 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <style>
   :root{
     --bg:#eef4f0;
@@ -914,7 +915,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-02T19-42-11Z';
+  const APP_VERSION = '2026-09-03T10-51-42Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -3308,6 +3309,29 @@
     });
     return {cnh: validadeCnh, tox: validadeTox};
   }
+  // lê a validade da CNH pelo código de leitura mecânica (MRZ) que fica no verso do
+  // documento oficial da CNH Digital — esse trecho usa uma fonte própria pra facilitar
+  // leitura automática, então é bem mais confiável que ler os campos em caixinha por OCR.
+  // formato: NASCIMENTO(6) DIGITO SEXO(M/F) VALIDADE(6) DIGITO PAIS(3)
+  function extrairValidadeCnhViaMrz(linhas){
+    for(const l of linhas){
+      const compacta = l.replace(/[^A-Z0-9<]/gi,'').toUpperCase();
+      const m = compacta.match(/\d{6}\d[MF](\d{6})\d[A-Z]{3}/);
+      if(m){
+        const yy = m[1].slice(0,2), mm = m[1].slice(2,4), dd = m[1].slice(4,6);
+        if(+mm>=1 && +mm<=12 && +dd>=1 && +dd<=31){
+          const ano = (+yy<=79 ? '20' : '19') + yy;
+          return `${ano}-${mm}-${dd}`;
+        }
+      }
+    }
+    return '';
+  }
+  // rótulo real usado na tela de "Exames Toxicológicos" do app oficial (Meu CNH / gov.br),
+  // validado com print de exemplo — não usa a palavra "validade"
+  function extrairValidadeToxCnhViaApp(linhas){
+    return buscarDataComRotulo(linhas, ['PRAZO PARA REALIZACAO DE NOVO EXAME','PRAZO PARA REALIZACAO']);
+  }
   function extrairDataToxicologicoLots(linhas){
     return buscarDataComRotulo(linhas, ['DATA DA COLETA','DATA DE COLETA','COLETA REALIZADA EM','DATA COLETA']);
   }
@@ -3315,6 +3339,59 @@
     // "Data de fechamento do ASO" é o rótulo real usado pela Porto Saúde (validado com laudo de exemplo);
     // os demais são variações comuns de outras clínicas/PCMSOs
     return buscarDataComRotulo(linhas, ['DATA DE FECHAMENTO DO ASO','DATA DO FECHAMENTO DO ASO','FECHAMENTO DO ASO','DATA DO EXAME CLINICO OCUPACIONAL','DATA DO EXAME CLINICO','DATA DE EMISSAO DO ASO','DATA DO ASO','ASO EMITIDO EM']);
+  }
+
+  // preenche os campos do formulário a partir de uma lista de linhas de texto (vindas do PDF
+  // ou da leitura por OCR) — devolve true se encontrou pelo menos um dado
+  function preencherCamposSsma(tipo, linhas){
+    let algumCampo = false;
+    if(tipo==='cnh'){
+      const numero = extrairNumeroRegistroCnh(linhas);
+      const validades = extrairValidadesCnh(linhas);
+      const validadeCnhMrz = extrairValidadeCnhViaMrz(linhas);
+      const validadeToxApp = extrairValidadeToxCnhViaApp(linhas);
+      if(numero){ document.getElementById('sf-cnh').value = numero; algumCampo = true; }
+      const validadeCnh = validadeCnhMrz || validades.cnh;
+      if(validadeCnh){ document.getElementById('sf-validade-cnh').value = validadeCnh; algumCampo = true; }
+      const validadeTox = validadeToxApp || validades.tox;
+      if(validadeTox){ document.getElementById('sf-validade-tox-cnh').value = validadeTox; algumCampo = true; }
+    } else {
+      const dataColeta = extrairDataToxicologicoLots(linhas);
+      const dataAdmPer = extrairDataAdmissaoPeriodico(linhas);
+      if(dataColeta){ document.getElementById('sf-tox-lots').value = dataColeta; algumCampo = true; }
+      if(dataAdmPer){
+        document.getElementById('sf-admissao-periodico').value = dataAdmPer;
+        document.getElementById('sf-admissao-periodico').dispatchEvent(new Event('change'));
+        algumCampo = true;
+      }
+    }
+    return algumCampo;
+  }
+  // worker do Tesseract fica vivo e é reaproveitado (evita baixar o modelo de novo a cada PDF)
+  let ocrWorkerPromise = null;
+  function getOcrWorker(){
+    if(!ocrWorkerPromise) ocrWorkerPromise = Tesseract.createWorker('por', 1, { logger: ()=>{} });
+    return ocrWorkerPromise;
+  }
+  const SSMA_OCR_MAX_PAGINAS = 3;
+  // renderiza cada página como imagem e lê com OCR — só usada quando o PDF não tem texto
+  // selecionável de verdade (ex.: documento oficial da CNH Digital, que embute os dados
+  // como imagem, ou uma foto/print salva em PDF)
+  async function ocrLinhasDoPdf(arrayBuffer){
+    if(!window.Tesseract) return [];
+    const doc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+    const worker = await getOcrWorker();
+    const todasLinhas = [];
+    for(let p=1; p<=doc.numPages && p<=SSMA_OCR_MAX_PAGINAS; p++){
+      const page = await doc.getPage(p);
+      const viewport = page.getViewport({scale: 2.5});
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+      const { data } = await worker.recognize(canvas);
+      (data.lines||[]).forEach(l=>{ const t=(l.text||'').replace(/\s+/g,' ').trim(); if(t) todasLinhas.push(t); });
+    }
+    return todasLinhas;
   }
 
   LOTS.lerPdfSsma = async (colaboradorId, tipo)=>{
@@ -3332,37 +3409,37 @@
       const dataUrl = await fileParaDataUrl(file);
       await salvarDocSsma(colaboradorId, tipo==='cnh'?'pdfCnh':'pdfAso', dataUrl);
 
-      const c = colaboradorById(colaboradorId);
-      const cpfDoc = extrairCpfDoDoc(linhas);
-      if(cpfDoc && c?.cpf && somenteDigitos(cpfDoc)!==somenteDigitos(c.cpf)){
-        toast('Atenção: o CPF do PDF não confere com o do colaborador selecionado. Confira se anexou o documento certo.');
+      let algumCampo = preencherCamposSsma(tipo, linhas);
+      let cpfDoc = extrairCpfDoDoc(linhas);
+      let usouOcr = false;
+
+      // se não achou nada no texto do PDF, tenta ler como imagem antes de desistir
+      if(!algumCampo && window.Tesseract){
+        toast('Não encontrei texto pronto nesse PDF. Tentando ler como imagem — pode levar alguns segundos...');
+        try{
+          const linhasOcr = await ocrLinhasDoPdf(buffer.slice(0));
+          if(linhasOcr.length){
+            algumCampo = preencherCamposSsma(tipo, linhasOcr);
+            if(!cpfDoc) cpfDoc = extrairCpfDoDoc(linhasOcr);
+            usouOcr = true;
+          }
+        }catch(ocrErr){ console.error('ocr ssma falhou', ocrErr); }
       }
 
-      let algumCampo = false;
-      if(tipo==='cnh'){
-        const numero = extrairNumeroRegistroCnh(linhas);
-        const validades = extrairValidadesCnh(linhas);
-        if(numero){ document.getElementById('sf-cnh').value = numero; algumCampo = true; }
-        if(validades.cnh){ document.getElementById('sf-validade-cnh').value = validades.cnh; algumCampo = true; }
-        if(validades.tox){ document.getElementById('sf-validade-tox-cnh').value = validades.tox; algumCampo = true; }
-        document.getElementById('sf-status-cnh').textContent = '📎 PDF anexado.';
-      } else {
-        const dataColeta = extrairDataToxicologicoLots(linhas);
-        const dataAdmPer = extrairDataAdmissaoPeriodico(linhas);
-        if(dataColeta){ document.getElementById('sf-tox-lots').value = dataColeta; algumCampo = true; }
-        if(dataAdmPer){
-          document.getElementById('sf-admissao-periodico').value = dataAdmPer;
-          document.getElementById('sf-admissao-periodico').dispatchEvent(new Event('change'));
-          algumCampo = true;
-        }
-        document.getElementById('sf-status-aso').textContent = '📎 PDF anexado.';
+      const c = colaboradorById(colaboradorId);
+      if(cpfDoc && c?.cpf && somenteDigitos(cpfDoc)!==somenteDigitos(c.cpf)){
+        toast('Atenção: o CPF do documento não confere com o do colaborador selecionado. Confira se anexou o documento certo.');
       }
-      if(!algumCampo && !cpfDoc && linhas.length===0){
-        toast('Esse PDF parece ser uma imagem/foto (sem texto pra ler). O documento foi anexado, mas preencha os campos manualmente.');
-      } else if(!algumCampo){
-        toast('PDF anexado, mas não consegui identificar os dados automaticamente. Preencha os campos manualmente.');
-      } else {
+
+      const statusEl = document.getElementById(tipo==='cnh'?'sf-status-cnh':'sf-status-aso');
+      if(statusEl) statusEl.textContent = '📎 PDF anexado.';
+
+      if(algumCampo && usouOcr){
+        toast('Li o documento como imagem (OCR) e preenchi o que consegui identificar — confira com bastante atenção antes de salvar, leitura de imagem pode ter erros.');
+      } else if(algumCampo){
         toast('PDF lido! Confira os dados preenchidos antes de salvar.');
+      } else {
+        toast('Não consegui identificar os dados automaticamente (nem no texto, nem tentando ler como imagem). O PDF foi anexado — preencha os campos manualmente.');
       }
     }catch(err){
       console.error('leitura pdf ssma falhou', err);
