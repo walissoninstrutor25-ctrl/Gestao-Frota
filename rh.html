@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T20-20-14Z -->
+<!-- APP_BUILD:2026-09-03T20-33-09Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -421,7 +421,8 @@
         <div class="card" id="card-rh-ferias-proporcionais">
           <div class="card-head"><div class="card-title">Férias proporcionais</div></div>
           <div class="page-sub" style="margin:-6px 0 10px 2px;">Dias de férias acumulados no período aquisitivo atual (2,5 dias por mês completo desde a última data-base de admissão). Confira sempre o cálculo oficial da folha antes de tomar ação.</div>
-          <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Unidade</th><th>Meses no período</th><th>Dias proporcionais</th></tr></thead>
+          <div class="field" style="max-width:320px; margin-bottom:12px;"><input id="rh-dash-ferias-prop-busca" placeholder="Buscar por nome ou matrícula…"></div>
+          <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Unidade</th><th style="text-align:center;">Meses no período</th><th style="text-align:center;">Dias proporcionais</th></tr></thead>
           <tbody id="rh-dash-ferias-proporcionais"></tbody></table>
         </div>
 
@@ -944,7 +945,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T20-20-14Z';
+  const APP_VERSION = '2026-09-03T20-33-09Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -3083,6 +3084,7 @@
   };
   document.getElementById('rdfilter-inicio')?.addEventListener('change', renderRHDashboard);
   document.getElementById('rdfilter-fim')?.addEventListener('change', renderRHDashboard);
+  document.getElementById('rh-dash-ferias-prop-busca')?.addEventListener('input', renderRHDashboard);
   document.getElementById('btn-clear-rdfilter')?.addEventListener('click', ()=>{
     document.getElementById('rdfilter-inicio').value='';
     document.getElementById('rdfilter-fim').value='';
@@ -3145,17 +3147,24 @@
 
     const propTbl = document.getElementById('rh-dash-ferias-proporcionais');
     if(propTbl){
-      const proporcionais = ativos.filter(c=>c.status==='ativo'||c.status==='ferias').filter(c=>c.dataAdmissao).map(c=>{
-        const meses = monthsBetween(c.dataAdmissao, hoje);
-        const mesesNoPeriodo = meses % 12;
-        const diasProporcionais = Math.floor(mesesNoPeriodo * 30/12);
-        return {c, mesesNoPeriodo, diasProporcionais};
-      }).sort((a,b)=>b.diasProporcionais-a.diasProporcionais);
-      propTbl.innerHTML = proporcionais.length ? proporcionais.map(x=>`<tr>
-        <td>${x.c.nome}</td><td>${x.c.cargo||'—'}</td><td>${x.c.unidade||'—'}</td>
-        <td class="mono">${x.mesesNoPeriodo}</td>
-        <td class="mono">${x.diasProporcionais}</td>
-      </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Nenhum colaborador com data de admissão cadastrada.</td></tr>';
+      const buscaProp = (document.getElementById('rh-dash-ferias-prop-busca')?.value||'').trim().toLowerCase();
+      if(!buscaProp){
+        propTbl.innerHTML = '<tr class="empty-row"><td colspan="5">Digite um nome ou matrícula acima pra ver os dias de férias proporcionais.</td></tr>';
+      } else {
+        const proporcionais = ativos.filter(c=>c.status==='ativo'||c.status==='ferias').filter(c=>c.dataAdmissao)
+          .filter(c=>[c.nome,c.matricula].join(' ').toLowerCase().includes(buscaProp))
+          .map(c=>{
+            const meses = monthsBetween(c.dataAdmissao, hoje);
+            const mesesNoPeriodo = meses % 12;
+            const diasProporcionais = Math.floor(mesesNoPeriodo * 30/12);
+            return {c, mesesNoPeriodo, diasProporcionais};
+          }).sort((a,b)=>b.diasProporcionais-a.diasProporcionais);
+        propTbl.innerHTML = proporcionais.length ? proporcionais.map(x=>`<tr>
+          <td>${x.c.nome}</td><td>${x.c.cargo||'—'}</td><td>${x.c.unidade||'—'}</td>
+          <td class="mono" style="text-align:center;">${x.mesesNoPeriodo}</td>
+          <td class="mono" style="text-align:center;">${x.diasProporcionais}</td>
+        </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Nenhum colaborador encontrado com esse nome/matrícula.</td></tr>';
+      }
     }
 
     const hcTbl = document.getElementById('rh-dash-headcount');
