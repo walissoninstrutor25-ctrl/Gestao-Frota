@@ -1851,6 +1851,7 @@ async function markAtOuBhSemEdicao(p, cfg, ds, monthMeta, day, cellEl) {
   if (idx < 0 || idx >= chars.length || chars[idx] !== 'W') return; // já de folga, nada a fazer por aqui
   const tipo = await showFolgaTypeModal(true);
   if (!tipo) return;
+  if (tipo === 'atestado') { await marcarAtestadoComPeriodo(p, cfg, ds, monthMeta, day); return; }
   await marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo);
 }
 
@@ -1875,7 +1876,11 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   } else {
     const tipo = await showFolgaTypeModal();
     if (!tipo) return; // cancelado
-    if (tipo === 'atestado' || tipo === 'bh' || tipo === 'falta' || tipo === 'dsr') {
+    if (tipo === 'atestado') {
+      await marcarAtestadoComPeriodo(p, cfg, ds, monthMeta, day);
+      return;
+    }
+    if (tipo === 'bh' || tipo === 'falta' || tipo === 'dsr') {
       await marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo);
       return;
     }
@@ -2178,6 +2183,105 @@ function promptBhPassword() {
     };
     render(null);
   });
+}
+
+// Atestado costuma cobrir vários dias seguidos — em vez de marcar um por
+// um, pergunta o período (início/fim, os dois já vêm preenchidos com o
+// dia que foi clicado) e aplicaAtestadoNoPeriodo marca todos de uma vez,
+// mesmo cruzando meses.
+function promptDateRange(defaultIso) {
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('modalBackdrop');
+    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
+    const render = (errorMsg) => {
+      backdrop.innerHTML = `
+        <div class="modal confirm-modal">
+          <div class="modal-body">
+            <p class="confirm-msg">Atestado de qual período?</p>
+            <div class="toolbar-tools" style="margin-top:8px">
+              <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">Início</span><input type="date" id="atestadoDe" value="${defaultIso}"></div>
+              <div class="field"><span style="font-size:12px;color:var(--text-muted);margin-right:4px">Fim</span><input type="date" id="atestadoAte" value="${defaultIso}"></div>
+            </div>
+            ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="atestadoPeriodoCancel">Cancelar</button>
+            <button class="icon-btn primary" id="atestadoPeriodoOk">Confirmar</button>
+          </div>
+        </div>`;
+      backdrop.classList.add('open');
+      document.getElementById('atestadoPeriodoCancel').addEventListener('click', () => finish(null));
+      document.getElementById('atestadoPeriodoOk').addEventListener('click', () => {
+        const inicio = document.getElementById('atestadoDe').value;
+        const fim = document.getElementById('atestadoAte').value;
+        if (!inicio || !fim) { render('Preencha as duas datas.'); return; }
+        finish(inicio <= fim ? { inicio, fim } : { inicio: fim, fim: inicio });
+      });
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(null); }, { once: true });
+    };
+    render(null);
+  });
+}
+
+// Marca Atestado em todo mundo os dias do período (inclusive), mesmo
+// cruzando meses — cada dia vira um registro próprio em
+// edits.bancoHoras (mesmo formato de sempre), só que aplicado de uma
+// vez em vez de exigir um clique por dia. Não mexe em cellEl (o
+// período pode sair do mês/pessoa visível agora) — re-renderiza o
+// painel inteiro no final.
+function aplicarAtestadoNoPeriodo(p, cfg, ds, inicioIso, fimIso) {
+  const pk = personKey(cfg.id, p);
+  const [y1, m1, d1] = inicioIso.split('-').map(Number);
+  const [y2, m2, d2] = fimIso.split('-').map(Number);
+  let cursor = epochDay(y1, m1, d1);
+  const fimEpoch = epochDay(y2, m2, d2);
+  let marcados = 0;
+  for (; cursor <= fimEpoch; cursor++) {
+    const dt = new Date(cursor * 86400000);
+    const ano = dt.getUTCFullYear();
+    const mesNumero = dt.getUTCMonth() + 1;
+    const dia = dt.getUTCDate();
+    if (ano !== ds.ano) continue; // fora do ano coberto por essa escala
+    const monthMeta = ds.meses.find((m) => m.numero === mesNumero);
+    if (!monthMeta) continue;
+    const idx = dia - 1;
+    if (idx < 0 || idx >= monthMeta.dias) continue;
+    const monthKey = monthMeta.chave;
+    const dataIso = isoDateFor(ano, mesNumero, dia);
+
+    const chars = (p.escala[monthKey] || 'O'.repeat(monthMeta.dias)).split('');
+    chars[idx] = 'O';
+    p.escala[monthKey] = chars.join('');
+    edits.dias[pk] = edits.dias[pk] || {};
+    edits.dias[pk][monthKey] = edits.dias[pk][monthKey] || {};
+    edits.dias[pk][monthKey][idx] = 'O';
+    edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
+    edits.bancoHoras.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${dia}`,
+      pk, data: dataIso,
+      nome: p.nome, matricula: p.matricula || null,
+      turno: p.papelNormalizado || null, lider: p.lider || null,
+      unidade: p.unidade || null,
+      tipo: 'ATESTADO',
+    });
+    marcados++;
+  }
+  if (marcados) persistEdits();
+  return marcados;
+}
+
+// Pede a senha e o período, e marca Atestado em todos os dias de uma
+// vez (ver aplicarAtestadoNoPeriodo) — o dia clicado entra como início
+// e fim padrão do período, ajustável antes de confirmar.
+async function marcarAtestadoComPeriodo(p, cfg, ds, monthMeta, day) {
+  const senhaOk = await promptBhPassword();
+  if (!senhaOk) return false;
+  const dataClicada = isoDateFor(ds.ano, monthMeta.numero, day);
+  const periodo = await promptDateRange(dataClicada);
+  if (!periodo) return false;
+  const marcados = aplicarAtestadoNoPeriodo(p, cfg, ds, periodo.inicio, periodo.fim);
+  if (marcados) renderPanel();
+  return marcados > 0;
 }
 
 /* ------------------------------------------------------------------ */
