@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T11-43-38Z -->
+<!-- APP_BUILD:2026-09-03T11-54-22Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -220,6 +220,13 @@
   .org2-card.canvas-mode{position:absolute;}
   .org2-card.edit-mode{cursor:grab; touch-action:none; user-select:none;}
   .org2-card.edit-mode:active{cursor:grabbing;}
+  .org2-connector-handle{
+    position:absolute; left:50%; bottom:-8px; width:16px; height:16px; margin-left:-8px;
+    border-radius:50%; background:var(--accent); border:2px solid var(--surface); cursor:crosshair;
+    touch-action:none; z-index:2;
+  }
+  .org2-connector-handle:hover{transform:scale(1.2);}
+  .org-connector-line-temp{fill:none; stroke:var(--accent); stroke-width:2; stroke-dasharray:4 3;}
   .org-tree, .org-tree ul{list-style:none; margin:0; padding:0;}
   .org-tree{display:inline-flex; justify-content:center; min-width:100%;}
   .org-tree li{position:relative; display:flex; flex-direction:column; align-items:center; padding:0 12px;}
@@ -930,7 +937,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T11-43-38Z';
+  const APP_VERSION = '2026-09-03T11-54-22Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1990,8 +1997,9 @@
       return `<div class="org2-card ${orgCardTier(c.cargo)} canvas-mode ${editMode?'edit-mode':''}"
           data-cid="${c.id}" data-sup="${c.supervisorId||''}" style="left:${p.x}px; top:${p.y}px;"
           ${editMode ? '' : `onclick="LOTS.orgQuickEdit('${c.id}')"`}
-          title="${editMode ? 'Arraste para reposicionar' : 'Clique para editar'}">
+          title="${editMode ? 'Arraste para reposicionar · puxe a bolinha de baixo até outro card para definir quem reporta a quem' : 'Clique para editar'}">
         ${orgCardInnerHtml(c)}
+        ${editMode ? `<div class="org2-connector-handle" data-connector-from="${c.id}" title="Arraste até outro card para virar o supervisor dele"></div>` : ''}
       </div>`;
     }).join('');
     return `<div class="org-canvas" data-uo="${uo}" style="width:${canvasW}px; height:${canvasH}px;">
@@ -2052,6 +2060,72 @@
     el.addEventListener('pointercancel', ()=>{ dragging = false; });
   }
 
+  // verifica se candidatoId já é descendente (direto ou indireto) de ancestralId na
+  // hierarquia atual — usado pra não deixar criar um ciclo ao ligar duas linhas
+  function orgEhDescendente(ancestralId, candidatoId){
+    let atual = colaboradorById(candidatoId);
+    const visitados = new Set();
+    while(atual && atual.supervisorId && !visitados.has(atual.id)){
+      visitados.add(atual.id);
+      if(atual.supervisorId === ancestralId) return true;
+      atual = colaboradorById(atual.supervisorId);
+    }
+    return false;
+  }
+  // puxar a bolinha de um card até outro define o card de destino como subordinado
+  // do card de origem (desenha a linha "conforme for fazendo")
+  function wireOrgConnectorHandle(handleEl, canvasEl){
+    const cardEl = handleEl.closest('.org2-card[data-cid]');
+    const svg = canvasEl.querySelector('.org-canvas-lines');
+    let linking = false;
+    function limparLinhaTemp(){
+      const temp = svg.querySelector('.org-connector-line-temp');
+      if(temp) temp.remove();
+    }
+    handleEl.addEventListener('pointerdown', (e)=>{
+      e.stopPropagation();
+      linking = true;
+      handleEl.setPointerCapture(e.pointerId);
+    });
+    handleEl.addEventListener('pointermove', (e)=>{
+      if(!linking) return;
+      e.stopPropagation();
+      const canvasRect = canvasEl.getBoundingClientRect();
+      const x1 = cardEl.offsetLeft + cardEl.offsetWidth/2;
+      const y1 = cardEl.offsetTop + cardEl.offsetHeight;
+      const x2 = e.clientX - canvasRect.left;
+      const y2 = e.clientY - canvasRect.top;
+      let temp = svg.querySelector('.org-connector-line-temp');
+      if(!temp){
+        temp = document.createElementNS('http://www.w3.org/2000/svg','path');
+        temp.setAttribute('class','org-connector-line-temp');
+        svg.appendChild(temp);
+      }
+      temp.setAttribute('d', `M${x1},${y1} L${x2},${y2}`);
+    });
+    handleEl.addEventListener('pointerup', async (e)=>{
+      if(!linking) return;
+      e.stopPropagation();
+      linking = false;
+      limparLinhaTemp();
+      const origemId = cardEl.dataset.cid;
+      const alvo = document.elementFromPoint(e.clientX, e.clientY)?.closest('.org2-card[data-cid]');
+      if(!alvo || alvo.dataset.cid===origemId) return;
+      const alvoColab = colaboradorById(alvo.dataset.cid);
+      if(!alvoColab) return;
+      if(orgEhDescendente(alvo.dataset.cid, origemId)){
+        toast('Isso criaria um ciclo na hierarquia — não é possível.');
+        return;
+      }
+      alvoColab.supervisorId = origemId;
+      await save.colaboradores();
+      toast(`${alvoColab.nome} agora reporta a ${colaboradorById(origemId)?.nome||'—'}.`);
+      logAudit('Organograma: hierarquia atualizada', `${alvoColab.nome} → ${colaboradorById(origemId)?.nome||origemId}`);
+      renderOrganograma();
+    });
+    handleEl.addEventListener('pointercancel', ()=>{ linking = false; limparLinhaTemp(); });
+  }
+
   LOTS.orgEnableManual = async (uo)=>{
     const lista = visibleColaboradores().filter(c=>c.status!=='desligado' && c.unidade===uo);
     if(lista.length===0) return;
@@ -2078,6 +2152,43 @@
     const sel = document.getElementById('rgfilter-unidade');
     if(sel) sel.value = uo;
     renderOrganograma();
+  };
+
+  function orgWipeForm(uo, qtd){
+    return `
+      <div class="modal-title">Excluir todos os colaboradores de ${uo}</div>
+      <div class="page-sub" style="margin-bottom:14px;">Isso apaga definitivamente os ${qtd} colaborador(es) cadastrados nessa unidade (${uo}) — cadastro, foto e dados de SSMA. As outras unidades não são afetadas. Essa ação não pode ser desfeita.</div>
+      <div class="field"><label>Digite EXCLUIR TUDO para confirmar</label><input id="orgwipe-confirm" placeholder="EXCLUIR TUDO"></div>
+      <div class="err-msg" id="orgwipe-err"></div>
+      <div class="modal-actions">
+        <button class="btn-danger" id="btn-confirm-org-wipe">Excluir todos de ${uo}</button>
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>`;
+  }
+  LOTS.orgWipeUnidade = (uo)=>{
+    if(!canManageColaborador(uo)){ toast('Você não tem permissão para esta unidade.'); return; }
+    const lista = visibleColaboradores().filter(c=>c.status!=='desligado' && c.unidade===uo);
+    if(lista.length===0){ toast('Não há colaboradores cadastrados nessa unidade.'); return; }
+    openModal(orgWipeForm(uo, lista.length));
+    document.getElementById('btn-confirm-org-wipe').addEventListener('click', async ()=>{
+      const errEl = document.getElementById('orgwipe-err');
+      const texto = document.getElementById('orgwipe-confirm').value.trim().toUpperCase();
+      if(texto!=='EXCLUIR TUDO'){ errEl.textContent = 'Digite exatamente "EXCLUIR TUDO" para confirmar.'; return; }
+      const idsRemovidos = new Set(lista.map(c=>c.id));
+      for(const c of lista){
+        if(state.fotos[c.id]){ await removerFotoColaborador(c.id); delete state.fotos[c.id]; }
+      }
+      state.colaboradores.forEach(x=>{ if(x.supervisorId && idsRemovidos.has(x.supervisorId)) x.supervisorId = null; });
+      state.colaboradores = state.colaboradores.filter(x=>!idsRemovidos.has(x.id));
+      await save.colaboradores();
+      delete state.orgLayout[uo];
+      orgEditUnits.delete(uo);
+      await save.orgLayout();
+      closeModal();
+      renderAll();
+      toast(`${lista.length} colaborador(es) de ${uo} excluído(s).`);
+      logAudit('Organograma: todos os colaboradores da unidade excluídos', `${uo} — ${lista.length} registros`);
+    });
   };
 
   /* ---- cadastrar / editar / excluir colaborador direto pelo organograma ---- */
@@ -2208,6 +2319,9 @@
         toolbar += `<button class="btn-ghost btn-sm" onclick="LOTS.orgToggleEdit('${uoAtual}', true)">Editar posições</button>
           <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uoAtual}')">Restaurar automático</button>`;
       }
+      if(lista.length>0){
+        toolbar += `<button class="btn-danger btn-sm" onclick="LOTS.orgWipeUnidade('${uoAtual}')">Excluir todos de ${uoAtual}</button>`;
+      }
     }
     const idsNaUnidade = new Set(lista.map(c=>c.id));
     const raizes = lista.filter(c=>!c.supervisorId || !idsNaUnidade.has(c.supervisorId));
@@ -2236,6 +2350,7 @@
       redrawOrgLines(canvasEl);
       if(podeEditar && editMode){
         canvasEl.querySelectorAll('.org2-card.edit-mode').forEach(el=>wireOrgCardDrag(el, uoAtual, canvasEl));
+        canvasEl.querySelectorAll('.org2-connector-handle').forEach(el=>wireOrgConnectorHandle(el, canvasEl));
       }
     }
   }
