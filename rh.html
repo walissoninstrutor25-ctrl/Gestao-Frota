@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T12-19-21Z -->
+<!-- APP_BUILD:2026-09-03T16-22-47Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -937,7 +937,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T12-19-21Z';
+  const APP_VERSION = '2026-09-03T16-22-47Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -3355,17 +3355,20 @@
     return '';
   }
   // acha o colaborador ativo correspondente à linha da planilha, primeiro por CPF e,
-  // se não tiver CPF (ou não bater), pelo nome
-  function encontrarColaboradorParaSsma(row){
+  // se não tiver CPF (ou não bater), pelo nome. Se "apenasAtivo" for false, procura entre
+  // TODOS os colaboradores (usado só pra explicar por que uma linha não bateu: a pessoa
+  // existe no RH mas está desligada, ou o nome bate ignorando pontuação/palavras a mais)
+  function encontrarColaboradorParaSsma(row, apenasAtivo){
+    const somenteAtivos = apenasAtivo!==false;
     const cpfDigitos = somenteDigitos(pickCol(row,'CPF'));
     if(cpfDigitos){
-      const c = state.colaboradores.find(c=>c.status==='ativo' && somenteDigitos(c.cpf)===cpfDigitos);
+      const c = state.colaboradores.find(c=>(!somenteAtivos || c.status==='ativo') && somenteDigitos(c.cpf)===cpfDigitos);
       if(c) return c;
     }
     const nome = String(pickCol(row,'NOME COMPLETO','Nome','NOME')||'').trim();
     if(nome){
       const nomeNorm = normalizarCabecalho(nome);
-      const c = state.colaboradores.find(c=>c.status==='ativo' && normalizarCabecalho(c.nome)===nomeNorm);
+      const c = state.colaboradores.find(c=>(!somenteAtivos || c.status==='ativo') && normalizarCabecalho(c.nome)===nomeNorm);
       if(c) return c;
     }
     return null;
@@ -3382,11 +3385,17 @@
       const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
       let atualizados = 0;
       const naoEncontrados = [];
+      const desligados = [];
       rows.forEach(row=>{
         const nome = String(pickCol(row,'NOME COMPLETO','Nome','NOME')||'').trim();
         if(!nome) return; // linha em branco no fim da planilha
         const c = encontrarColaboradorParaSsma(row);
-        if(!c){ naoEncontrados.push(nome); return; }
+        if(!c){
+          const existeMasNaoAtivo = encontrarColaboradorParaSsma(row, false);
+          if(existeMasNaoAtivo) desligados.push(nome);
+          else naoEncontrados.push(nome);
+          return;
+        }
 
         const cnh = somenteDigitos(pickCol(row,'CNH','Nº CNH','N CNH'));
         const validadeCnh = parseValorDataPlanilhaSsma(pickCol(row,'VALIDADE CNH'));
@@ -3410,12 +3419,16 @@
       });
       await save.ssma();
       renderSsma();
-      const resumo = naoEncontrados.length
-        ? `${atualizados} colaborador(es) atualizado(s). ${naoEncontrados.length} não encontrado(s) entre os ativos do RH (confira nome/CPF): ${naoEncontrados.slice(0,8).join(', ')}${naoEncontrados.length>8?'...':''}.`
-        : `${atualizados} colaborador(es) atualizado(s).`;
-      if(msgEl) msgEl.textContent = resumo;
+      const partes = [`${atualizados} colaborador(es) atualizado(s).`];
+      if(desligados.length){
+        partes.push(`${desligados.length} encontrado(s) no RH mas como desligado/inativo (por isso não recebeu os dados de SSMA): ${desligados.slice(0,8).join(', ')}${desligados.length>8?'...':''}.`);
+      }
+      if(naoEncontrados.length){
+        partes.push(`${naoEncontrados.length} não encontrado(s) de jeito nenhum no RH — confira se o nome/CPF na planilha bate exatamente com o cadastro: ${naoEncontrados.slice(0,8).join(', ')}${naoEncontrados.length>8?'...':''}.`);
+      }
+      if(msgEl) msgEl.textContent = partes.join(' ');
       toast('Importação de SSMA concluída.');
-      logAudit('SSMA importado em massa', `${atualizados} atualizados, ${naoEncontrados.length} não encontrados`);
+      logAudit('SSMA importado em massa', `${atualizados} atualizados, ${desligados.length} desligados, ${naoEncontrados.length} não encontrados`);
     }catch(err){
       console.error('importacao ssma falhou', err);
       if(msgEl) msgEl.textContent = 'Não foi possível ler essa planilha. Confira o formato do arquivo.';
