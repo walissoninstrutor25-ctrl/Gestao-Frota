@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T10-51-42Z -->
+<!-- APP_BUILD:2026-09-03T11-43-38Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -838,6 +838,21 @@
           </div>
           <button class="btn-ghost" id="btn-clear-ssmafilter">Limpar</button>
         </div>
+
+        <div style="margin: -8px 0 14px; text-align:right;">
+          <button type="button" id="btn-toggle-import-ssma" style="background:none; border:none; color:var(--text-faint); font-size:10.5px; padding:2px; cursor:pointer; text-decoration:underline;">importar planilha de SSMA</button>
+        </div>
+        <div id="import-ssma-panel" style="display:none; margin:-8px 0 14px; padding:14px; border:1px dashed var(--line); border-radius:8px; background:var(--surface-2);">
+          <div class="page-sub" style="margin-bottom:10px;">
+            Importa Nº CNH, Validade CNH, Validade do Toxicológico, Admissão/Periódico e Toxicológico LOTS de uma planilha (.xlsx, .xls ou .csv), pra quando forem muitos colaboradores de uma vez. Cada linha é encontrada pelo CPF (ou pelo nome, se não tiver CPF) entre os colaboradores ativos já cadastrados no RH — quem não for encontrado aparece no resumo pra conferir nome/CPF. Pode importar quantas vezes precisar: só atualiza os campos que vierem preenchidos na planilha, sem apagar o que já estava salvo.
+          </div>
+          <div class="field-grid-4" style="align-items:end; margin-bottom:0;">
+            <div class="field" style="margin-bottom:0;"><label>Arquivo</label><input type="file" id="import-ssma-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field" style="margin-bottom:0;"><button class="btn-ghost btn-sm" id="btn-import-ssma" style="width:100%;">Importar planilha</button></div>
+          </div>
+          <div class="err-msg" id="import-ssma-msg"></div>
+        </div>
+
         <div class="kpi-grid" id="ssma-kpi-grid"></div>
 
         <div class="card" id="card-ssma-vencimentos">
@@ -915,7 +930,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T10-51-42Z';
+  const APP_VERSION = '2026-09-03T11-43-38Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -3149,27 +3164,16 @@
       <div class="page-sub" style="margin-bottom:14px;">${c?.cargo||'—'} · ${c?.unidade||'—'} · Matrícula ${c?.matricula||'—'} · CPF ${c?.cpf||'—'}</div>
 
       <div class="card" style="padding:12px; margin-bottom:14px;">
-        <div class="field-row">
-          <div class="field">
-            <label>Anexar PDF da CNH (lê e preenche sozinho)</label>
-            <input type="file" id="sf-file-cnh" accept="application/pdf">
-            <div class="page-sub" id="sf-status-cnh" style="margin:6px 0 0;">${docs.pdfCnh ? '📎 PDF já anexado.' : 'Nenhum PDF anexado ainda.'}</div>
-            <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
-              <button type="button" class="btn-ghost" onclick="LOTS.lerPdfSsma('${colaboradorId}','cnh')">Ler PDF e preencher</button>
-              ${docs.pdfCnh ? `<button type="button" class="btn-ghost" onclick="LOTS.removerPdfSsma('${colaboradorId}','cnh')">Remover PDF</button>` : ''}
-            </div>
-          </div>
-          <div class="field">
-            <label>Anexar PDF de Admissão/Periódico + Toxicológico (lê e preenche sozinho)</label>
-            <input type="file" id="sf-file-aso" accept="application/pdf">
-            <div class="page-sub" id="sf-status-aso" style="margin:6px 0 0;">${docs.pdfAso ? '📎 PDF já anexado.' : 'Nenhum PDF anexado ainda.'}</div>
-            <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
-              <button type="button" class="btn-ghost" onclick="LOTS.lerPdfSsma('${colaboradorId}','aso')">Ler PDF e preencher</button>
-              ${docs.pdfAso ? `<button type="button" class="btn-ghost" onclick="LOTS.removerPdfSsma('${colaboradorId}','aso')">Remover PDF</button>` : ''}
-            </div>
+        <div class="field">
+          <label>Anexar PDF de Admissão/Periódico + Toxicológico (lê e preenche sozinho)</label>
+          <input type="file" id="sf-file-aso" accept="application/pdf">
+          <div class="page-sub" id="sf-status-aso" style="margin:6px 0 0;">${docs.pdfAso ? '📎 PDF já anexado.' : 'Nenhum PDF anexado ainda.'}</div>
+          <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+            <button type="button" class="btn-ghost" onclick="LOTS.lerPdfSsma('${colaboradorId}')">Ler PDF e preencher</button>
+            ${docs.pdfAso ? `<button type="button" class="btn-ghost" onclick="LOTS.removerPdfSsma('${colaboradorId}')">Remover PDF</button>` : ''}
           </div>
         </div>
-        <div class="page-sub" style="margin:8px 2px 0;">Funciona com PDFs de texto (a maioria dos laudos digitais). Depois de ler, confira sempre os campos abaixo antes de salvar.</div>
+        <div class="page-sub" style="margin:8px 2px 0;">Funciona com PDFs de texto (a maioria dos laudos digitais). Depois de ler, confira sempre os campos abaixo antes de salvar. Os dados da CNH (número e validades) são preenchidos por aqui manualmente ou pela importação de planilha, logo acima da tabela.</div>
       </div>
 
       <div class="field-row">
@@ -3214,6 +3218,96 @@
     toast('Dados de SSMA salvos.');
     logAudit('SSMA atualizado', colaboradorById(colaboradorId)?.nome||colaboradorId);
   };
+
+  /* ---------------- SSMA — importação de planilha em massa ---------------- */
+  document.getElementById('btn-toggle-import-ssma')?.addEventListener('click', ()=>{
+    const panel = document.getElementById('import-ssma-panel');
+    panel.style.display = panel.style.display==='none' ? 'block' : 'none';
+  });
+  // aceita numero de serie do Excel (data real) ou texto "dd/mm/aaaa"; "-"/vazio/formato
+  // nao reconhecido vira '' pra nao gravar data errada
+  function parseValorDataPlanilhaSsma(v){
+    if(v===null || v===undefined || v==='') return '';
+    if(typeof v === 'number'){
+      const d = XLSX.SSF.parse_date_code(v);
+      return (d && d.y) ? `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}` : '';
+    }
+    const s = String(v).trim();
+    if(!s || s==='-') return '';
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(m){
+      const [, d, mo, a] = m;
+      if(+mo>=1 && +mo<=12 && +d>=1 && +d<=31) return `${a}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    return '';
+  }
+  // acha o colaborador ativo correspondente à linha da planilha, primeiro por CPF e,
+  // se não tiver CPF (ou não bater), pelo nome
+  function encontrarColaboradorParaSsma(row){
+    const cpfDigitos = somenteDigitos(pickCol(row,'CPF'));
+    if(cpfDigitos){
+      const c = state.colaboradores.find(c=>c.status==='ativo' && somenteDigitos(c.cpf)===cpfDigitos);
+      if(c) return c;
+    }
+    const nome = String(pickCol(row,'NOME COMPLETO','Nome','NOME')||'').trim();
+    if(nome){
+      const nomeNorm = normalizarCabecalho(nome);
+      const c = state.colaboradores.find(c=>c.status==='ativo' && normalizarCabecalho(c.nome)===nomeNorm);
+      if(c) return c;
+    }
+    return null;
+  }
+  document.getElementById('btn-import-ssma')?.addEventListener('click', async ()=>{
+    const fileInput = document.getElementById('import-ssma-file');
+    const msgEl = document.getElementById('import-ssma-msg');
+    const file = fileInput?.files?.[0];
+    if(!file){ if(msgEl) msgEl.textContent = 'Selecione um arquivo primeiro.'; return; }
+    try{
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      let atualizados = 0;
+      const naoEncontrados = [];
+      rows.forEach(row=>{
+        const nome = String(pickCol(row,'NOME COMPLETO','Nome','NOME')||'').trim();
+        if(!nome) return; // linha em branco no fim da planilha
+        const c = encontrarColaboradorParaSsma(row);
+        if(!c){ naoEncontrados.push(nome); return; }
+
+        const cnh = somenteDigitos(pickCol(row,'CNH','Nº CNH','N CNH'));
+        const validadeCnh = parseValorDataPlanilhaSsma(pickCol(row,'VALIDADE CNH'));
+        const validadeTox = parseValorDataPlanilhaSsma(pickCol(row,'VALIDADE DO TOXICOLÓGICO','VALIDADE DO TOXICOLOGICO','VALIDADE TOXICOLOGICO'));
+        const admPer = parseValorDataPlanilhaSsma(pickCol(row,'ADMISSÃO/PERIODICO','ADMISSAO/PERIODICO','ADMISSÃO/PERIÓDICO'));
+        const toxLots = parseValorDataPlanilhaSsma(pickCol(row,'TOXICOLOGICO LOTS','TOXICOLÓGICO LOTS'));
+
+        const idx = state.ssma.findIndex(s=>s.colaboradorId===c.id);
+        const atual = idx>=0 ? state.ssma[idx] : { colaboradorId:c.id, cnh:'', validadeCnh:'', validadeToxCnh:'', admissaoPeriodico:'', toxicologicoLots:'' };
+        // só sobrescreve o que veio preenchido na planilha — não apaga dado já salvo
+        const novo = {
+          colaboradorId: c.id,
+          cnh: cnh || atual.cnh,
+          validadeCnh: validadeCnh || atual.validadeCnh,
+          validadeToxCnh: validadeTox || atual.validadeToxCnh,
+          admissaoPeriodico: admPer || atual.admissaoPeriodico,
+          toxicologicoLots: toxLots || atual.toxicologicoLots
+        };
+        if(idx>=0) state.ssma[idx] = novo; else state.ssma.push(novo);
+        atualizados++;
+      });
+      await save.ssma();
+      renderSsma();
+      const resumo = naoEncontrados.length
+        ? `${atualizados} colaborador(es) atualizado(s). ${naoEncontrados.length} não encontrado(s) entre os ativos do RH (confira nome/CPF): ${naoEncontrados.slice(0,8).join(', ')}${naoEncontrados.length>8?'...':''}.`
+        : `${atualizados} colaborador(es) atualizado(s).`;
+      if(msgEl) msgEl.textContent = resumo;
+      toast('Importação de SSMA concluída.');
+      logAudit('SSMA importado em massa', `${atualizados} atualizados, ${naoEncontrados.length} não encontrados`);
+    }catch(err){
+      console.error('importacao ssma falhou', err);
+      if(msgEl) msgEl.textContent = 'Não foi possível ler essa planilha. Confira o formato do arquivo.';
+    }
+  });
 
   /* ---------------- SSMA — leitura automática de PDF ---------------- */
   // Só funciona para PDFs digitais (com texto selecionável). PDF que é foto/print
@@ -3284,54 +3378,6 @@
     for(const l of linhas){ const m = l.match(/\d{3}\.\d{3}\.\d{3}-\d{2}/); if(m) return m[0]; }
     return '';
   }
-  function extrairNumeroRegistroCnh(linhas){
-    for(const l of linhas){
-      const busca = semAcento(l);
-      if(busca.includes('REGISTRO')){
-        const m = l.match(/\d[\d.\s]{8,14}\d/);
-        if(m){ const digitos = somenteDigitos(m[0]); if(digitos.length>=9 && digitos.length<=11) return digitos; }
-      }
-    }
-    return '';
-  }
-  function extrairValidadesCnh(linhas){
-    let validadeCnh = '', validadeTox = '';
-    linhas.forEach((l, i)=>{
-      const busca = semAcento(l);
-      if(!busca.includes('VALIDADE')) return;
-      const ehToxicologico = busca.includes('TOXICOLOGICO') || (linhas[i-1] && semAcento(linhas[i-1]).includes('TOXICOLOGICO'));
-      let m = l.match(/\d{2}\/\d{2}\/\d{4}/);
-      if(!m && linhas[i+1]) m = linhas[i+1].match(/\d{2}\/\d{2}\/\d{4}/);
-      if(!m) return;
-      const iso = isoFromBr(m[0]);
-      if(ehToxicologico && !validadeTox) validadeTox = iso;
-      else if(!ehToxicologico && !validadeCnh) validadeCnh = iso;
-    });
-    return {cnh: validadeCnh, tox: validadeTox};
-  }
-  // lê a validade da CNH pelo código de leitura mecânica (MRZ) que fica no verso do
-  // documento oficial da CNH Digital — esse trecho usa uma fonte própria pra facilitar
-  // leitura automática, então é bem mais confiável que ler os campos em caixinha por OCR.
-  // formato: NASCIMENTO(6) DIGITO SEXO(M/F) VALIDADE(6) DIGITO PAIS(3)
-  function extrairValidadeCnhViaMrz(linhas){
-    for(const l of linhas){
-      const compacta = l.replace(/[^A-Z0-9<]/gi,'').toUpperCase();
-      const m = compacta.match(/\d{6}\d[MF](\d{6})\d[A-Z]{3}/);
-      if(m){
-        const yy = m[1].slice(0,2), mm = m[1].slice(2,4), dd = m[1].slice(4,6);
-        if(+mm>=1 && +mm<=12 && +dd>=1 && +dd<=31){
-          const ano = (+yy<=79 ? '20' : '19') + yy;
-          return `${ano}-${mm}-${dd}`;
-        }
-      }
-    }
-    return '';
-  }
-  // rótulo real usado na tela de "Exames Toxicológicos" do app oficial (Meu CNH / gov.br),
-  // validado com print de exemplo — não usa a palavra "validade"
-  function extrairValidadeToxCnhViaApp(linhas){
-    return buscarDataComRotulo(linhas, ['PRAZO PARA REALIZACAO DE NOVO EXAME','PRAZO PARA REALIZACAO']);
-  }
   function extrairDataToxicologicoLots(linhas){
     return buscarDataComRotulo(linhas, ['DATA DA COLETA','DATA DE COLETA','COLETA REALIZADA EM','DATA COLETA']);
   }
@@ -3341,29 +3387,17 @@
     return buscarDataComRotulo(linhas, ['DATA DE FECHAMENTO DO ASO','DATA DO FECHAMENTO DO ASO','FECHAMENTO DO ASO','DATA DO EXAME CLINICO OCUPACIONAL','DATA DO EXAME CLINICO','DATA DE EMISSAO DO ASO','DATA DO ASO','ASO EMITIDO EM']);
   }
 
-  // preenche os campos do formulário a partir de uma lista de linhas de texto (vindas do PDF
-  // ou da leitura por OCR) — devolve true se encontrou pelo menos um dado
-  function preencherCamposSsma(tipo, linhas){
+  // preenche os campos de admissão/periódico e toxicológico LOTS a partir de uma lista de
+  // linhas de texto (vindas do PDF ou da leitura por OCR) — devolve true se achou algum dado
+  function preencherCamposSsma(linhas){
     let algumCampo = false;
-    if(tipo==='cnh'){
-      const numero = extrairNumeroRegistroCnh(linhas);
-      const validades = extrairValidadesCnh(linhas);
-      const validadeCnhMrz = extrairValidadeCnhViaMrz(linhas);
-      const validadeToxApp = extrairValidadeToxCnhViaApp(linhas);
-      if(numero){ document.getElementById('sf-cnh').value = numero; algumCampo = true; }
-      const validadeCnh = validadeCnhMrz || validades.cnh;
-      if(validadeCnh){ document.getElementById('sf-validade-cnh').value = validadeCnh; algumCampo = true; }
-      const validadeTox = validadeToxApp || validades.tox;
-      if(validadeTox){ document.getElementById('sf-validade-tox-cnh').value = validadeTox; algumCampo = true; }
-    } else {
-      const dataColeta = extrairDataToxicologicoLots(linhas);
-      const dataAdmPer = extrairDataAdmissaoPeriodico(linhas);
-      if(dataColeta){ document.getElementById('sf-tox-lots').value = dataColeta; algumCampo = true; }
-      if(dataAdmPer){
-        document.getElementById('sf-admissao-periodico').value = dataAdmPer;
-        document.getElementById('sf-admissao-periodico').dispatchEvent(new Event('change'));
-        algumCampo = true;
-      }
+    const dataColeta = extrairDataToxicologicoLots(linhas);
+    const dataAdmPer = extrairDataAdmissaoPeriodico(linhas);
+    if(dataColeta){ document.getElementById('sf-tox-lots').value = dataColeta; algumCampo = true; }
+    if(dataAdmPer){
+      document.getElementById('sf-admissao-periodico').value = dataAdmPer;
+      document.getElementById('sf-admissao-periodico').dispatchEvent(new Event('change'));
+      algumCampo = true;
     }
     return algumCampo;
   }
@@ -3375,8 +3409,7 @@
   }
   const SSMA_OCR_MAX_PAGINAS = 3;
   // renderiza cada página como imagem e lê com OCR — só usada quando o PDF não tem texto
-  // selecionável de verdade (ex.: documento oficial da CNH Digital, que embute os dados
-  // como imagem, ou uma foto/print salva em PDF)
+  // selecionável de verdade (ex.: laudo escaneado ou foto/print salvo em PDF)
   async function ocrLinhasDoPdf(arrayBuffer){
     if(!window.Tesseract) return [];
     const doc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
@@ -3394,9 +3427,8 @@
     return todasLinhas;
   }
 
-  LOTS.lerPdfSsma = async (colaboradorId, tipo)=>{
-    const inputId = tipo==='cnh' ? 'sf-file-cnh' : 'sf-file-aso';
-    const input = document.getElementById(inputId);
+  LOTS.lerPdfSsma = async (colaboradorId)=>{
+    const input = document.getElementById('sf-file-aso');
     const file = input?.files?.[0];
     if(!file){ toast('Selecione um arquivo PDF primeiro.'); return; }
     if(file.type!=='application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){ toast('Selecione um arquivo em PDF.'); return; }
@@ -3407,9 +3439,9 @@
       const buffer = await file.arrayBuffer();
       const linhas = await extrairLinhasPdf(buffer.slice(0));
       const dataUrl = await fileParaDataUrl(file);
-      await salvarDocSsma(colaboradorId, tipo==='cnh'?'pdfCnh':'pdfAso', dataUrl);
+      await salvarDocSsma(colaboradorId, 'pdfAso', dataUrl);
 
-      let algumCampo = preencherCamposSsma(tipo, linhas);
+      let algumCampo = preencherCamposSsma(linhas);
       let cpfDoc = extrairCpfDoDoc(linhas);
       let usouOcr = false;
 
@@ -3419,7 +3451,7 @@
         try{
           const linhasOcr = await ocrLinhasDoPdf(buffer.slice(0));
           if(linhasOcr.length){
-            algumCampo = preencherCamposSsma(tipo, linhasOcr);
+            algumCampo = preencherCamposSsma(linhasOcr);
             if(!cpfDoc) cpfDoc = extrairCpfDoDoc(linhasOcr);
             usouOcr = true;
           }
@@ -3431,7 +3463,7 @@
         toast('Atenção: o CPF do documento não confere com o do colaborador selecionado. Confira se anexou o documento certo.');
       }
 
-      const statusEl = document.getElementById(tipo==='cnh'?'sf-status-cnh':'sf-status-aso');
+      const statusEl = document.getElementById('sf-status-aso');
       if(statusEl) statusEl.textContent = '📎 PDF anexado.';
 
       if(algumCampo && usouOcr){
@@ -3446,9 +3478,9 @@
       toast('Não consegui ler esse PDF automaticamente. O documento pode ser anexado e os campos preenchidos manualmente.');
     }
   };
-  LOTS.removerPdfSsma = async (colaboradorId, tipo)=>{
-    await removerDocSsma(colaboradorId, tipo==='cnh'?'pdfCnh':'pdfAso');
-    const statusEl = document.getElementById(tipo==='cnh'?'sf-status-cnh':'sf-status-aso');
+  LOTS.removerPdfSsma = async (colaboradorId)=>{
+    await removerDocSsma(colaboradorId, 'pdfAso');
+    const statusEl = document.getElementById('sf-status-aso');
     if(statusEl) statusEl.textContent = 'Nenhum PDF anexado ainda.';
     toast('PDF removido.');
   };
