@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T11-54-22Z -->
+<!-- APP_BUILD:2026-09-03T12-02-33Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -937,7 +937,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T11-54-22Z';
+  const APP_VERSION = '2026-09-03T12-02-33Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2156,12 +2156,12 @@
 
   function orgWipeForm(uo, qtd){
     return `
-      <div class="modal-title">Excluir todos os colaboradores de ${uo}</div>
-      <div class="page-sub" style="margin-bottom:14px;">Isso apaga definitivamente os ${qtd} colaborador(es) cadastrados nessa unidade (${uo}) — cadastro, foto e dados de SSMA. As outras unidades não são afetadas. Essa ação não pode ser desfeita.</div>
+      <div class="modal-title">Excluir organograma de ${uo}</div>
+      <div class="page-sub" style="margin-bottom:14px;">Isso apaga as posições e as linhas de quem reporta a quem no organograma de ${uo} (${qtd} colaborador(es)), pra você montar do zero. Não apaga nenhum colaborador — o cadastro de todo mundo continua intacto. As outras unidades não são afetadas.</div>
       <div class="field"><label>Digite EXCLUIR TUDO para confirmar</label><input id="orgwipe-confirm" placeholder="EXCLUIR TUDO"></div>
       <div class="err-msg" id="orgwipe-err"></div>
       <div class="modal-actions">
-        <button class="btn-danger" id="btn-confirm-org-wipe">Excluir todos de ${uo}</button>
+        <button class="btn-danger" id="btn-confirm-org-wipe">Excluir organograma de ${uo}</button>
         <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
       </div>`;
   }
@@ -2174,20 +2174,17 @@
       const errEl = document.getElementById('orgwipe-err');
       const texto = document.getElementById('orgwipe-confirm').value.trim().toUpperCase();
       if(texto!=='EXCLUIR TUDO'){ errEl.textContent = 'Digite exatamente "EXCLUIR TUDO" para confirmar.'; return; }
-      const idsRemovidos = new Set(lista.map(c=>c.id));
-      for(const c of lista){
-        if(state.fotos[c.id]){ await removerFotoColaborador(c.id); delete state.fotos[c.id]; }
-      }
-      state.colaboradores.forEach(x=>{ if(x.supervisorId && idsRemovidos.has(x.supervisorId)) x.supervisorId = null; });
-      state.colaboradores = state.colaboradores.filter(x=>!idsRemovidos.has(x.id));
+      // limpa só a hierarquia (quem reporta a quem) e as posições do organograma —
+      // os colaboradores em si nunca são apagados por esse botão
+      lista.forEach(c=>{ c.supervisorId = null; });
       await save.colaboradores();
       delete state.orgLayout[uo];
       orgEditUnits.delete(uo);
       await save.orgLayout();
       closeModal();
-      renderAll();
-      toast(`${lista.length} colaborador(es) de ${uo} excluído(s).`);
-      logAudit('Organograma: todos os colaboradores da unidade excluídos', `${uo} — ${lista.length} registros`);
+      renderOrganograma();
+      toast(`Organograma de ${uo} foi zerado — os colaboradores continuam cadastrados.`);
+      logAudit('Organograma zerado (colaboradores mantidos)', uo);
     });
   };
 
@@ -2320,7 +2317,7 @@
           <button class="btn-ghost btn-sm" onclick="LOTS.orgResetLayout('${uoAtual}')">Restaurar automático</button>`;
       }
       if(lista.length>0){
-        toolbar += `<button class="btn-danger btn-sm" onclick="LOTS.orgWipeUnidade('${uoAtual}')">Excluir todos de ${uoAtual}</button>`;
+        toolbar += `<button class="btn-danger btn-sm" onclick="LOTS.orgWipeUnidade('${uoAtual}')">Excluir organograma de ${uoAtual}</button>`;
       }
     }
     const idsNaUnidade = new Set(lista.map(c=>c.id));
