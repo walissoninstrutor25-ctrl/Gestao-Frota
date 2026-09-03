@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T10-15-00Z -->
+<!-- APP_BUILD:2026-08-09T11-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1849,7 +1849,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T10-15-00Z';
+  const APP_VERSION = '2026-08-09T11-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1937,18 +1937,18 @@
     catch(e){ console.error('add fuel fail', e); toast('Erro ao salvar o abastecimento. Verifique sua conexão.'); throw e; }
   }
   async function addFuelEntriesBatch(recs){
-    try{
-      // Firestore aceita até 500 operações por lote — quebra em pedaços se vier uma planilha gigante
-      for(let i=0; i<recs.length; i+=450){
-        const chunk = recs.slice(i, i+450);
-        const batch = db.batch();
-        chunk.forEach(rec=>{
-          const {id, ...data} = rec;
-          batch.set(db.collection(FUEL_COLLECTION).doc(id), data);
-        });
-        await batch.commit();
-      }
-    }catch(e){ console.error('batch fuel fail', e); toast('Erro ao salvar os abastecimentos importados. Verifique sua conexão.'); throw e; }
+    // Firestore aceita até 500 operações por lote — quebra em pedaços se vier uma planilha gigante.
+    // Não trata o erro aqui (sem toast) — quem chama essa função decide como mostrar a mensagem,
+    // já que essa função também é usada na migração automática (sem tela de importação aberta).
+    for(let i=0; i<recs.length; i+=450){
+      const chunk = recs.slice(i, i+450);
+      const batch = db.batch();
+      chunk.forEach(rec=>{
+        const {id, ...data} = rec;
+        batch.set(db.collection(FUEL_COLLECTION).doc(id), data);
+      });
+      await batch.commit();
+    }
   }
   async function deleteFuelEntry(id){
     try{ await db.collection(FUEL_COLLECTION).doc(id).delete(); }
@@ -2061,11 +2061,13 @@
     state.fuel     = await loadFuelEntries();
     if(state.fuel.length===0){
       // migração única: puxa dados que ainda estejam guardados no formato antigo (um "arquivo" só)
-      const fuelAntigo = await loadShared('lots-fuel', []);
-      if(fuelAntigo.length>0){
-        await addFuelEntriesBatch(fuelAntigo);
-        state.fuel = fuelAntigo;
-      }
+      try{
+        const fuelAntigo = await loadShared('lots-fuel', []);
+        if(fuelAntigo.length>0){
+          await addFuelEntriesBatch(fuelAntigo);
+          state.fuel = fuelAntigo;
+        }
+      }catch(e){ console.error('migração de combustível falhou', e); }
     }
     setLoadingProgress(32, 'Carregando custos…');
     state.costs    = await loadShared('lots-costs', []);
@@ -3025,72 +3027,86 @@
     if(typeof XLSX === 'undefined'){ msgEl.textContent='Biblioteca de importação não carregada.'; return; }
     msgEl.style.color='var(--text-muted)';
     msgEl.textContent='Lendo planilha…';
+
+    // etapa 1: ler e interpretar o arquivo (erro aqui = arquivo corrompido/formato errado)
+    let rows;
     try{
       const file = fileInput.files[0];
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array', cellDates:false});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-
-      const erros = [];
-      const validas = [];
-      const okVids = visibleVehicles().map(v=>v.id); // gestor/adm_uo só importam pras UOs deles
-      rows.forEach((row, i)=>{
-        const linha = i+2; // linha 1 = cabeçalho
-        const placaRaw = String(pickCol(row,'placa')||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-        const km = Number(pickCol(row,'odometro','odômetro','km atual','km'))||0;
-        const dataRaw = pickCol(row,'data de abastecimento','data do abastecimento','data','período','periodo');
-        const litros = Number(pickCol(row,'litros abastecidos','litros','quantidade de litros'))||0;
-        const valorLitro = Number(pickCol(row,'valor litro','valor do litro','preco litro','preço litro'))||0;
-        const posto = String(pickCol(row,'posto','nome do posto')||'').trim();
-        if(!placaRaw && !km && !litros) return; // linha em branco, ignora
-
-        const v = state.vehicles.find(x=>x.plate.replace(/[^A-Z0-9]/g,'')===placaRaw);
-        if(!v){ erros.push(`Linha ${linha}: placa "${placaRaw}" não encontrada no cadastro. Corrija a placa na planilha ou cadastre o veículo.`); return; }
-        if(!okVids.includes(v.id)){ erros.push(`Linha ${linha}: placa "${placaRaw}" (Frota ${v.frota||'—'}) não é da sua UO — você não pode importar abastecimento pra ela.`); return; }
-        if(km<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem ODOMETRO válido.`); return; }
-        if(litros<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem LITROS ABASTECIDOS válido.`); return; }
-        if(valorLitro<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem VALOR LITRO válido.`); return; }
-
-        const dataISO = excelDateToISO(dataRaw) || todayISO();
-        validas.push({v, km, litros, valorLitro, posto, dataISO});
-      });
-
-      if(erros.length>0){
-        msgEl.style.color='var(--danger)';
-        msgEl.textContent = `Encontrei ${erros.length} linha(s) com erro. Nada foi importado — corrija e tente de novo.`;
-        errEl.style.display='block';
-        errEl.innerHTML = erros.map(e=>`<div style="margin-bottom:4px;">⚠️ ${e}</div>`).join('');
-        return;
-      }
-      if(validas.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Nenhuma linha válida encontrada na planilha.'; return; }
-
-      const kmUpdates = {};
-      const novosRegistros = [];
-      validas.forEach(({v, km, litros, valorLitro, posto, dataISO})=>{
-        const rec = {
-          id:uid(), vehicleId:v.id, date: dataISO, liters:litros,
-          value: Number((litros*valorLitro).toFixed(2)),
-          km: km, station: posto, imported:true
-        };
-        novosRegistros.push(rec);
-        state.fuel.push(rec);
-        if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
-      });
-      Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
-      await addFuelEntriesBatch(novosRegistros);
-      if(Object.keys(kmUpdates).length) await save.vehicles();
-
-      msgEl.style.color='var(--go)';
-      msgEl.textContent = `${validas.length} abastecimento(s) importado(s) com sucesso.`;
-      fileInput.value='';
-      logAudit('Planilha de abastecimento importada', `${validas.length} lançamento(s)`);
-      renderView('fuel'); renderView('dashboard'); renderView('vehicles');
+      rows = XLSX.utils.sheet_to_json(ws, {defval:''});
     }catch(e){
-      console.error(e);
+      console.error('erro ao ler planilha', e);
       msgEl.style.color='var(--danger)';
-      msgEl.textContent='Não foi possível ler esse arquivo. Confira se é um .xlsx, .xls ou .csv válido.';
+      msgEl.textContent = 'Não foi possível LER esse arquivo (' + (e?.message||'erro desconhecido') + '). Confira se é um .xlsx, .xls ou .csv válido, e se não está corrompido.';
+      return;
     }
+
+    // etapa 2: validar cada linha (erro aqui = dado da planilha não bate com o cadastro)
+    const erros = [];
+    const validas = [];
+    const okVids = visibleVehicles().map(v=>v.id); // gestor/adm_uo só importam pras UOs deles
+    rows.forEach((row, i)=>{
+      const linha = i+2; // linha 1 = cabeçalho
+      const placaRaw = String(pickCol(row,'placa')||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+      const km = Number(pickCol(row,'odometro','odômetro','km atual','km'))||0;
+      const dataRaw = pickCol(row,'data de abastecimento','data do abastecimento','data','período','periodo');
+      const litros = Number(pickCol(row,'litros abastecidos','litros','quantidade de litros'))||0;
+      const valorLitro = Number(pickCol(row,'valor litro','valor do litro','preco litro','preço litro'))||0;
+      const posto = String(pickCol(row,'posto','nome do posto')||'').trim();
+      if(!placaRaw && !km && !litros) return; // linha em branco, ignora
+
+      const v = state.vehicles.find(x=>x.plate.replace(/[^A-Z0-9]/g,'')===placaRaw);
+      if(!v){ erros.push(`Linha ${linha}: placa "${placaRaw}" não encontrada no cadastro. Corrija a placa na planilha ou cadastre o veículo.`); return; }
+      if(!okVids.includes(v.id)){ erros.push(`Linha ${linha}: placa "${placaRaw}" (Frota ${v.frota||'—'}) não é da sua UO — você não pode importar abastecimento pra ela.`); return; }
+      if(km<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem ODOMETRO válido.`); return; }
+      if(litros<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem LITROS ABASTECIDOS válido.`); return; }
+      if(valorLitro<=0){ erros.push(`Linha ${linha}: placa "${placaRaw}" sem VALOR LITRO válido.`); return; }
+
+      const dataISO = excelDateToISO(dataRaw) || todayISO();
+      validas.push({v, km, litros, valorLitro, posto, dataISO});
+    });
+
+    if(erros.length>0){
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent = `Encontrei ${erros.length} linha(s) com erro. Nada foi importado — corrija e tente de novo.`;
+      errEl.style.display='block';
+      errEl.innerHTML = erros.map(e=>`<div style="margin-bottom:4px;">⚠️ ${e}</div>`).join('');
+      return;
+    }
+    if(validas.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Nenhuma linha válida encontrada na planilha.'; return; }
+
+    // etapa 3: gravar no banco (erro aqui = falha de conexão/permissão ao salvar, NÃO é problema do arquivo)
+    msgEl.textContent = `Planilha lida (${validas.length} linhas válidas). Salvando no sistema…`;
+    const kmUpdates = {};
+    const novosRegistros = [];
+    validas.forEach(({v, km, litros, valorLitro, posto, dataISO})=>{
+      const rec = {
+        id:uid(), vehicleId:v.id, date: dataISO, liters:litros,
+        value: Number((litros*valorLitro).toFixed(2)),
+        km: km, station: posto, imported:true
+      };
+      novosRegistros.push(rec);
+      if(km > (kmUpdates[v.id]||v.km)) kmUpdates[v.id]=km;
+    });
+    try{
+      await addFuelEntriesBatch(novosRegistros);
+    }catch(e){
+      console.error('erro ao salvar abastecimentos', e);
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent = 'A planilha foi lida certinho, mas houve um erro ao SALVAR no banco de dados: ' + (e?.message||e?.code||'erro desconhecido') + '. Nada foi importado — tente de novo, e se persistir, me avise com essa mensagem.';
+      return;
+    }
+    novosRegistros.forEach(rec=>state.fuel.push(rec));
+    Object.keys(kmUpdates).forEach(vid=>{ const vv=vehicleById(vid); if(vv) vv.km=kmUpdates[vid]; });
+    if(Object.keys(kmUpdates).length) await save.vehicles();
+
+    msgEl.style.color='var(--go)';
+    msgEl.textContent = `${validas.length} abastecimento(s) importado(s) com sucesso.`;
+    fileInput.value='';
+    logAudit('Planilha de abastecimento importada', `${validas.length} lançamento(s)`);
+    renderView('fuel'); renderView('dashboard'); renderView('vehicles');
   });
 
   /* ---------------- BI DE COMBUSTÍVEL ---------------- */
