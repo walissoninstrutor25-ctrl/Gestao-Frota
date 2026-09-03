@@ -64,6 +64,7 @@ const state = {
   month: {},      // tabId -> chave do mes selecionado
   unit: {},        // tabId -> 'MNS' | 'PRA'
   view: {},        // tabId -> 'escala' | 'equipe'
+  equipeSelecionado: null, // path do slot selecionado em Ver Equipe (aguardando confirmar Excluir)
   search: '',
   grupo: 'todos',
   papel: 'todos',
@@ -112,6 +113,7 @@ function normalizeEditsShape(raw) {
     metas: raw.metas || {}, // "tabId|turno|UO" -> meta de vagas (controle de vagas do dashboard)
     driversDb: raw.driversDb || {}, // matrícula (string) -> {nome, unidade} — banco central pra autocompletar nome pela matrícula
     bancoHoras: raw.bancoHoras || [], // [{id, pk, data, nome, matricula, turno, lider, tipo:'BH'|'ATESTADO'}]
+    equipeExclusoes: raw.equipeExclusoes || [], // [{id, contexto, nome, matricula, motivo, data}] — log de "Excluir" em Ver Equipe
   };
 }
 
@@ -1053,6 +1055,49 @@ function renderAfastados() {
   });
 }
 
+// Histórico de "Excluir" feitos em Ver Equipe — só existe pra ADM
+// conferir depois quem saiu de qual posto e por quê (ver
+// promptMotivoExclusao). Não afeta a escala nem o Dashboard, é só o
+// registro do que foi apagado do posto.
+function renderEquipeExclusoes() {
+  const app = document.getElementById('app');
+  const registros = [...edits.equipeExclusoes].sort((a, b) => b.data.localeCompare(a.data));
+
+  app.innerHTML = `
+    <div class="panel-head">
+      <h2>Exclusões</h2>
+      <p>Histórico de colaboradores excluídos de um posto em Ver Equipe, com o motivo informado.</p>
+    </div>
+    <div class="table-scroll">
+      <table class="dash-table">
+        <thead><tr><th>Data</th><th>Nome</th><th>Matrícula</th><th>Onde</th><th>Motivo</th>${state.editMode ? '<th></th>' : ''}</tr></thead>
+        <tbody>${registros.length ? registros.map((r) => `
+          <tr>
+            <td>${formatDataBr(r.data.slice(0, 10))}</td>
+            <td>${r.nome || '—'}</td>
+            <td>${r.matricula || '—'}</td>
+            <td>${r.contexto || '—'}</td>
+            <td>${r.motivo}</td>
+            ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-id="${r.id}" title="Remover do histórico">🗑</button></td>` : ''}
+          </tr>`).join('') : `<tr><td colspan="${state.editMode ? 6 : 5}"><div class="empty-state">Nenhuma exclusão registrada ainda.</div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  app.querySelectorAll('.ef-remove-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const nome = row.children[1].textContent;
+      const ok = await showConfirmModal(`Remover do histórico o registro de "${nome}"?`, { confirmLabel: 'Remover', danger: true });
+      if (!ok) return;
+      edits.equipeExclusoes = edits.equipeExclusoes.filter((r) => r.id !== btn.dataset.id);
+      persistEdits();
+      renderEquipeExclusoes();
+    });
+  });
+}
+
 function renderLimpoWarnings() {
   if (!state.editMode) return '';
   const items = [];
@@ -1385,21 +1430,39 @@ function renderPapelSelect(ds, cfg) {
 /*  Equipe (MESTRE) view — quem é titular/folguista/apoio de cada vaga */
 /* ------------------------------------------------------------------ */
 
-function equipePessoaHtml(p, path) {
+// Botão "🗑 Excluir" que aparece só pro slot selecionado (clicou em cima
+// do nome) — evita excluir sem querer, já que fica escondido o resto do
+// tempo. contexto é só pro registro no histórico (aba Exclusões), não
+// afeta a busca/edição em si.
+function equipeExcluirBtnHtml(path, contexto, nome, matricula) {
+  if (state.equipeSelecionado !== path || (!nome && !matricula)) return '';
+  const esc = (v) => String(v || '').replace(/"/g, '&quot;'); // matrícula às vezes vem como número, não string
+  return `<button class="equipe-excluir-btn" data-excluir-path="${path}" data-excluir-contexto="${esc(contexto)}" data-excluir-nome="${esc(nome)}" data-excluir-matricula="${esc(matricula)}">🗑 Excluir</button>`;
+}
+
+function equipePessoaHtml(p, path, contexto) {
   const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
   const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
   if (state.editMode && path) {
-    return `<span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>`;
+    const selecionado = state.equipeSelecionado === path;
+    return `<div class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
+      ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
+      <span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>
+    </div>`;
   }
   if (!nome && !matricula) return '<span class="equipe-vazio">—</span>';
   return `<span class="equipe-nome">${nome || '—'}</span>${matricula ? `<span class="equipe-mat">Mat. ${matricula}</span>` : ''}`;
 }
 
-function equipePessoaText(p, path) {
+function equipePessoaText(p, path, contexto) {
   const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
   const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
   if (state.editMode && path) {
-    return `<span contenteditable="true" data-edit-path="${path}" data-edit-field="nome">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)`;
+    const selecionado = state.equipeSelecionado === path;
+    return `<span class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
+      ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
+      <span contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)
+    </span>`;
   }
   if (!nome && !matricula) return '—';
   return `${nome || '—'}${matricula ? ` (Mat. ${matricula})` : ''}`;
@@ -1407,7 +1470,7 @@ function equipePessoaText(p, path) {
 
 function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, apoio) {
   const rows = ['A', 'B', 'C'].map((t) => `
-    <tr><td class="col-info"><span class="papel">Turno ${t}</span></td><td>${equipePessoaHtml(turnos && turnos[t], `${basePath}|turno|${t}`)}</td></tr>
+    <tr><td class="col-info"><span class="papel">Turno ${t}</span></td><td>${equipePessoaHtml(turnos && turnos[t], `${basePath}|turno|${t}`, `${titulo} · Turno ${t}`)}</td></tr>
   `).join('');
   const showFolguistas = folguistaPath || (apoio && apoio.length);
   return `
@@ -1419,8 +1482,8 @@ function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, ap
       </table></div>
       ${showFolguistas ? `
         <div class="equipe-folguistas">
-          ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath)}</div>` : ''}
-          ${(apoio || []).map((a) => `<div class="equipe-folguista"><b>Apoio ${a.turno}</b> ${equipePessoaText(a, `${basePath}|apoio|${a.turno}`)}</div>`).join('')}
+          ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath, `${titulo} · Folguista`)}</div>` : ''}
+          ${(apoio || []).map((a) => `<div class="equipe-folguista"><b>Apoio ${a.turno}</b> ${equipePessoaText(a, `${basePath}|apoio|${a.turno}`, `${titulo} · Apoio ${a.turno}`)}</div>`).join('')}
         </div>` : ''}
     </div>`;
 }
@@ -1440,9 +1503,9 @@ function equipeGrupoHtml(g, allGrupos) {
         ${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}
         ${state.editMode ? moveSelect(e.numero) : ''}
       </td>
-      <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`)}</td>
-      <td>${equipePessoaHtml(e.turnos.B, `motoristas|equip|${e.numero}|B`)}</td>
-      <td>${equipePessoaHtml(e.turnos.C, `motoristas|equip|${e.numero}|C`)}</td>
+      <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`, `${g.grupo} · Equip. ${e.numero} · Turno A`)}</td>
+      <td>${equipePessoaHtml(e.turnos.B, `motoristas|equip|${e.numero}|B`, `${g.grupo} · Equip. ${e.numero} · Turno B`)}</td>
+      <td>${equipePessoaHtml(e.turnos.C, `motoristas|equip|${e.numero}|C`, `${g.grupo} · Equip. ${e.numero} · Turno C`)}</td>
     </tr>`).join('');
   const temFolguistas = state.editMode || ['A', 'B', 'C'].some((t) => g.folguistas[t]);
   const folguistaBase = `motoristas|grupo|${g.grupo}`;
@@ -1457,7 +1520,7 @@ function equipeGrupoHtml(g, allGrupos) {
       ${state.editMode ? `<button class="icon-btn equip-add-btn" data-grupo="${g.grupo}">+ Adicionar equipamento</button>` : ''}
       ${temFolguistas ? `
         <div class="equipe-folguistas">
-          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${folguistaBase}|folguista|${t}`)}</div>` : '').join('')}
+          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${folguistaBase}|folguista|${t}`, `${g.grupo} · Folguista ${t}`)}</div>` : '').join('')}
         </div>` : ''}
     </div>`;
 }
@@ -1507,6 +1570,70 @@ function wireEquipeEdits(container) {
       nomeEl.textContent = found.nome;
       equipeEditSet(nomeEl.dataset.editPath, 'nome', found.nome);
     });
+  });
+  // Clicar em cima do nome seleciona o slot (mostra o botão Excluir);
+  // clicar de novo no mesmo desmarca. Não atrapalha a edição normal do
+  // texto (contenteditable continua funcionando do mesmo jeito).
+  container.querySelectorAll('[data-select-path]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const path = el.dataset.selectPath;
+      state.equipeSelecionado = state.equipeSelecionado === path ? null : path;
+      renderPanel();
+    });
+  });
+  container.querySelectorAll('.equipe-excluir-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const { excluirPath, excluirContexto, excluirNome, excluirMatricula } = btn.dataset;
+      const motivo = await promptMotivoExclusao(excluirNome);
+      if (motivo === null) { state.equipeSelecionado = null; renderPanel(); return; } // cancelado — volta pro estado neutro
+      edits.equipe[excluirPath] = { ...edits.equipe[excluirPath], nome: '', matricula: '' };
+      edits.equipeExclusoes.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        contexto: excluirContexto, nome: excluirNome, matricula: excluirMatricula || null,
+        motivo, data: new Date().toISOString(),
+      });
+      state.equipeSelecionado = null;
+      persistEdits();
+      renderPanel();
+    });
+  });
+}
+
+// Pergunta o motivo antes de excluir alguém de um slot de Ver Equipe —
+// devolve null se cancelar (não confirma sem motivo, pro histórico da
+// aba Exclusões sempre ter uma razão registrada).
+function promptMotivoExclusao(nome) {
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('modalBackdrop');
+    const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
+    const render = (errorMsg) => {
+      backdrop.innerHTML = `
+        <div class="modal confirm-modal">
+          <div class="modal-body">
+            <p class="confirm-msg">Excluir <b>${nome || 'este colaborador'}</b> desse posto — qual o motivo?</p>
+            <input type="text" class="modal-input" id="motivoExclusaoInput" placeholder="Ex.: demissão, transferência, afastamento…" autocomplete="off">
+            ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="motivoExclusaoCancel">Cancelar</button>
+            <button class="icon-btn danger" id="motivoExclusaoOk">Excluir</button>
+          </div>
+        </div>`;
+      backdrop.classList.add('open');
+      const input = document.getElementById('motivoExclusaoInput');
+      input.focus();
+      const trySubmit = () => {
+        const motivo = input.value.trim();
+        if (!motivo) { render('Digite o motivo da exclusão.'); return; }
+        finish(motivo);
+      };
+      document.getElementById('motivoExclusaoCancel').addEventListener('click', () => finish(null));
+      document.getElementById('motivoExclusaoOk').addEventListener('click', trySubmit);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); trySubmit(); } });
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(null); }, { once: true });
+    };
+    render(null);
   });
 }
 
@@ -2341,17 +2468,20 @@ function startApp() {
     const isEf = state.page === 'efetivos';
     const isBh = state.page === 'bancohoras';
     const isAf = state.page === 'afastados';
-    const isSpecialPage = isDash || isEf || isBh || isAf;
+    const isEx = state.page === 'exclusoes';
+    const isSpecialPage = isDash || isEf || isBh || isAf || isEx;
     document.getElementById('escalaTypeSwitch').style.display = isSpecialPage ? 'none' : '';
     document.getElementById('tabs').style.display = isSpecialPage ? 'none' : '';
     document.getElementById('dashboardBtn').textContent = isDash ? '📅 Ver escalas' : '📊 Dashboard';
     document.getElementById('efetivosBtn').textContent = isEf ? '📅 Ver escalas' : '🪪 Efetivos';
     document.getElementById('bancoHorasBtn').textContent = isBh ? '📅 Ver escalas' : '🕐 Ausência';
     document.getElementById('afastadosBtn').textContent = isAf ? '📅 Ver escalas' : '🏥 Afastados';
+    document.getElementById('exclusoesBtn').textContent = isEx ? '📅 Ver escalas' : '🗑 Exclusões';
     if (isDash) renderDashboard();
     else if (isEf) renderEfetivos();
     else if (isBh) renderBancoHoras();
     else if (isAf) renderAfastados();
+    else if (isEx) renderEquipeExclusoes();
     else if (datasets[state.activeTab]) renderPanel();
   }
 
@@ -2362,11 +2492,13 @@ function startApp() {
   const editBtn = document.getElementById('editModeBtn');
   const logoutBtn = document.getElementById('logoutBtn');
   const admLoginBtn = document.getElementById('admLoginBtn');
+  const exclusoesBtn = document.getElementById('exclusoesBtn');
   function applyRoleUI() {
     const isAdm = state.role === 'adm';
     editBtn.style.display = isAdm ? '' : 'none';
     logoutBtn.style.display = isAdm ? '' : 'none';
     admLoginBtn.style.display = isAdm ? 'none' : '';
+    exclusoesBtn.style.display = isAdm ? '' : 'none';
   }
   applyRoleUI();
   editBtn.addEventListener('click', () => {
@@ -2377,6 +2509,7 @@ function startApp() {
     else if (state.page === 'efetivos') renderEfetivos();
     else if (state.page === 'bancohoras') renderBancoHoras();
     else if (state.page === 'afastados') renderAfastados();
+    else if (state.page === 'exclusoes') renderEquipeExclusoes();
     else if (datasets[state.activeTab]) renderPanel();
   });
   logoutBtn.addEventListener('click', () => {
@@ -2394,6 +2527,7 @@ function startApp() {
   document.getElementById('efetivosBtn').addEventListener('click', () => switchPage('efetivos'));
   document.getElementById('bancoHorasBtn').addEventListener('click', () => switchPage('bancohoras'));
   document.getElementById('afastadosBtn').addEventListener('click', () => switchPage('afastados'));
+  exclusoesBtn.addEventListener('click', () => switchPage('exclusoes'));
   // Clicar no indicador de sincronização mostra o motivo real de tá
   // Online/Offline — sem precisar abrir o F12/Console do navegador,
   // que a maioria das pessoas não sabe achar.
