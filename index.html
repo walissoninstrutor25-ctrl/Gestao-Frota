@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T13-15-00Z -->
+<!-- APP_BUILD:2026-08-09T13-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -728,18 +728,7 @@
         </div>
 
         <div class="lane accent"></div>
-        <div class="card">
-          <div class="card-head"><div class="card-title">Importação de KM em lote para atualização de sistema</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">
-            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>KM Atual</b>. Cada linha precisa bater Frota <u>e</u> Placa com um veículo já cadastrado — se não bater, nada é importado até você corrigir a planilha. Use isso pra atualizar o km de vários veículos de uma vez (ex: acerto de km, veículo comprado usado, ou atualização periódica do sistema).
-          </div>
-          <div class="field-grid-4" style="align-items:end;">
-            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-kminicial-file" accept=".xlsx,.xls,.csv"></div>
-            <div class="field"><button class="btn-primary" id="btn-import-kminicial" style="width:100%;">⬆ Importar KM atual</button></div>
-          </div>
-          <div class="err-msg" id="import-kminicial-msg"></div>
-          <div id="import-kminicial-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06);"></div>
-        </div>
+        <div class="page-sub" style="margin:6px 0 12px 2px;">⚙️ A importação de KM em lote agora fica em <b>Configurações</b>, no menu lateral.</div>
       </div>
 
       <!-- FUEL -->
@@ -1772,6 +1761,19 @@
           </div>
           <div class="err-msg" id="lg-import-msg"></div>
         </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Importação de KM em lote para atualização de sistema</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">
+            Colunas esperadas: <b>Frota</b>, <b>Placa</b>, <b>KM Atual</b>. Cada linha precisa bater Frota <u>e</u> Placa com um veículo já cadastrado — se não bater, nada é importado até você corrigir a planilha. Use isso pra atualizar o km de vários veículos de uma vez (ex: acerto de km, veículo comprado usado, ou atualização periódica do sistema).
+          </div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-kminicial-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field"><button class="btn-primary" id="btn-import-kminicial" style="width:100%;">⬆ Importar KM atual</button></div>
+          </div>
+          <div class="err-msg" id="import-kminicial-msg"></div>
+          <div id="import-kminicial-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06);"></div>
+        </div>
       </div>
 
     </div>
@@ -1868,7 +1870,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T13-15-00Z';
+  const APP_VERSION = '2026-08-09T13-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
