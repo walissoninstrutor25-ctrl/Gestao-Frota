@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T12-02-33Z -->
+<!-- APP_BUILD:2026-09-03T12-19-21Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -937,7 +937,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T12-02-33Z';
+  const APP_VERSION = '2026-09-03T12-19-21Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1765,7 +1765,8 @@
   }
   function mapStatusColaborador(valBruto){
     const s = normalizarCabecalho(valBruto);
-    if(s==='D' || s.includes('DESLIG') || s.includes('INATIV') || s.includes('DEMITID')) return 'desligado';
+    if(s==='D' || s.includes('DESLIG') || s.includes('INATIV') || s.includes('DEMITID') || s.includes('DEMISSAO')
+      || s.includes('RESCISAO') || s.includes('EXTINCAO') || s.includes('TERMINO')) return 'desligado';
     return 'ativo';
   }
   // lê o arquivo tentando UTF-8 e, se detectar muito caractere corrompido (comum em
