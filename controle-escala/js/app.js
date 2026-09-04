@@ -113,7 +113,8 @@ function normalizeEditsShape(raw) {
     metas: raw.metas || {}, // "tabId|turno|UO" -> meta de vagas (controle de vagas do dashboard)
     driversDb: raw.driversDb || {}, // matrícula (string) -> {nome, unidade} — banco central pra autocompletar nome pela matrícula
     bancoHoras: raw.bancoHoras || [], // [{id, pk, data, nome, matricula, turno, lider, tipo:'BH'|'ATESTADO'}]
-    equipeExclusoes: raw.equipeExclusoes || [], // [{id, contexto, nome, matricula, motivo, data}] — log de "Excluir" em Ver Equipe
+    equipeExclusoes: raw.equipeExclusoes || [], // [{id, contexto, nome, matricula, motivo, data, pks}] — log de "Excluir" em Ver Equipe
+    colaboradoresExcluidos: raw.colaboradoresExcluidos || [], // [pk, ...] — quem foi excluído em Ver Equipe, some da contagem do Dashboard e da escala
   };
 }
 
@@ -260,6 +261,17 @@ function applyClearedFilter(ds, cfg) {
     return;
   }
   ds.colaboradores = ds.colaboradores.filter((p) => !edits.limpo[clearKey(cfg, p.unidade)]);
+}
+
+// Colaboradores excluídos em "Ver Equipe" (ver wireEquipeEdits) somem
+// daqui — ds.colaboradores é a mesma lista usada pra contar "Atual" no
+// Dashboard e pra montar a tabela de escala, então isso basta pra
+// refletir a saída nos dois lugares de uma vez. Roda depois de
+// applyStoredEditsToDatasets() porque depende de p.__pk já calculado.
+function applyColaboradorExclusoes(ds, cfg) {
+  if (!edits.colaboradoresExcluidos.length) return;
+  const excluidos = new Set(edits.colaboradoresExcluidos);
+  ds.colaboradores = ds.colaboradores.filter((p) => !excluidos.has(personKey(cfg.id, p)));
 }
 
 function clearTabData(ds, cfg) {
@@ -415,6 +427,7 @@ function boot() {
   TABS.forEach((t, i) => { datasets[t.id] = results[i]; });
   TABS.forEach((t) => { if (datasets[t.id]) applyClearedFilter(datasets[t.id], t); });
   applyStoredEditsToDatasets();
+  TABS.forEach((t) => { if (datasets[t.id]) applyColaboradorExclusoes(datasets[t.id], t); });
   if (datasets.motoristas && datasets.motoristas.mestre) applyStoredMestreOps(datasets.motoristas);
 
   const now = new Date();
@@ -1055,10 +1068,11 @@ function renderAfastados() {
   });
 }
 
-// Histórico de "Excluir" feitos em Ver Equipe — só existe pra ADM
-// conferir depois quem saiu de qual posto e por quê (ver
-// promptMotivoExclusao). Não afeta a escala nem o Dashboard, é só o
-// registro do que foi apagado do posto.
+// Histórico de "Excluir" feitos em Ver Equipe — registra quem saiu de
+// qual posto e por quê (ver promptMotivoExclusao). A pessoa some da
+// contagem "Atual" do Dashboard e da tabela de escala assim que é
+// excluída (ver applyColaboradorExclusoes); "↺ Restaurar" aqui desfaz
+// isso sem apagar o registro do histórico.
 function renderEquipeExclusoes() {
   const app = document.getElementById('app');
   const registros = [...edits.equipeExclusoes].sort((a, b) => b.data.localeCompare(a.data));
@@ -1078,13 +1092,29 @@ function renderEquipeExclusoes() {
             <td>${r.matricula || '—'}</td>
             <td>${r.contexto || '—'}</td>
             <td>${r.motivo}</td>
-            ${state.editMode ? `<td class="num"><button class="icon-btn danger ef-remove-btn" data-id="${r.id}" title="Remover do histórico">🗑</button></td>` : ''}
+            ${state.editMode ? `<td class="num">
+              ${(r.pks || []).some((pk) => edits.colaboradoresExcluidos.includes(pk)) ? `<button class="icon-btn ef-restaurar-btn" data-id="${r.id}" title="Volta a contar no Dashboard e na escala">↺ Restaurar</button>` : ''}
+              <button class="icon-btn danger ef-remove-btn" data-id="${r.id}" title="Remover do histórico">🗑</button>
+            </td>` : ''}
           </tr>`).join('') : `<tr><td colspan="${state.editMode ? 6 : 5}"><div class="empty-state">Nenhuma exclusão registrada ainda.</div></td></tr>`}
         </tbody>
       </table>
     </div>
   `;
 
+  app.querySelectorAll('.ef-restaurar-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const nome = row.children[1].textContent;
+      const registro = edits.equipeExclusoes.find((r) => r.id === btn.dataset.id);
+      if (!registro) return;
+      const ok = await showConfirmModal(`Restaurar "${nome}"? Volta a contar normalmente no Dashboard e na escala.`, { confirmLabel: 'Restaurar' });
+      if (!ok) return;
+      edits.colaboradoresExcluidos = edits.colaboradoresExcluidos.filter((pk) => !(registro.pks || []).includes(pk));
+      persistEdits();
+      location.reload(); // reconstrói ds.colaboradores do zero (mesma lógica do boot())
+    });
+  });
   app.querySelectorAll('.ef-remove-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const row = btn.closest('tr');
@@ -1286,7 +1316,7 @@ function renderPanel() {
     const viewBody = document.getElementById('viewBody');
     viewBody.innerHTML = renderEquipeHtml(ds, cfg, mestre);
     if (state.editMode) {
-      wireEquipeEdits(viewBody);
+      wireEquipeEdits(viewBody, ds, cfg);
       if (cfg.id === 'motoristas') wireEquipeStructure(viewBody, ds, cfg);
     }
   } else {
@@ -1551,7 +1581,7 @@ function renderEquipeHtml(ds, cfg, mestre) {
   return `<div class="equipe-wrap">${equipeTurnosHtml(ds.titulo, basePath, mestre.turnos, `${basePath}|folguista`, mestre.folguista, mestre.apoio)}</div>`;
 }
 
-function wireEquipeEdits(container) {
+function wireEquipeEdits(container, ds, cfg) {
   container.querySelectorAll('[data-edit-path]').forEach((el) => {
     el.addEventListener('blur', () => {
       equipeEditSet(el.dataset.editPath, el.dataset.editField, el.textContent.trim());
@@ -1588,10 +1618,24 @@ function wireEquipeEdits(container) {
       const motivo = await promptMotivoExclusao(excluirNome);
       if (motivo === null) { state.equipeSelecionado = null; renderPanel(); return; } // cancelado — volta pro estado neutro
       edits.equipe[excluirPath] = { ...edits.equipe[excluirPath], nome: '', matricula: '' };
+
+      // Acha quem esse slot representa na escala de verdade (por
+      // matrícula — identificador confiável — ou por nome quando não
+      // tem matrícula) pra também sumir da contagem "Atual" do
+      // Dashboard e da tabela de escala, não só do quadro de Ver Equipe.
+      const matriculaBusca = excluirMatricula ? String(excluirMatricula).trim() : '';
+      const nomeBusca = normText(excluirNome || '');
+      const encontrados = ds.colaboradores.filter((p) => (
+        matriculaBusca ? String(p.matricula || '').trim() === matriculaBusca : (nomeBusca && normText(p.nome) === nomeBusca)
+      ));
+      const pks = encontrados.map((p) => personKey(cfg.id, p));
+      pks.forEach((pk) => { if (!edits.colaboradoresExcluidos.includes(pk)) edits.colaboradoresExcluidos.push(pk); });
+      if (encontrados.length) ds.colaboradores = ds.colaboradores.filter((p) => !encontrados.includes(p));
+
       edits.equipeExclusoes.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         contexto: excluirContexto, nome: excluirNome, matricula: excluirMatricula || null,
-        motivo, data: new Date().toISOString(),
+        motivo, data: new Date().toISOString(), pks,
       });
       state.equipeSelecionado = null;
       persistEdits();
