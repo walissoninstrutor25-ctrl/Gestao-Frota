@@ -637,12 +637,13 @@ function importDriversDbText(text) {
   return count;
 }
 
-// Preenche o campo de nome a partir da matrícula digitada, usando o banco
-// de motoristas — não mexe no nome se a matrícula não tiver cadastro.
+// Preenche o campo de nome a partir da matrícula digitada (ver
+// buscarColaboradorPorMatricula) — não mexe no nome se a matrícula não
+// tiver cadastro em nenhum lugar do sistema.
 function wireMatriculaLookup(matriculaEl, nomeEl) {
   const lookup = () => {
     const mat = matriculaEl.value !== undefined ? matriculaEl.value.trim() : matriculaEl.textContent.trim();
-    const found = mat && edits.driversDb[mat];
+    const found = buscarColaboradorPorMatricula(mat);
     if (!found) return;
     if (nomeEl.value !== undefined) nomeEl.value = found.nome; else nomeEl.textContent = found.nome;
   };
@@ -895,6 +896,25 @@ function bhUnidade(r) {
     if (p && p.unidade) return p.unidade;
   }
   return (edits.driversDb[r.matricula] || {}).unidade || '';
+}
+
+// Acha nome (e UO) de uma matrícula em qualquer lugar do sistema —
+// primeiro no cadastro curado (driversDb), senão varrendo a escala de
+// verdade em todas as abas. Cobre qualquer motorista/líder, cadastrado
+// do zero ou original da planilha, não só quem passou pelo cadastro de
+// Efetivos (que é bem menor que a escala inteira).
+function buscarColaboradorPorMatricula(matricula) {
+  matricula = String(matricula || '').trim();
+  if (!matricula) return null;
+  const doDb = edits.driversDb[matricula];
+  if (doDb) return { nome: doDb.nome, unidade: doDb.unidade || '' };
+  for (const cfg of TABS) {
+    const ds = datasets[cfg.id];
+    if (!ds) continue;
+    const p = ds.colaboradores.find((c) => c.matricula && String(c.matricula) === matricula);
+    if (p) return { nome: p.nome, unidade: p.unidade || '' };
+  }
+  return null;
 }
 
 function renderBancoHoras() {
@@ -1648,12 +1668,13 @@ function wireEquipeEdits(container, ds, cfg) {
       if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
     });
   });
-  // Digitou a matrícula de alguém já cadastrado no banco de motoristas?
-  // Preenche o nome sozinho (mesma ideia do cadastro de colaborador).
+  // Digitou uma matrícula que já existe em algum lugar do sistema
+  // (Efetivos ou a escala de verdade, ver buscarColaboradorPorMatricula)?
+  // Preenche o nome sozinho, sem precisar digitar de novo.
   container.querySelectorAll('[data-edit-field="matricula"]').forEach((matEl) => {
     const nomeEl = container.querySelector(`[data-edit-path="${CSS.escape(matEl.dataset.editPath)}"][data-edit-field="nome"]`);
     if (nomeEl) matEl.addEventListener('blur', () => {
-      const found = edits.driversDb[matEl.textContent.trim()];
+      const found = buscarColaboradorPorMatricula(matEl.textContent.trim());
       if (!found) return;
       nomeEl.textContent = found.nome;
       equipeEditSet(nomeEl.dataset.editPath, 'nome', found.nome);
