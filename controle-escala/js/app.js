@@ -1460,16 +1460,22 @@ function renderPapelSelect(ds, cfg) {
 /*  Equipe (MESTRE) view — quem é titular/folguista/apoio de cada vaga */
 /* ------------------------------------------------------------------ */
 
+// matrícula às vezes vem como número, não string — sempre passar por
+// aqui antes de embutir num atributo HTML.
+function escAttr(v) { return String(v || '').replace(/"/g, '&quot;'); }
+
 // Botão "🗑 Excluir" que aparece só pro slot selecionado (clicou em cima
 // do nome) — evita excluir sem querer, já que fica escondido o resto do
 // tempo. contexto é só pro registro no histórico (aba Exclusões), não
 // afeta a busca/edição em si.
 function equipeExcluirBtnHtml(path, contexto, nome, matricula) {
   if (state.equipeSelecionado !== path || (!nome && !matricula)) return '';
-  const esc = (v) => String(v || '').replace(/"/g, '&quot;'); // matrícula às vezes vem como número, não string
-  return `<button class="equipe-excluir-btn" data-excluir-path="${path}" data-excluir-contexto="${esc(contexto)}" data-excluir-nome="${esc(nome)}" data-excluir-matricula="${esc(matricula)}">🗑 Excluir</button>`;
+  return `<button class="equipe-excluir-btn" data-excluir-path="${path}" data-excluir-contexto="${escAttr(contexto)}" data-excluir-nome="${escAttr(nome)}" data-excluir-matricula="${escAttr(matricula)}">🗑 Excluir</button>`;
 }
 
+// data-was-nome/data-was-matricula guardam o valor atual (antes de
+// qualquer edição) pra wireEquipeEdits saber, no blur, se o campo nome
+// tinha alguém e ficou vazio — ver comentário lá.
 function equipePessoaHtml(p, path, contexto) {
   const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
   const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
@@ -1477,7 +1483,7 @@ function equipePessoaHtml(p, path, contexto) {
     const selecionado = state.equipeSelecionado === path;
     return `<div class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
       ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
-      <span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>
+      <span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>
     </div>`;
   }
   if (!nome && !matricula) return '<span class="equipe-vazio">—</span>';
@@ -1491,7 +1497,7 @@ function equipePessoaText(p, path, contexto) {
     const selecionado = state.equipeSelecionado === path;
     return `<span class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
       ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
-      <span contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)
+      <span contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)
     </span>`;
   }
   if (!nome && !matricula) return '—';
@@ -1581,10 +1587,62 @@ function renderEquipeHtml(ds, cfg, mestre) {
   return `<div class="equipe-wrap">${equipeTurnosHtml(ds.titulo, basePath, mestre.turnos, `${basePath}|folguista`, mestre.folguista, mestre.apoio)}</div>`;
 }
 
+// Executa a exclusão de verdade: limpa o slot em Ver Equipe, acha quem
+// esse slot representa na escala real (por matrícula — identificador
+// confiável — ou por nome quando não tem matrícula) pra também sumir da
+// contagem "Atual" do Dashboard e da tabela de escala, e grava no
+// histórico (aba Exclusões). Compartilhada pelo botão "🗑 Excluir" e
+// por apagar o nome direto no campo (ver wireEquipeEdits) — os dois são
+// a mesma operação pro usuário, só o gatilho muda.
+function executarExclusaoSlot(ds, cfg, path, contexto, nome, matricula, motivo) {
+  edits.equipe[path] = { ...edits.equipe[path], nome: '', matricula: '' };
+
+  const matriculaBusca = matricula ? String(matricula).trim() : '';
+  const nomeBusca = normText(nome || '');
+  const encontrados = ds.colaboradores.filter((p) => (
+    matriculaBusca ? String(p.matricula || '').trim() === matriculaBusca : (nomeBusca && normText(p.nome) === nomeBusca)
+  ));
+  const pks = encontrados.map((p) => personKey(cfg.id, p));
+  pks.forEach((pk) => { if (!edits.colaboradoresExcluidos.includes(pk)) edits.colaboradoresExcluidos.push(pk); });
+  if (encontrados.length) ds.colaboradores = ds.colaboradores.filter((p) => !encontrados.includes(p));
+
+  edits.equipeExclusoes.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    contexto, nome, matricula: matricula || null,
+    motivo, data: new Date().toISOString(), pks,
+  });
+}
+
 function wireEquipeEdits(container, ds, cfg) {
   container.querySelectorAll('[data-edit-path]').forEach((el) => {
-    el.addEventListener('blur', () => {
-      equipeEditSet(el.dataset.editPath, el.dataset.editField, el.textContent.trim());
+    el.addEventListener('blur', async () => {
+      const path = el.dataset.editPath;
+      const field = el.dataset.editField;
+      const novoValor = el.textContent.trim();
+      // Apagar o nome direto no campo (selecionar o texto e excluir) é,
+      // na prática, o mesmo gesto que clicar em "🗑 Excluir" — só que
+      // sem passar pelo botão dedicado. Trata igual: pede o motivo e
+      // reflete no Dashboard/escala também, em vez de só esvaziar o
+      // quadro silenciosamente (que deixava "Atual" errado).
+      if (field === 'nome' && !novoValor && el.dataset.wasNome) {
+        const motivo = await promptMotivoExclusao(el.dataset.wasNome);
+        if (motivo === null) { el.textContent = el.dataset.wasNome; return; } // cancelou: devolve o nome
+        executarExclusaoSlot(ds, cfg, path, el.dataset.contexto || '', el.dataset.wasNome, el.dataset.wasMatricula || '', motivo);
+        persistEdits();
+        renderPanel();
+        return;
+      }
+      equipeEditSet(path, field, novoValor);
+      // Mantém data-was-* em dia sem precisar re-renderizar tudo a cada
+      // campo editado — senão limpar o nome logo depois de renomear (ou
+      // de trocar a matrícula) nessa mesma sessão de edição comparava
+      // contra um valor antigo na hora de excluir.
+      if (field === 'nome') {
+        el.dataset.wasNome = novoValor;
+      } else if (field === 'matricula') {
+        const nomeEl = container.querySelector(`[data-edit-path="${CSS.escape(path)}"][data-edit-field="nome"]`);
+        if (nomeEl) nomeEl.dataset.wasMatricula = novoValor;
+      }
     });
     el.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
@@ -1599,6 +1657,7 @@ function wireEquipeEdits(container, ds, cfg) {
       if (!found) return;
       nomeEl.textContent = found.nome;
       equipeEditSet(nomeEl.dataset.editPath, 'nome', found.nome);
+      nomeEl.dataset.wasNome = found.nome;
     });
   });
   // Clicar em cima do nome seleciona o slot (mostra o botão Excluir);
@@ -1617,26 +1676,7 @@ function wireEquipeEdits(container, ds, cfg) {
       const { excluirPath, excluirContexto, excluirNome, excluirMatricula } = btn.dataset;
       const motivo = await promptMotivoExclusao(excluirNome);
       if (motivo === null) { state.equipeSelecionado = null; renderPanel(); return; } // cancelado — volta pro estado neutro
-      edits.equipe[excluirPath] = { ...edits.equipe[excluirPath], nome: '', matricula: '' };
-
-      // Acha quem esse slot representa na escala de verdade (por
-      // matrícula — identificador confiável — ou por nome quando não
-      // tem matrícula) pra também sumir da contagem "Atual" do
-      // Dashboard e da tabela de escala, não só do quadro de Ver Equipe.
-      const matriculaBusca = excluirMatricula ? String(excluirMatricula).trim() : '';
-      const nomeBusca = normText(excluirNome || '');
-      const encontrados = ds.colaboradores.filter((p) => (
-        matriculaBusca ? String(p.matricula || '').trim() === matriculaBusca : (nomeBusca && normText(p.nome) === nomeBusca)
-      ));
-      const pks = encontrados.map((p) => personKey(cfg.id, p));
-      pks.forEach((pk) => { if (!edits.colaboradoresExcluidos.includes(pk)) edits.colaboradoresExcluidos.push(pk); });
-      if (encontrados.length) ds.colaboradores = ds.colaboradores.filter((p) => !encontrados.includes(p));
-
-      edits.equipeExclusoes.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        contexto: excluirContexto, nome: excluirNome, matricula: excluirMatricula || null,
-        motivo, data: new Date().toISOString(), pks,
-      });
+      executarExclusaoSlot(ds, cfg, excluirPath, excluirContexto, excluirNome, excluirMatricula, motivo);
       state.equipeSelecionado = null;
       persistEdits();
       renderPanel();
