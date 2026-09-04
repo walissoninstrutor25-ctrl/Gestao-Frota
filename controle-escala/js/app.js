@@ -1968,14 +1968,15 @@ async function marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo) {
 }
 
 // Fora do modo de edição (inclusive pra quem não entrou como ADM), um
-// clique num dia de trabalho só oferece Atestado/Banco de horas — não a
-// folga normal, que continua exigindo edição de verdade. A senha de BH
-// (separada da de ADM) é a única trava aqui.
+// clique oferece Atestado/Banco de horas/DSR/Falta — tanto num dia de
+// trabalho quanto numa folga já existente (pra apontar ou trocar o tipo
+// dela) — mas nunca a folga normal, que continua exigindo edição de
+// verdade. A senha de BH (separada da de ADM) é a única trava aqui.
 async function markAtOuBhSemEdicao(p, cfg, ds, monthMeta, day, cellEl) {
   const monthKey = monthMeta.chave;
   const chars = (p.escala[monthKey] || 'O'.repeat(monthMeta.dias)).split('');
   const idx = day - 1;
-  if (idx < 0 || idx >= chars.length || chars[idx] !== 'W') return; // já de folga, nada a fazer por aqui
+  if (idx < 0 || idx >= chars.length) return;
   const tipo = await showFolgaTypeModal(true);
   if (!tipo) return;
   if (tipo === 'atestado') { await marcarAtestadoComPeriodo(p, cfg, ds, monthMeta, day); return; }
@@ -1990,17 +1991,12 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
   const chars = (p.escala[monthKey] || 'O'.repeat(monthMeta.dias)).split('');
   const idx = day - 1;
   if (idx < 0 || idx >= chars.length) return;
-  const next = chars[idx] === 'W' ? 'O' : 'W';
+  const estaTrabalhando = chars[idx] === 'W';
   const pk = personKey(cfg.id, p);
   const dataIso = isoDateFor(ds.ano, monthMeta.numero, day);
 
-  if (next === 'W') {
-    // Voltou a trabalhar num dia que tinha registro de atestado/BH —
-    // limpa esse registro pra não ficar um apontamento órfão.
-    const antes = edits.bancoHoras.length;
-    edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
-    if (edits.bancoHoras.length !== antes) persistEdits();
-  } else {
+  let next;
+  if (estaTrabalhando) {
     const tipo = await showFolgaTypeModal();
     if (!tipo) return; // cancelado
     if (tipo === 'atestado') {
@@ -2013,6 +2009,28 @@ async function toggleDayStatus(p, cfg, ds, monthMeta, day, cellEl) {
     }
     // tipo === 'folgar' -> segue o fluxo normal abaixo (com a pergunta de
     // repetir o padrão de rotação, quando aplicável).
+    next = 'O';
+  } else {
+    // Dia já de folga: em vez de só devolver pro trabalho, deixa apontar
+    // (ou trocar) o tipo dessa folga — pedido de quem precisava marcar
+    // DSR/Atestado/BH/Falta num dia que já estava de folga, não só ao
+    // tirar alguém do trabalho.
+    const tipo = await showFolgaTypeModal(false, true);
+    if (!tipo) return; // cancelado
+    if (tipo === 'atestado') {
+      await marcarAtestadoComPeriodo(p, cfg, ds, monthMeta, day);
+      return;
+    }
+    if (tipo === 'bh' || tipo === 'falta' || tipo === 'dsr') {
+      await marcarAtOuBh(p, cfg, ds, monthMeta, day, cellEl, tipo);
+      return;
+    }
+    // tipo === 'trabalhar' -> limpa um eventual apontamento e volta a
+    // trabalhar, mesma limpeza de sempre.
+    const antes = edits.bancoHoras.length;
+    edits.bancoHoras = edits.bancoHoras.filter((r) => !(r.pk === pk && r.data === dataIso));
+    if (edits.bancoHoras.length !== antes) persistEdits();
+    next = 'W';
   }
 
   const rot = rotationParamsFor(cfg);
@@ -2244,9 +2262,12 @@ function showAdmLoginModal() {
 
 // Ao marcar um dia como folga, pergunta o motivo — folga normal segue o
 // fluxo de sempre (inclusive a pergunta de repetir o padrão de rotação);
-// atestado/banco de horas pulam isso (são exceções pontuais, não um novo
-// padrão) e vão parar na aba Banco de Horas.
-function showFolgaTypeModal(somenteAtBh) {
+// atestado/banco de horas/DSR/falta pulam isso (são exceções pontuais,
+// não um novo padrão) e vão parar na aba Ausência. jaFolga muda só o
+// botão principal — "Voltar a trabalhar" em vez de "Folga normal" —
+// pra quando o dia clicado já está de folga e a pessoa quer é apontar
+// (ou trocar) o tipo dessa folga, não criar uma folga nova.
+function showFolgaTypeModal(somenteAtBh, jaFolga) {
   return new Promise((resolve) => {
     const backdrop = document.getElementById('modalBackdrop');
     backdrop.innerHTML = `
@@ -2260,13 +2281,13 @@ function showFolgaTypeModal(somenteAtBh) {
           <button class="icon-btn" id="folgaTypeBh">🕐 Banco de horas</button>
           <button class="icon-btn" id="folgaTypeDsr">🗓️ DSR</button>
           <button class="icon-btn danger" id="folgaTypeFalta">🚫 Falta</button>
-          ${somenteAtBh ? '' : '<button class="icon-btn primary" id="folgaTypeFolgar">Folga normal</button>'}
+          ${somenteAtBh ? '' : `<button class="icon-btn primary" id="folgaTypeFolgar">${jaFolga ? '🔙 Voltar a trabalhar' : 'Folga normal'}</button>`}
         </div>
       </div>`;
     backdrop.classList.add('open');
     const finish = (result) => { backdrop.classList.remove('open'); backdrop.innerHTML = ''; resolve(result); };
     document.getElementById('folgaTypeCancel').addEventListener('click', () => finish(null));
-    if (!somenteAtBh) document.getElementById('folgaTypeFolgar').addEventListener('click', () => finish('folgar'));
+    if (!somenteAtBh) document.getElementById('folgaTypeFolgar').addEventListener('click', () => finish(jaFolga ? 'trabalhar' : 'folgar'));
     document.getElementById('folgaTypeAtestado').addEventListener('click', () => finish('atestado'));
     document.getElementById('folgaTypeBh').addEventListener('click', () => finish('bh'));
     document.getElementById('folgaTypeDsr').addEventListener('click', () => finish('dsr'));
