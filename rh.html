@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-09-03T20-45-42Z -->
+<!-- APP_BUILD:2026-09-04T17-01-23Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -948,7 +948,7 @@
     });
   }
 
-  const APP_VERSION = '2026-09-03T20-45-42Z';
+  const APP_VERSION = '2026-09-04T17-01-23Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1381,6 +1381,7 @@
   document.getElementById('nav-modulo-rh')?.addEventListener('click', ()=>switchModulo('rh'));
   document.getElementById('nav-modulo-ssma')?.addEventListener('click', ()=>switchModulo('ssma'));
   function switchModulo(nome){
+    if(currentUser()?.role==='ssma') nome = 'ssma';
     document.getElementById('nav-modulo-rh').classList.toggle('active', nome==='rh');
     document.getElementById('nav-modulo-ssma').classList.toggle('active', nome==='ssma');
     document.getElementById('subtabs-rh').style.display = nome==='rh' ? 'flex' : 'none';
@@ -1402,11 +1403,13 @@
     document.getElementById('app-screen').style.display='block';
     const u = currentUser();
     document.getElementById('who-name').textContent = u.name;
-    document.getElementById('who-role').textContent = ({admin:'Administrador', gestor:'Gestor de UO'})[u.role] || u.role;
+    document.getElementById('who-role').textContent = ({admin:'Administrador', gestor:'Gestor de UO', ssma:'Acesso SSMA'})[u.role] || u.role;
     document.getElementById('nav-users').style.display = (u.role==='admin') ? 'block' : 'none';
+    document.getElementById('nav-modulo-rh').style.display = (u.role==='ssma') ? 'none' : 'flex';
     updateOnlineStatus();
     hideLoadingSplash();
     renderAll();
+    if(u.role==='ssma') switchModulo('ssma');
   }
 
   /* ---------------- MODAL helper ---------------- */
@@ -3662,7 +3665,7 @@
     tbl.innerHTML = state.users.map(u=>`<tr>
       <td>${u.name}</td>
       <td class="mono">${u.username}</td>
-      <td style="text-transform:capitalize;">${({admin:'Administrador', gestor:'Gestor de UO'})[u.role] || u.role}</td>
+      <td style="text-transform:capitalize;">${({admin:'Administrador', gestor:'Gestor de UO', ssma:'Acesso SSMA'})[u.role] || u.role}</td>
       <td>${u.uoResponsavel||'—'}</td>
       <td><div class="action-links">
         ${u.id!==currentUser().id?`<button class="icon-btn danger" onclick="LOTS.deleteUser('${u.id}')">excluir</button>`:'<span style="color:var(--text-faint); font-size:12px;">você</span>'}
@@ -3681,8 +3684,10 @@
         <select id="f-role">
           <option value="gestor">Gestor de UO</option>
           <option value="admin">Administrador</option>
+          <option value="ssma">Acesso somente SSMA</option>
         </select>
       </div>
+      <div class="field-note" id="f-role-hint" style="display:none; margin:-8px 0 12px; font-size:12px; color:var(--text-faint);">Esse usuário só vai ter acesso à aba SSMA — não enxerga o restante do RH.</div>
       <div class="field" id="f-uo-wrap"><label>UO responsável (se gestor)</label>
         <select id="f-uo">
           <option value="4824-MNS">4824-MNS</option><option value="4823-PRA">4823-PRA</option>
@@ -3701,6 +3706,7 @@
     document.getElementById('btn-save-user').addEventListener('click', LOTS.saveUser);
     document.getElementById('f-role').addEventListener('change', (e)=>{
       document.getElementById('f-uo-wrap').style.display = e.target.value==='gestor' ? 'block' : 'none';
+      document.getElementById('f-role-hint').style.display = e.target.value==='ssma' ? 'block' : 'none';
     });
   });
   LOTS.saveUser = async ()=>{
