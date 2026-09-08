@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T17-00-00Z -->
+<!-- APP_BUILD:2026-08-09T17-15-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1731,7 +1731,7 @@
             <button class="btn-ghost btn-sm" id="btn-toggle-checklist-log">👁️ Ver todos</button>
           </div>
           <div id="checklist-log-wrap" style="display:none;">
-            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Situação</th></tr></thead>
+            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Situação</th><th></th></tr></thead>
             <tbody id="tbl-checklist-log"></tbody></table>
           </div>
         </div>
@@ -2067,7 +2067,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T17-00-00Z';
+  const APP_VERSION = '2026-08-09T17-15-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2198,6 +2198,10 @@
       state.checklists = snap.docs.map(d=>({id:d.id, ...d.data()}));
       if(currentUser()) renderAll();
     }, err=>console.error('listen checklists fail', err));
+  }
+  async function deleteChecklistEntry(id){
+    try{ await db.collection(CHECKLIST_COLLECTION).doc(id).delete(); }
+    catch(e){ console.error('delete checklist fail', e); toast('Erro ao excluir. Verifique sua conexão.'); throw e; }
   }
 
   async function saveProfile(u){
@@ -6098,6 +6102,18 @@
     wrap.style.display = abrindo ? 'block' : 'none';
     e.target.textContent = abrindo ? '🙈 Ocultar' : '👁️ Ver todos';
   });
+  LOTS.deleteChecklist = async (id)=>{
+    const c = state.checklists.find(x=>x.id===id);
+    const v = c ? vehicleById(c.vehicleId) : null;
+    if(!confirm(`Excluir esse checklist${v?` de ${v.plate}`:''}${c?` (${fmtDate(c.data)} — ${c.turno})`:''}? Não tem como desfazer.`)) return;
+    try{
+      await deleteChecklistEntry(id);
+      state.checklists = state.checklists.filter(x=>x.id!==id);
+      logAudit('Checklist excluído', c ? `${v?.plate||c.placa||''} — ${fmtDate(c.data)} — ${c.turno}` : id);
+      renderView('checklist');
+      toast('Checklist excluído.');
+    }catch(e){ /* já mostrou o toast de erro dentro de deleteChecklistEntry */ }
+  };
   function renderChecklist(){
     populateCkFilters();
     const data = document.getElementById('ckfilter-date').value || todayISO();
@@ -6164,7 +6180,7 @@
     if(logTbl){
       const todos = state.checklists.filter(c=>okVids.includes(c.vehicleId)).slice().sort((a,b)=>(b.data+b.turno).localeCompare(a.data+a.turno));
       if(todos.length===0){
-        logTbl.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum checklist enviado ainda.</td></tr>';
+        logTbl.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhum checklist enviado ainda.</td></tr>';
       } else {
         logTbl.innerHTML = todos.map(c=>{
           const v = vehicleById(c.vehicleId);
@@ -6177,6 +6193,7 @@
             <td>${v?`<span class="plate">${v.plate}</span>`:(c.placa||'—')}</td>
             <td>${c.motoristaNome||'—'}</td>
             <td>${situacao}</td>
+            <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteChecklist('${c.id}')">excluir</button></div></td>
           </tr>`;
         }).join('');
       }
