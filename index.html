@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T13-30-00Z -->
+<!-- APP_BUILD:2026-08-09T14-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -508,6 +508,7 @@
         <div class="subtab" data-view="ranking">Premiação</div>
         <div class="subtab" data-view="bu">BU</div>
         <div class="subtab" data-view="tires">Controle de Pneus</div>
+        <div class="subtab" data-view="checklist">Checklist</div>
       </div>
       <div class="subtab-bar" id="subtabs-heavy" style="display:none;">
         <div class="subtab active" data-view="heavydash">Painel</div>
@@ -1694,6 +1695,48 @@
       </div>
 
       <!-- CONFIGURAÇÕES -->
+      <!-- CHECKLIST -->
+      <div class="view" id="view-checklist">
+        <div class="topbar">
+          <div><div class="page-title">Checklist</div><div class="page-sub">Acompanhamento dos checklists enviados pelo app dos motoristas</div></div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-field"><label>Data</label><input type="date" id="ckfilter-date"></div>
+          <div class="filter-field"><label>Turno</label><select id="ckfilter-turno"><option value="">Todos</option><option value="Manhã">Manhã</option><option value="Tarde">Tarde</option><option value="Noite">Noite</option></select></div>
+          <div class="filter-field"><label>UO</label><select id="ckfilter-uo"><option value="">Todas</option></select></div>
+          <button class="btn-ghost" id="btn-clear-ckfilter">Limpar</button>
+        </div>
+        <div class="kpi-grid" id="checklist-kpi-grid"></div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Veículos sem checklist no período selecionado</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Frota ativa que ainda não fez o checklist no(s) turno(s) do filtro acima.</div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Frota</th><th>Placa</th><th>UO</th><th>Turno pendente</th></tr></thead>
+            <tbody id="tbl-checklist-pendentes"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">Itens não conformes reportados</div></div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th></tr></thead>
+            <tbody id="tbl-checklist-naoconforme"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Checklists enviados</div>
+            <button class="btn-ghost btn-sm" id="btn-toggle-checklist-log">👁️ Ver todos</button>
+          </div>
+          <div id="checklist-log-wrap" style="display:none;">
+            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Situação</th></tr></thead>
+            <tbody id="tbl-checklist-log"></tbody></table>
+          </div>
+        </div>
+      </div>
+
       <div class="view" id="view-config">
         <div class="topbar">
           <div><div class="page-title">Configurações</div><div class="page-sub">Ajustes gerais do sistema — vale pra todas as frotas</div></div>
@@ -1774,6 +1817,51 @@
           <div class="err-msg" id="import-kminicial-msg"></div>
           <div id="import-kminicial-errors" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06);"></div>
         </div>
+
+        <div class="lane accent"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">📱 Motoristas — acesso ao app de checklist/abastecimento</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">Cadastro dos motoristas que acessam o app separado (fora deste sistema). No app, digitando só a <b>matrícula</b> já entra — sem senha — e os dados (nome, turno, UO) preenchem sozinhos, do jeito que estão aqui.</div>
+          <div class="field-grid-4">
+            <div class="field"><label>Nome</label><input id="mt-nome" placeholder="Nome completo"></div>
+            <div class="field"><label>Matrícula</label><input id="mt-matricula" placeholder="Ex: 00123"></div>
+            <div class="field"><label>Turno</label>
+              <select id="mt-turno">
+                <option value="Manhã">Manhã</option>
+                <option value="Tarde">Tarde</option>
+                <option value="Noite">Noite</option>
+              </select>
+            </div>
+            <div class="field"><label>UO</label><select id="mt-uo"></select></div>
+          </div>
+          <div class="field-grid-4">
+            <div class="field"><label>Veículo padrão (opcional)</label><select id="mt-vehicle"><option value="">— Nenhum, escolhe no app —</option></select></div>
+            <div class="field"><label>Status</label>
+              <select id="mt-status">
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+            <div class="field" style="align-self:end;"><button class="btn-primary" id="btn-save-motorista" style="width:100%;">Cadastrar motorista</button></div>
+          </div>
+          <div class="err-msg" id="mt-err"></div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto; margin-top:14px;">
+            <table><thead><tr><th>Nome</th><th>Matrícula</th><th>Turno</th><th>UO</th><th>Veículo padrão</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tbl-motoristas"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">✅ Itens do Checklist</div></div>
+          <div class="page-sub" style="margin-bottom:12px;">Lista de itens que aparece pro motorista no app, na ordem daqui de cima pra baixo. Pode adicionar, editar ou remover a qualquer momento — não precisa mexer em código.</div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Novo item</label><input id="ci-novo" placeholder="Ex: Pneus / calibragem"></div>
+            <div class="field"><button class="btn-primary" id="btn-add-checklist-item" style="width:100%;">+ Adicionar item</button></div>
+          </div>
+          <div class="err-msg" id="ci-err"></div>
+          <div id="lista-checklist-itens" style="margin-top:14px;"></div>
+        </div>
+
       </div>
 
     </div>
@@ -1870,7 +1958,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T13-30-00Z';
+  const APP_VERSION = '2026-08-09T14-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -1976,6 +2064,23 @@
     catch(e){ console.error('delete fuel fail', e); toast('Erro ao excluir. Verifique sua conexão.'); throw e; }
   }
 
+  /* ---------------- checklists da frota leve: coleção de verdade (1 documento por checklist enviado) ----------------
+     enviados pelo app separado dos motoristas. Cresce sem parar (1 por veículo/turno/dia), por isso
+     usa o mesmo formato de coleção de verdade que o combustível, sem limite de tamanho. */
+  const CHECKLIST_COLLECTION = 'lots-checklists';
+  async function loadChecklists(){
+    try{
+      const snap = await db.collection(CHECKLIST_COLLECTION).get();
+      return snap.docs.map(d=>({id:d.id, ...d.data()}));
+    }catch(e){ console.error('load checklists fail', e); return []; }
+  }
+  function listenChecklists(){
+    db.collection(CHECKLIST_COLLECTION).onSnapshot(snap=>{
+      state.checklists = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(currentUser()) renderAll();
+    }, err=>console.error('listen checklists fail', err));
+  }
+
   async function saveProfile(u){
     await db.collection(PROFILES).doc(u.id).set({name:u.name, username:u.username, authEmail:u.authEmail||null, role:u.role, vehicleId:u.vehicleId||null, uoResponsaveis:u.uoResponsaveis||null});
   }
@@ -2072,6 +2177,7 @@
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
     heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{}, premiacaoBudget:{}, auditLog:[],
     transfers:[], fornecedores:[], tires:[], conjuntos:[], heavyDocs:[],
+    motoristasApp:[], checklistItens:[], checklists:[],
     currentProfile:null
   };
 
@@ -2105,6 +2211,9 @@
     setLoadingProgress(66, 'Carregando frota pesada…');
     state.heavyVehicles = await loadShared('lots-heavy-vehicles', []);
     state.conjuntos = await loadShared('lots-conjuntos', []);
+    state.motoristasApp = await loadShared('lots-motoristas-app', []);
+    state.checklistItens = await loadShared('lots-checklist-itens', []);
+    state.checklists = await loadChecklists();
     state.heavyDocs = await loadShared('lots-heavy-docs', []);
     setLoadingProgress(76, 'Carregando custos (pesada)…');
     state.heavyCosts = await loadShared('lots-heavy-costs', []);
@@ -2165,6 +2274,8 @@
     sinistros: () => saveShared('lots-sinistros', state.sinistros),
     heavyVehicles: () => saveShared('lots-heavy-vehicles', state.heavyVehicles),
     conjuntos: () => saveShared('lots-conjuntos', state.conjuntos),
+    motoristasApp: () => saveShared('lots-motoristas-app', state.motoristasApp),
+    checklistItens: () => saveShared('lots-checklist-itens', state.checklistItens),
     heavyDocs: () => saveShared('lots-heavy-docs', state.heavyDocs),
     heavyCosts: () => saveShared('lots-heavy-costs', state.heavyCosts),
     heavyFines: () => saveShared('lots-heavy-fines', state.heavyFines),
@@ -5803,6 +5914,130 @@
     if(anoFab>anoAtual || anoFab<2000) return null;
     return anoAtual - anoFab;
   }
+  /* ---------------- CHECKLIST (painel de acompanhamento) ---------------- */
+  const TURNOS = ['Manhã','Tarde','Noite'];
+  function populateCkFilters(){
+    const uoSel = document.getElementById('ckfilter-uo');
+    if(uoSel && uoSel.options.length<=1){
+      const uos = [...new Set(visibleVehicles().map(v=>v.unidade).filter(Boolean))].sort();
+      uoSel.innerHTML = '<option value="">Todas</option>' + uos.map(u=>`<option value="${u}">${u}</option>`).join('');
+    }
+    const dateEl = document.getElementById('ckfilter-date');
+    if(dateEl && !dateEl.value) dateEl.value = todayISO();
+  }
+  document.getElementById('btn-clear-ckfilter')?.addEventListener('click', ()=>{
+    document.getElementById('ckfilter-date').value = todayISO();
+    document.getElementById('ckfilter-turno').value = '';
+    document.getElementById('ckfilter-uo').value = '';
+    renderChecklist();
+  });
+  ['ckfilter-date','ckfilter-turno','ckfilter-uo'].forEach(id=>{
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderChecklist(); });
+  });
+  document.getElementById('btn-toggle-checklist-log')?.addEventListener('click', (e)=>{
+    const wrap = document.getElementById('checklist-log-wrap');
+    const abrindo = wrap.style.display==='none';
+    wrap.style.display = abrindo ? 'block' : 'none';
+    e.target.textContent = abrindo ? '🙈 Ocultar' : '👁️ Ver todos';
+  });
+  function renderChecklist(){
+    populateCkFilters();
+    const data = document.getElementById('ckfilter-date').value || todayISO();
+    const turnoFiltro = document.getElementById('ckfilter-turno').value;
+    const uoFiltro = document.getElementById('ckfilter-uo').value;
+    const turnosAvaliados = turnoFiltro ? [turnoFiltro] : TURNOS;
+
+    const frota = visibleVehicles().filter(v=>v.status==='ativo').filter(v=>!uoFiltro||v.unidade===uoFiltro);
+    const checklistsDoDia = state.checklists.filter(c=>c.data===data);
+
+    // veículos x turno pendentes
+    const pendentes = [];
+    frota.forEach(v=>{
+      turnosAvaliados.forEach(turno=>{
+        const feito = checklistsDoDia.some(c=>c.vehicleId===v.id && c.turno===turno);
+        if(!feito) pendentes.push({v, turno});
+      });
+    });
+    const pendTbl = document.getElementById('tbl-checklist-pendentes');
+    if(pendTbl){
+      if(pendentes.length===0){
+        pendTbl.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhuma pendência — todos os checklists foram feitos.</td></tr>';
+      } else {
+        pendTbl.innerHTML = pendentes.map(p=>`<tr>
+          <td class="mono">${p.v.frota||'—'}</td>
+          <td><span class="plate">${p.v.plate}</span></td>
+          <td>${p.v.unidade||'—'}</td>
+          <td><span class="badge badge-danger">${p.turno}</span></td>
+        </tr>`).join('');
+      }
+    }
+
+    // itens não conformes
+    const okVids = frota.map(v=>v.id);
+    const relevantes = checklistsDoDia.filter(c=>okVids.includes(c.vehicleId) && (!turnoFiltro||c.turno===turnoFiltro));
+    const naoConformes = [];
+    relevantes.forEach(c=>{
+      (c.itens||[]).filter(it=>!it.conforme).forEach(it=>{
+        naoConformes.push({c, it});
+      });
+    });
+    const ncTbl = document.getElementById('tbl-checklist-naoconforme');
+    if(ncTbl){
+      if(naoConformes.length===0){
+        ncTbl.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhum item não conforme reportado no período.</td></tr>';
+      } else {
+        ncTbl.innerHTML = naoConformes.map(({c,it})=>{
+          const v = vehicleById(c.vehicleId);
+          return `<tr>
+            <td class="mono">${fmtDate(c.data)}</td>
+            <td>${c.turno}</td>
+            <td class="mono">${v?.frota||c.frota||'—'}</td>
+            <td>${v?`<span class="plate">${v.plate}</span>`:(c.placa||'—')}</td>
+            <td>${c.motoristaNome||'—'}</td>
+            <td style="color:var(--danger); font-weight:600;">${it.nome}</td>
+            <td>${it.obs||'—'}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    // log geral (mostra tudo, sem filtro de data, quando aberto)
+    const logTbl = document.getElementById('tbl-checklist-log');
+    if(logTbl){
+      const todos = state.checklists.filter(c=>okVids.includes(c.vehicleId)).slice().sort((a,b)=>(b.data+b.turno).localeCompare(a.data+a.turno));
+      if(todos.length===0){
+        logTbl.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum checklist enviado ainda.</td></tr>';
+      } else {
+        logTbl.innerHTML = todos.map(c=>{
+          const v = vehicleById(c.vehicleId);
+          const temNC = (c.itens||[]).some(it=>!it.conforme);
+          const situacao = temNC ? '<span class="badge badge-danger">Com pendência</span>' : '<span class="badge badge-ok">Tudo conforme</span>';
+          return `<tr>
+            <td class="mono">${fmtDate(c.data)}</td>
+            <td>${c.turno}</td>
+            <td class="mono">${v?.frota||c.frota||'—'}</td>
+            <td>${v?`<span class="plate">${v.plate}</span>`:(c.placa||'—')}</td>
+            <td>${c.motoristaNome||'—'}</td>
+            <td>${situacao}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    const kpiGrid = document.getElementById('checklist-kpi-grid');
+    if(kpiGrid){
+      const totalEsperado = frota.length * turnosAvaliados.length;
+      const feitos = totalEsperado - pendentes.length;
+      const pct = totalEsperado>0 ? (feitos/totalEsperado*100) : 0;
+      kpiGrid.innerHTML = [
+        {label:'Veículos ativos', val: frota.length},
+        {label:'Checklists feitos', val: feitos+' / '+totalEsperado},
+        {label:'% concluído no período', val: pct.toFixed(0)+'%', color: pct>=90?'var(--go)':(pct>=50?'#e0a800':'var(--danger)')},
+        {label:'Itens não conformes', val: naoConformes.length, color: naoConformes.length>0?'var(--danger)':''}
+      ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
+    }
+  }
+
   function renderTires(){
     populateTireVehicleSelects();
     const vf = document.getElementById('tyfilter-vehicle')?.value || '';
@@ -6207,17 +6442,127 @@
     else if(name==='conjuntocadastro') renderConjuntoCadastro();
     else if(name==='heavydocs') renderHeavyDocs();
     else if(name==='config') renderConfig();
+    else if(name==='checklist') renderChecklist();
   }
+  /* ---------------- MOTORISTAS (acesso ao app separado) ---------------- */
+  function populateMtSelects(){
+    const uoSel = document.getElementById('mt-uo');
+    if(uoSel && uoSel.options.length===0){ uoSel.innerHTML = UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join(''); }
+    const vSel = document.getElementById('mt-vehicle');
+    if(vSel){
+      const keep = vSel.value;
+      vSel.innerHTML = '<option value="">— Nenhum, escolhe no app —</option>' + state.vehicles
+        .slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')))
+        .map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+      vSel.value = state.vehicles.some(v=>v.id===keep) ? keep : '';
+    }
+  }
+  document.getElementById('btn-save-motorista')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('mt-err');
+    const nome = document.getElementById('mt-nome').value.trim();
+    const matricula = document.getElementById('mt-matricula').value.trim();
+    if(!nome || !matricula){ errEl.textContent='Preencha nome e matrícula.'; return; }
+    if(state.motoristasApp.some(m=>m.matricula===matricula)){ errEl.textContent='Já existe um motorista com essa matrícula.'; return; }
+    errEl.textContent='';
+    state.motoristasApp.push({
+      id: uid(), nome, matricula,
+      turno: document.getElementById('mt-turno').value,
+      uo: document.getElementById('mt-uo').value,
+      vehicleId: document.getElementById('mt-vehicle').value || null,
+      status: document.getElementById('mt-status').value
+    });
+    await save.motoristasApp();
+    document.getElementById('mt-nome').value='';
+    document.getElementById('mt-matricula').value='';
+    renderMotoristas();
+    logAudit('Motorista (app) cadastrado', `${nome} — matrícula ${matricula}`);
+    toast('Motorista cadastrado.');
+  });
+  LOTS.deleteMotorista = async (id)=>{
+    const m = state.motoristasApp.find(x=>x.id===id);
+    state.motoristasApp = state.motoristasApp.filter(x=>x.id!==id);
+    await save.motoristasApp();
+    renderMotoristas();
+    logAudit('Motorista (app) excluído', m ? `${m.nome} — matrícula ${m.matricula}` : id);
+  };
+  function renderMotoristas(){
+    populateMtSelects();
+    const tbl = document.getElementById('tbl-motoristas');
+    if(!tbl) return;
+    if(state.motoristasApp.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum motorista cadastrado ainda.</td></tr>'; return; }
+    tbl.innerHTML = state.motoristasApp.map(m=>{
+      const v = vehicleById(m.vehicleId);
+      const badge = m.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
+      return `<tr>
+        <td>${m.nome}</td>
+        <td class="mono">${m.matricula}</td>
+        <td>${m.turno||'—'}</td>
+        <td>${m.uo||'—'}</td>
+        <td>${v?`<span class="plate">${v.plate}</span>`:'—'}</td>
+        <td>${badge}</td>
+        <td><div class="action-links"><button class="icon-btn danger" onclick="LOTS.deleteMotorista('${m.id}')">excluir</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ---------------- ITENS DO CHECKLIST (lista editável, sem mexer em código) ---------------- */
+  document.getElementById('btn-add-checklist-item')?.addEventListener('click', async ()=>{
+    const errEl = document.getElementById('ci-err');
+    const input = document.getElementById('ci-novo');
+    const nome = input.value.trim();
+    if(!nome){ errEl.textContent='Digite o nome do item.'; return; }
+    errEl.textContent='';
+    const ordem = state.checklistItens.length;
+    state.checklistItens.push({id:uid(), nome, ordem, ativo:true});
+    await save.checklistItens();
+    input.value='';
+    renderChecklistItens();
+    logAudit('Item de checklist adicionado', nome);
+  });
+  LOTS.moverChecklistItem = async (id, direcao)=>{
+    const lista = state.checklistItens.slice().sort((a,b)=>a.ordem-b.ordem);
+    const idx = lista.findIndex(i=>i.id===id);
+    const alvo = idx + direcao;
+    if(alvo<0 || alvo>=lista.length) return;
+    const ordemTemp = lista[idx].ordem;
+    lista[idx].ordem = lista[alvo].ordem;
+    lista[alvo].ordem = ordemTemp;
+    await save.checklistItens();
+    renderChecklistItens();
+  };
+  LOTS.deleteChecklistItem = async (id)=>{
+    const item = state.checklistItens.find(i=>i.id===id);
+    state.checklistItens = state.checklistItens.filter(i=>i.id!==id);
+    await save.checklistItens();
+    renderChecklistItens();
+    logAudit('Item de checklist excluído', item?.nome||id);
+  };
+  function renderChecklistItens(){
+    const wrap = document.getElementById('lista-checklist-itens');
+    if(!wrap) return;
+    const lista = state.checklistItens.slice().sort((a,b)=>a.ordem-b.ordem);
+    if(lista.length===0){ wrap.innerHTML = '<div class="page-sub">Nenhum item cadastrado ainda — o app dos motoristas vai ficar vazio até adicionar pelo menos um.</div>'; return; }
+    wrap.innerHTML = lista.map((item,i)=>`
+      <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line);">
+        <span style="flex:1;">${i+1}. ${item.nome}</span>
+        <button class="icon-btn" ${i===0?'disabled':''} onclick="LOTS.moverChecklistItem('${item.id}',-1)">▲</button>
+        <button class="icon-btn" ${i===lista.length-1?'disabled':''} onclick="LOTS.moverChecklistItem('${item.id}',1)">▼</button>
+        <button class="icon-btn danger" onclick="LOTS.deleteChecklistItem('${item.id}')">excluir</button>
+      </div>`).join('');
+  }
+
   function renderConfig(){
     populateFuelParamsSelect();
     renderFuelParamsTable();
+    renderMotoristas();
+    renderChecklistItens();
     // mostra o nome da pasta já selecionada (se houver) também aqui
     if(onedriveDirHandle) setFolderLabel('Pasta selecionada: '+onedriveDirHandle.name);
   }
   function renderAll(){
     ['dashboard','vehicles','fuel','costs','sinistros','fines','ranking','bu','tires','users',
      'heavyfleet','heavydash','heavycosts','heavysinistros','heavyfines','heavyranking',
-     'conjuntodash','conjuntocadastro','heavydocs','config'].forEach(renderView);
+     'conjuntodash','conjuntocadastro','heavydocs','config','checklist'].forEach(renderView);
     wrapTablesForScroll();
   }
 
@@ -6257,6 +6602,9 @@
   listenShared('lots-sinistros', d => state.sinistros = d);
   listenShared('lots-heavy-vehicles', d => state.heavyVehicles = d);
   listenShared('lots-conjuntos', d => state.conjuntos = d);
+  listenShared('lots-motoristas-app', d => state.motoristasApp = d);
+  listenShared('lots-checklist-itens', d => state.checklistItens = d);
+  listenChecklists();
   listenShared('lots-heavy-docs', d => state.heavyDocs = d);
   listenShared('lots-heavy-costs', d => state.heavyCosts = d);
   listenShared('lots-heavy-fines', d => state.heavyFines = d);
