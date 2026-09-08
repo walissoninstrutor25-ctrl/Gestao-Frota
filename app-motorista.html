@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<!-- APP_BUILD:2026-08-09T14-30-00Z -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Checklist & Abastecimento — Motoristas LOTS</title>
+<link rel="manifest" href="manifest-motorista.webmanifest">
+<meta name="theme-color" content="#16794a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --bg:#eef4f0; --surface:#ffffff; --surface-2:#f3f7f4; --line:#e0e6e2;
+    --accent:#16794a; --accent-dim:#a9d1bd; --go:#16794a; --danger:#d8383f; --danger-dim:#f6dcdd;
+    --text:#161a18; --text-muted:#5c6b63; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
+    min-height:100vh; -webkit-tap-highlight-color:transparent;
+  }
+  .mono{font-family:'Roboto Mono',monospace;}
+  .wrap{max-width:520px; margin:0 auto; padding:18px 16px 40px;}
+  .top{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .brand{font-weight:700; font-size:17px;}
+  .brand small{display:block; font-weight:400; font-size:12px; color:var(--text-muted);}
+  .btn-logout{background:none; border:1px solid var(--line); color:var(--text-muted); border-radius:10px; padding:8px 12px; font-size:12.5px; cursor:pointer;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+  label{display:block; font-size:11.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px;}
+  input, select, textarea{
+    width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:10px;
+    background:var(--surface-2); font-size:15px; color:var(--text); font-family:inherit;
+  }
+  textarea{resize:vertical; min-height:60px;}
+  .field{margin-bottom:14px;}
+  .btn{
+    display:block; width:100%; padding:15px; border:none; border-radius:12px;
+    font-size:15.5px; font-weight:700; cursor:pointer; text-align:center;
+  }
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-primary:disabled{background:var(--accent-dim); cursor:not-allowed;}
+  .btn-ghost{background:var(--surface-2); color:var(--text); border:1px solid var(--line);}
+  .btn-big{padding:22px; font-size:17px; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;}
+  .err{color:var(--danger); font-size:13px; margin-top:8px; min-height:16px;}
+  .ok{color:var(--go); font-size:13px; margin-top:8px;}
+  .center{text-align:center;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .item-row{display:flex; align-items:center; gap:10px; padding:14px 0; border-bottom:1px solid var(--line);}
+  .item-row:last-child{border-bottom:none;}
+  .item-nome{flex:1; font-size:14.5px; font-weight:500;}
+  .toggle-group{display:flex; gap:6px;}
+  .toggle-btn{padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); font-size:13px; font-weight:600; cursor:pointer;}
+  .toggle-btn.conforme.active{background:var(--go); color:#fff; border-color:var(--go);}
+  .toggle-btn.naoconforme.active{background:var(--danger); color:#fff; border-color:var(--danger);}
+  .obs-wrap{display:none; padding:0 0 12px 0;}
+  .obs-wrap.show{display:block;}
+  .progress-badge{font-size:12px; color:var(--text-muted); margin-bottom:10px;}
+  .page-title{font-size:19px; font-weight:700; margin:0 0 4px;}
+  .page-sub{font-size:13px; color:var(--text-muted); margin:0 0 16px;}
+  .back-link{background:none; border:none; color:var(--accent); font-weight:600; font-size:13.5px; padding:0 0 14px; cursor:pointer;}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:#1b1f1d; color:#fff; padding:12px 20px; border-radius:10px; font-size:13.5px;
+    opacity:0; pointer-events:none; transition:opacity .25s; z-index:999; max-width:90vw; text-align:center;
+  }
+  .toast.show{opacity:1;}
+  .field-help{font-size:12px; color:var(--text-muted); margin-top:-8px; margin-bottom:14px;}
+  .loading-screen{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; z-index:1000;}
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loading-screen">
+  <div style="font-weight:700; font-size:16px;">LOTS GROUP</div>
+  <div style="font-size:13px; color:#5c6b63;">Carregando…</div>
+</div>
+
+<div class="wrap">
+
+  <!-- LOGIN -->
+  <div class="view" id="view-login">
+    <div class="center" style="margin:30px 0 24px;">
+      <div style="font-weight:700; font-size:22px;">LOTS GROUP</div>
+      <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">Checklist & Abastecimento — Motoristas</div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>Matrícula</label>
+        <input id="login-matricula" inputmode="numeric" placeholder="Ex: 00123">
+      </div>
+      <button class="btn btn-primary" id="btn-login">Entrar</button>
+      <div class="err" id="login-err"></div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div class="view" id="view-home">
+    <div class="top">
+      <div class="brand" id="home-nome">—<small id="home-sub"></small></div>
+      <button class="btn-logout" id="btn-logout">Sair</button>
+    </div>
+    <button class="btn btn-primary btn-big" id="btn-go-checklist">✅ Fazer Checklist</button>
+    <button class="btn btn-primary btn-big" id="btn-go-abastecimento" style="background:#1c5f8a;">⛽ Lançar Abastecimento</button>
+    <div class="card" id="home-status-card">
+      <div class="page-sub" style="margin:0;">Últimos envios seus aparecem aqui.</div>
+      <div id="home-recentes"></div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST: escolha do veículo -->
+  <div class="view" id="view-checklist-setup">
+    <button class="back-link" data-back="view-home">‹ Voltar</button>
+    <div class="page-title">Fazer Checklist</div>
+    <div class="page-sub">Escolha o veículo antes de começar.</div>
+    <div class="card">
+      <div class="field">
+        <label>Veículo</label>
+        <select id="ck-vehicle"><option value="">Selecione</option></select>
+      </div>
+      <button class="btn btn-primary" id="btn-start-checklist">Começar checklist</button>
+      <div class="err" id="ck-setup-err"></div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST: itens -->
+  <div class="view" id="view-checklist-itens">
+    <button class="back-link" data-back="view-checklist-setup">‹ Voltar</button>
+    <div class="page-title">Checklist</div>
+    <div class="progress-badge" id="ck-progress"></div>
+    <div class="card" id="ck-itens-card">
+      <div id="ck-itens-lista"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-submit-checklist">Enviar checklist</button>
+    <div class="err" id="ck-submit-err"></div>
+  </div>
+
+  <!-- ABASTECIMENTO -->
+  <div class="view" id="view-abastecimento">
+    <button class="back-link" data-back="view-home">‹ Voltar</button>
+    <div class="page-title">Lançar Abastecimento</div>
+    <div class="card">
+      <div class="field">
+        <label>Veículo</label>
+        <select id="ab-vehicle"><option value="">Selecione</option></select>
+      </div>
+      <div class="field">
+        <label>KM atual (odômetro)</label>
+        <input id="ab-km" inputmode="decimal" placeholder="Ex: 45230">
+      </div>
+      <div class="field">
+        <label>Posto</label>
+        <select id="ab-posto">
+          <option value="">Selecione</option>
+          <option value="R7">R7</option>
+          <option value="COQUEIROS">COQUEIROS</option>
+          <option value="7 MILHAS">7 MILHAS</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Litros abastecidos</label>
+        <input id="ab-litros" inputmode="decimal" placeholder="Ex: 38.5">
+      </div>
+      <button class="btn btn-primary" id="btn-submit-abastecimento">Enviar abastecimento</button>
+      <div class="err" id="ab-err"></div>
+    </div>
+  </div>
+
+  <!-- CONFIRMAÇÃO -->
+  <div class="view" id="view-confirmacao">
+    <div class="card center" style="padding:36px 18px;">
+      <div style="font-size:42px; margin-bottom:10px;">✅</div>
+      <div style="font-weight:700; font-size:17px; margin-bottom:6px;" id="conf-titulo">Enviado com sucesso!</div>
+      <div class="page-sub" id="conf-sub" style="margin-bottom:20px;"></div>
+      <button class="btn btn-primary" id="btn-conf-voltar">Voltar ao início</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const firebaseConfig = {
+    apiKey: "AIzaSyCxskjcs3PeGTWm4yIQ9B4aaBo_iI7GjPI",
+    authDomain: "lots-gestao-frota.firebaseapp.com",
+    projectId: "lots-gestao-frota",
+    storageBucket: "lots-gestao-frota.firebasestorage.app",
+    messagingSenderId: "735618273131",
+    appId: "1:735618273131:web:9adaf2dadb5fb1ab53c62e"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+  const COLLECTION = 'lots-frota';
+  const FUEL_COLLECTION = 'lots-frota-fuel-entries';
+  const CHECKLIST_COLLECTION = 'lots-checklists';
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,9); }
+  function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function fmtDate(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'), 3000);
+  }
+  function showView(id){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+  document.querySelectorAll('[data-back]').forEach(btn=>{
+    btn.addEventListener('click', ()=>showView(btn.dataset.back));
+  });
+
+  async function loadShared(key, fallback){
+    try{
+      const doc = await db.collection(COLLECTION).doc(key).get();
+      return doc.exists ? JSON.parse(doc.data().value) : fallback;
+    }catch(e){ console.error('load fail',key,e); return fallback; }
+  }
+
+  let vehicles = [];
+  let motoristas = [];
+  let checklistItens = [];
+  let currentMotorista = null;
+
+  async function carregarDadosBase(){
+    vehicles = await loadShared('lots-vehicles', []);
+    motoristas = await loadShared('lots-motoristas-app', []);
+    checklistItens = (await loadShared('lots-checklist-itens', [])).slice().sort((a,b)=>a.ordem-b.ordem);
+  }
+
+  function populateVehicleSelects(){
+    const ativos = vehicles.filter(v=>v.status==='ativo').slice().sort((a,b)=>String(a.frota||'').localeCompare(String(b.frota||'')));
+    const opts = '<option value="">Selecione</option>' + ativos.map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
+    document.getElementById('ck-vehicle').innerHTML = opts;
+    document.getElementById('ab-vehicle').innerHTML = opts;
+    if(currentMotorista && currentMotorista.vehicleId){
+      document.getElementById('ck-vehicle').value = currentMotorista.vehicleId;
+      document.getElementById('ab-vehicle').value = currentMotorista.vehicleId;
+    }
+  }
+
+  // ---------------- LOGIN ----------------
+  document.getElementById('btn-login').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('login-err');
+    const matricula = document.getElementById('login-matricula').value.trim();
+    if(!matricula){ errEl.textContent='Digite sua matrícula.'; return; }
+    errEl.textContent='';
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true; btn.textContent = 'Entrando…';
+    try{
+      await carregarDadosBase();
+      const m = motoristas.find(x=>x.matricula===matricula && x.status==='ativo');
+      if(!m){ errEl.textContent='Matrícula não encontrada, ou motorista inativo. Fale com o administrador.'; btn.disabled=false; btn.textContent='Entrar'; return; }
+      currentMotorista = m;
+      localStorage.setItem('lots-motorista-id', m.id);
+      entrarNoApp();
+    }catch(e){
+      console.error(e);
+      errEl.textContent = 'Erro ao conectar. Verifique sua internet e tente de novo.';
+    }
+    btn.disabled = false; btn.textContent = 'Entrar';
+  });
+  document.getElementById('login-matricula').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btn-login').click(); });
+
+  document.getElementById('btn-logout').addEventListener('click', ()=>{
+    localStorage.removeItem('lots-motorista-id');
+    currentMotorista = null;
+    document.getElementById('login-matricula').value='';
+    showView('view-login');
+  });
+
+  function entrarNoApp(){
+    document.getElementById('home-nome').innerHTML = currentMotorista.nome + '<small>Matrícula '+currentMotorista.matricula+' — '+(currentMotorista.turno||'—')+' — '+(currentMotorista.uo||'—')+'</small>';
+    populateVehicleSelects();
+    renderRecentes();
+    showView('view-home');
+  }
+  function renderRecentes(){
+    // best-effort: não faz query pesada, só mostra aviso genérico (mantém o app leve)
+    document.getElementById('home-recentes').innerHTML = '<div class="field-help" style="margin-top:8px;">Cada envio some daqui assim que confirmado — os dados já ficam salvos no sistema da frota.</div>';
+  }
+
+  // ---------------- CHECKLIST ----------------
+  document.getElementById('btn-go-checklist').addEventListener('click', ()=>{
+    populateVehicleSelects();
+    showView('view-checklist-setup');
+  });
+  let checklistRespostas = {};
+  document.getElementById('btn-start-checklist').addEventListener('click', ()=>{
+    const errEl = document.getElementById('ck-setup-err');
+    const vehicleId = document.getElementById('ck-vehicle').value;
+    if(!vehicleId){ errEl.textContent='Selecione o veículo.'; return; }
+    if(checklistItens.length===0){ errEl.textContent='Nenhum item de checklist cadastrado ainda. Fale com o administrador.'; return; }
+    errEl.textContent='';
+    checklistRespostas = {};
+    checklistItens.forEach(item=>{ checklistRespostas[item.id] = {conforme:null, obs:''}; });
+    renderChecklistItens();
+    showView('view-checklist-itens');
+  });
+  function renderChecklistItens(){
+    const wrap = document.getElementById('ck-itens-lista');
+    wrap.innerHTML = checklistItens.map(item=>`
+      <div class="item-row" style="flex-direction:column; align-items:stretch;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="item-nome">${item.nome}</span>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn conforme" data-item="${item.id}" data-val="ok">OK</button>
+            <button type="button" class="toggle-btn naoconforme" data-item="${item.id}" data-val="nok">Não OK</button>
+          </div>
+        </div>
+        <div class="obs-wrap" id="obs-${item.id}">
+          <textarea placeholder="Descreva o problema..." data-item-obs="${item.id}"></textarea>
+        </div>
+      </div>`).join('');
+    wrap.querySelectorAll('.toggle-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const itemId = btn.dataset.item;
+        const val = btn.dataset.val;
+        checklistRespostas[itemId].conforme = (val==='ok');
+        wrap.querySelectorAll(`.toggle-btn[data-item="${itemId}"]`).forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('obs-'+itemId).classList.toggle('show', val==='nok');
+        atualizarProgresso();
+      });
+    });
+    wrap.querySelectorAll('[data-item-obs]').forEach(ta=>{
+      ta.addEventListener('input', ()=>{ checklistRespostas[ta.dataset.itemObs].obs = ta.value; });
+    });
+    atualizarProgresso();
+  }
+  function atualizarProgresso(){
+    const total = checklistItens.length;
+    const respondidos = Object.values(checklistRespostas).filter(r=>r.conforme!==null).length;
+    document.getElementById('ck-progress').textContent = `${respondidos} de ${total} itens avaliados`;
+  }
+  document.getElementById('btn-submit-checklist').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('ck-submit-err');
+    const pendentes = Object.values(checklistRespostas).filter(r=>r.conforme===null).length;
+    if(pendentes>0){ errEl.textContent = `Ainda faltam ${pendentes} item(ns) pra avaliar.`; return; }
+    errEl.textContent='';
+    const vehicleId = document.getElementById('ck-vehicle').value;
+    const v = vehicles.find(x=>x.id===vehicleId);
+    const turno = currentMotorista.turno || '—';
+    const btn = document.getElementById('btn-submit-checklist');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try{
+      const rec = {
+        vehicleId, frota: v?.frota||'', placa: v?.plate||'',
+        motoristaId: currentMotorista.id, motoristaNome: currentMotorista.nome,
+        turno, data: todayISO(),
+        itens: checklistItens.map(item=>({
+          itemId: item.id, nome: item.nome,
+          conforme: checklistRespostas[item.id].conforme,
+          obs: checklistRespostas[item.id].conforme ? '' : (checklistRespostas[item.id].obs||'')
+        })),
+        criadoEm: Date.now()
+      };
+      await db.collection(CHECKLIST_COLLECTION).doc(uid()).set(rec);
+      const temNaoConforme = rec.itens.some(it=>!it.conforme);
+      document.getElementById('conf-titulo').textContent = temNaoConforme ? 'Checklist enviado — com pendências' : 'Checklist enviado!';
+      document.getElementById('conf-sub').textContent = temNaoConforme
+        ? 'Um ou mais itens foram marcados como não conformes. A gestão da frota já pode ver isso no painel.'
+        : 'Tudo certo com o veículo. Obrigado!';
+      showView('view-confirmacao');
+    }catch(e){
+      console.error(e);
+      errEl.textContent = 'Erro ao enviar. Verifique sua internet e tente de novo.';
+    }
+    btn.disabled = false; btn.textContent = 'Enviar checklist';
+  });
+
+  // ---------------- ABASTECIMENTO ----------------
+  document.getElementById('btn-go-abastecimento').addEventListener('click', ()=>{
+    populateVehicleSelects();
+    document.getElementById('ab-km').value='';
+    document.getElementById('ab-litros').value='';
+    document.getElementById('ab-posto').value='';
+    showView('view-abastecimento');
+  });
+  document.getElementById('btn-submit-abastecimento').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('ab-err');
+    const vehicleId = document.getElementById('ab-vehicle').value;
+    const km = Number(document.getElementById('ab-km').value)||0;
+    const posto = document.getElementById('ab-posto').value;
+    const litros = Number(document.getElementById('ab-litros').value)||0;
+    if(!vehicleId){ errEl.textContent='Selecione o veículo.'; return; }
+    if(km<=0){ errEl.textContent='Informe o KM atual.'; return; }
+    if(!posto){ errEl.textContent='Selecione o posto.'; return; }
+    if(litros<=0){ errEl.textContent='Informe os litros abastecidos.'; return; }
+    errEl.textContent='';
+    const btn = document.getElementById('btn-submit-abastecimento');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try{
+      const rec = {
+        vehicleId, date: todayISO(), liters: litros,
+        value: 0, // preço não é informado pelo motorista — é ajustado depois pelo administrador (planilha do posto)
+        km, station: posto, imported:false,
+        origem: 'motorista', motoristaId: currentMotorista.id, motoristaNome: currentMotorista.nome
+      };
+      await db.collection(FUEL_COLLECTION).doc(uid()).set(rec);
+      document.getElementById('conf-titulo').textContent = 'Abastecimento enviado!';
+      document.getElementById('conf-sub').textContent = 'Já está registrado no sistema da frota.';
+      showView('view-confirmacao');
+    }catch(e){
+      console.error(e);
+      errEl.textContent = 'Erro ao enviar. Verifique sua internet e tente de novo.';
+    }
+    btn.disabled = false; btn.textContent = 'Enviar abastecimento';
+  });
+
+  document.getElementById('btn-conf-voltar').addEventListener('click', ()=>{
+    renderRecentes();
+    showView('view-home');
+  });
+
+  // ---------------- BOOT ----------------
+  auth.signInAnonymously().catch(e=>{
+    console.error('login anônimo falhou', e);
+    toast('Erro ao conectar ao sistema. Recarregue a página.');
+  });
+  auth.onAuthStateChanged(async (user)=>{
+    document.getElementById('loading-screen').style.display = 'none';
+    if(!user){ showView('view-login'); return; }
+    // tenta retomar sessão salva localmente (evita pedir matrícula/PIN toda hora no mesmo aparelho)
+    const savedId = localStorage.getItem('lots-motorista-id');
+    if(savedId){
+      try{
+        await carregarDadosBase();
+        const m = motoristas.find(x=>x.id===savedId && x.status==='ativo');
+        if(m){ currentMotorista = m; entrarNoApp(); return; }
+      }catch(e){ console.error(e); }
+    }
+    showView('view-login');
+  });
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw-motorista.js').catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
