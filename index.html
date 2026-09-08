@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T14-30-00Z -->
+<!-- APP_BUILD:2026-08-09T15-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1702,7 +1702,7 @@
         </div>
         <div class="filter-bar">
           <div class="filter-field"><label>Data</label><input type="date" id="ckfilter-date"></div>
-          <div class="filter-field"><label>Turno</label><select id="ckfilter-turno"><option value="">Todos</option><option value="Manhã">Manhã</option><option value="Tarde">Tarde</option><option value="Noite">Noite</option></select></div>
+          <div class="filter-field"><label>Turno</label><select id="ckfilter-turno"><option value="">Todos</option><option value="Turno A">Turno A</option><option value="Turno B">Turno B</option><option value="Turno C">Turno C</option></select></div>
           <div class="filter-field"><label>UO</label><select id="ckfilter-uo"><option value="">Todas</option></select></div>
           <button class="btn-ghost" id="btn-clear-ckfilter">Limpar</button>
         </div>
@@ -1827,9 +1827,9 @@
             <div class="field"><label>Matrícula</label><input id="mt-matricula" placeholder="Ex: 00123"></div>
             <div class="field"><label>Turno</label>
               <select id="mt-turno">
-                <option value="Manhã">Manhã</option>
-                <option value="Tarde">Tarde</option>
-                <option value="Noite">Noite</option>
+                <option value="Turno A">Turno A</option>
+                <option value="Turno B">Turno B</option>
+                <option value="Turno C">Turno C</option>
               </select>
             </div>
             <div class="field"><label>UO</label><select id="mt-uo"></select></div>
@@ -1845,7 +1845,29 @@
             <div class="field" style="align-self:end;"><button class="btn-primary" id="btn-save-motorista" style="width:100%;">Cadastrar motorista</button></div>
           </div>
           <div class="err-msg" id="mt-err"></div>
-          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto; margin-top:14px;">
+
+          <div class="lane" style="margin:18px 0 14px;"></div>
+          <div class="card-title" style="margin-bottom:10px;">Importar motoristas em lote</div>
+          <div class="page-sub" style="margin-bottom:12px;">
+            Colunas esperadas: <b>Nome</b>, <b>Matrícula</b>, <b>Turno</b> (Turno A, Turno B ou Turno C) e <b>UO</b>. Útil quando tem muitos motoristas pra cadastrar de uma vez. Matrículas repetidas na planilha ou já cadastradas são ignoradas (não duplicam).
+          </div>
+          <div class="field-grid-4" style="align-items:end; margin-bottom:14px;">
+            <div class="field"><label>Arquivo (.xlsx, .xls ou .csv)</label><input type="file" id="import-motoristas-file" accept=".xlsx,.xls,.csv"></div>
+            <div class="field"><button class="btn-primary" id="btn-import-motoristas" style="width:100%;">⬆ Importar planilha</button></div>
+          </div>
+          <div class="err-msg" id="import-motoristas-msg"></div>
+          <div id="import-motoristas-errors" style="display:none; margin-bottom:10px; padding:12px; border:1px solid var(--danger); border-radius:8px; background:rgba(220,60,60,0.06); max-height:250px; overflow-y:auto;"></div>
+
+          <div class="lane" style="margin:18px 0 14px;"></div>
+          <div class="card-title" style="margin-bottom:10px;">Motoristas cadastrados</div>
+          <div class="filter-bar">
+            <div class="filter-field"><label>Buscar (nome ou matrícula)</label><input id="mtfilter-busca" placeholder="Digite pra filtrar"></div>
+            <div class="filter-field"><label>Turno</label><select id="mtfilter-turno"><option value="">Todos</option><option value="Turno A">Turno A</option><option value="Turno B">Turno B</option><option value="Turno C">Turno C</option></select></div>
+            <div class="filter-field"><label>UO</label><select id="mtfilter-uo"><option value="">Todas</option></select></div>
+            <div class="filter-field"><label>Status</label><select id="mtfilter-status"><option value="">Todos</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+            <button class="btn-ghost" id="btn-clear-mtfilter">Limpar</button>
+          </div>
+          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto; margin-top:10px;">
             <table><thead><tr><th>Nome</th><th>Matrícula</th><th>Turno</th><th>UO</th><th>Veículo padrão</th><th>Status</th><th></th></tr></thead>
             <tbody id="tbl-motoristas"></tbody></table>
           </div>
@@ -1958,7 +1980,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T14-30-00Z';
+  const APP_VERSION = '2026-08-09T15-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -5915,7 +5937,7 @@
     return anoAtual - anoFab;
   }
   /* ---------------- CHECKLIST (painel de acompanhamento) ---------------- */
-  const TURNOS = ['Manhã','Tarde','Noite'];
+  const TURNOS = ['Turno A','Turno B','Turno C'];
   function populateCkFilters(){
     const uoSel = document.getElementById('ckfilter-uo');
     if(uoSel && uoSel.options.length<=1){
@@ -6456,6 +6478,8 @@
         .map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate}</option>`).join('');
       vSel.value = state.vehicles.some(v=>v.id===keep) ? keep : '';
     }
+    const mtfUo = document.getElementById('mtfilter-uo');
+    if(mtfUo && mtfUo.options.length<=1){ mtfUo.innerHTML = '<option value="">Todas</option>' + UO_LIST.map(u=>`<option value="${u}">${u}</option>`).join(''); }
   }
   document.getElementById('btn-save-motorista')?.addEventListener('click', async ()=>{
     const errEl = document.getElementById('mt-err');
@@ -6480,17 +6504,37 @@
   });
   LOTS.deleteMotorista = async (id)=>{
     const m = state.motoristasApp.find(x=>x.id===id);
+    if(!confirm(`Excluir o motorista "${m?.nome||''}" (matrícula ${m?.matricula||''})? Ele não vai mais conseguir entrar no app.`)) return;
     state.motoristasApp = state.motoristasApp.filter(x=>x.id!==id);
     await save.motoristasApp();
     renderMotoristas();
     logAudit('Motorista (app) excluído', m ? `${m.nome} — matrícula ${m.matricula}` : id);
+    toast('Motorista excluído.');
   };
+  ['mtfilter-busca','mtfilter-turno','mtfilter-uo','mtfilter-status'].forEach(id=>{
+    document.addEventListener('input', e=>{ if(e.target && e.target.id===id) renderMotoristas(); });
+    document.addEventListener('change', e=>{ if(e.target && e.target.id===id) renderMotoristas(); });
+  });
+  document.getElementById('btn-clear-mtfilter')?.addEventListener('click', ()=>{
+    ['mtfilter-busca','mtfilter-turno','mtfilter-uo','mtfilter-status'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    renderMotoristas();
+  });
   function renderMotoristas(){
     populateMtSelects();
     const tbl = document.getElementById('tbl-motoristas');
     if(!tbl) return;
-    if(state.motoristasApp.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum motorista cadastrado ainda.</td></tr>'; return; }
-    tbl.innerHTML = state.motoristasApp.map(m=>{
+    const busca = normKey(document.getElementById('mtfilter-busca')?.value||'');
+    const turnoF = document.getElementById('mtfilter-turno')?.value||'';
+    const uoF = document.getElementById('mtfilter-uo')?.value||'';
+    const statusF = document.getElementById('mtfilter-status')?.value||'';
+    const list = state.motoristasApp
+      .filter(m=>!busca || normKey(m.nome).includes(busca) || normKey(m.matricula).includes(busca))
+      .filter(m=>!turnoF || m.turno===turnoF)
+      .filter(m=>!uoF || m.uo===uoF)
+      .filter(m=>!statusF || m.status===statusF)
+      .slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
+    if(list.length===0){ tbl.innerHTML='<tr class="empty-row"><td colspan="7">Nenhum motorista encontrado.</td></tr>'; return; }
+    tbl.innerHTML = list.map(m=>{
       const v = vehicleById(m.vehicleId);
       const badge = m.status==='ativo' ? '<span class="badge badge-ok">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
       return `<tr>
@@ -6504,6 +6548,67 @@
       </tr>`;
     }).join('');
   }
+  document.getElementById('btn-import-motoristas')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('import-motoristas-msg');
+    const errEl = document.getElementById('import-motoristas-errors');
+    const fileInput = document.getElementById('import-motoristas-file');
+    errEl.style.display='none'; errEl.innerHTML='';
+    if(!fileInput.files.length){ msgEl.style.color='var(--danger)'; msgEl.textContent='Selecione um arquivo primeiro.'; return; }
+    if(typeof XLSX === 'undefined'){ msgEl.style.color='var(--danger)'; msgEl.textContent='Biblioteca de importação não carregada.'; return; }
+    msgEl.style.color='var(--text-muted)';
+    msgEl.textContent='Lendo planilha…';
+    let rows;
+    try{
+      const file = fileInput.files[0];
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array', cellDates:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    }catch(e){
+      console.error('erro ao ler planilha de motoristas', e);
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent = 'Não foi possível LER esse arquivo (' + (e?.message||'erro desconhecido') + '). Confira se é um .xlsx, .xls ou .csv válido.';
+      return;
+    }
+    const erros = [];
+    const validos = [];
+    const matriculasJaVistas = new Set(state.motoristasApp.map(m=>m.matricula));
+    rows.forEach((row,i)=>{
+      const linha = i+2;
+      const nome = String(pickCol(row,'nome')||'').trim();
+      const matricula = String(pickCol(row,'matricula','matrícula')||'').trim();
+      let turno = String(pickCol(row,'turno')||'').trim();
+      const uo = String(pickCol(row,'uo','unidade')||'').trim().toUpperCase();
+      if(!nome && !matricula) return; // linha em branco
+      if(!nome || !matricula){ erros.push(`Linha ${linha}: falta nome ou matrícula.`); return; }
+      if(matriculasJaVistas.has(matricula)){ erros.push(`Linha ${linha}: matrícula "${matricula}" já existe (ignorada, não duplicada).`); return; }
+      const turnoNorm = normKey(turno).replace(/turno/g,'').replace(/[^a-z]/g,''); // tira "turno" e espaços, sobra só a letra
+      if(turnoNorm==='a') turno = 'Turno A';
+      else if(turnoNorm==='b') turno = 'Turno B';
+      else if(turnoNorm==='c') turno = 'Turno C';
+      else { erros.push(`Linha ${linha}: turno "${turno}" inválido (use Turno A, Turno B ou Turno C).`); return; }
+      if(!UO_LIST.includes(uo)){ erros.push(`Linha ${linha}: UO "${uo}" não reconhecida.`); return; }
+      matriculasJaVistas.add(matricula);
+      validos.push({id:uid(), nome, matricula, turno, uo, vehicleId:null, status:'ativo'});
+    });
+    if(validos.length===0 && erros.length===0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Nenhuma linha válida encontrada na planilha.'; return; }
+    if(erros.length>0){
+      errEl.style.display='block';
+      errEl.innerHTML = erros.map(e=>`<div style="margin-bottom:4px;">⚠️ ${e}</div>`).join('');
+    }
+    if(validos.length>0){
+      validos.forEach(m=>state.motoristasApp.push(m));
+      await save.motoristasApp();
+      msgEl.style.color='var(--go)';
+      msgEl.textContent = `${validos.length} motorista(s) importado(s) com sucesso.` + (erros.length>0 ? ` ${erros.length} linha(s) ignorada(s) — veja abaixo.` : '');
+      fileInput.value='';
+      logAudit('Motoristas importados em lote', `${validos.length} motorista(s)`);
+      renderMotoristas();
+    } else {
+      msgEl.style.color='var(--danger)';
+      msgEl.textContent = 'Nenhum motorista foi importado — corrija os erros abaixo e tente de novo.';
+    }
+  });
 
   /* ---------------- ITENS DO CHECKLIST (lista editável, sem mexer em código) ---------------- */
   document.getElementById('btn-add-checklist-item')?.addEventListener('click', async ()=>{
