@@ -526,6 +526,36 @@ function visiblePeople() {
   return people;
 }
 
+// Formata um valor pro padrão CSV com ';' (aqui o ',' é decimal, e é o
+// separador que o Excel em pt-BR espera) — só entre aspas quando o
+// valor tem ';', aspas ou quebra de linha.
+function csvField(v) {
+  const s = String(v == null ? '' : v);
+  return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+// Baixa Nome;Matrícula;Turno;UO da lista visível agora (respeita os
+// mesmos filtros de UO/grupo/turno/busca da tela — ver visiblePeople).
+function exportarListaCsv(cfg) {
+  const pessoas = visiblePeople();
+  const linhas = [['Nome', 'Matrícula', 'Turno', 'UO'].map(csvField).join(';')];
+  pessoas.forEach((p) => {
+    linhas.push([p.nome, p.matricula, p.papelNormalizado, p.unidade].map(csvField).join(';'));
+  });
+  const bom = String.fromCharCode(0xFEFF); // Excel abre acento certo com o BOM na frente
+  const csv = bom + linhas.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const unidadeSufixo = cfg.hasUnits && state.unit[cfg.id] ? `-UO${state.unit[cfg.id]}` : '';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${cfg.id}${unidadeSufixo}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Dashboard — visão geral e controle de vagas por turno/UO           */
 /* ------------------------------------------------------------------ */
@@ -1324,6 +1354,7 @@ function renderPanel() {
         ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="danger-mini-btn" id="clearDataBtn" title="Apaga todos os colaboradores${cfg.hasUnits ? ' da UO ' + state.unit[cfg.id] : ''} — ação drástica, dá pra restaurar depois">limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${!isEquipe && state.editMode && edits.limpo[clearKey(cfg, cfg.hasUnits ? state.unit[cfg.id] : undefined)] ? `<button class="icon-btn" id="restoreClearedBtn">↺ Restaurar dados originais${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
+        ${isEquipe ? '' : `<button class="icon-btn" id="exportBtn" title="Baixa nome, matrícula, turno e UO da lista atual (respeita os filtros)">⬇️ Exportar</button>`}
         <button class="icon-btn" id="printBtn">🖨 Imprimir</button>
       </div>
     </div>
@@ -1374,6 +1405,8 @@ function renderPanel() {
   }
 
   document.getElementById('printBtn').addEventListener('click', () => window.print());
+  const exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) exportBtn.addEventListener('click', () => exportarListaCsv(cfg));
   const addColaboradorBtn = document.getElementById('addColaboradorBtn');
   if (addColaboradorBtn) addColaboradorBtn.addEventListener('click', () => openModal(null, monthMeta, cfg, ds, true));
   const clearBtn = document.getElementById('clearDataBtn');
