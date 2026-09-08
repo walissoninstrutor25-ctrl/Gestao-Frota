@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T16-00-00Z -->
+<!-- APP_BUILD:2026-08-09T16-20-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1753,7 +1753,19 @@
 
         <div class="card">
           <div class="card-head"><div class="card-title">Meta de consumo</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">Consumo esperado por veículo, usado como referência no BI de Combustível.</div>
+          <div class="page-sub" style="margin-bottom:12px;">Consumo esperado, usado como referência no BI de Combustível. Lança por modelo (mais rápido, aplica em todos os veículos daquele modelo de uma vez) ou por veículo individual (pra ajustar um caso específico).</div>
+
+          <div class="card-title" style="margin-bottom:10px; font-size:13px;">Lançar por modelo (recomendado)</div>
+          <div class="field-grid-4" style="align-items:end;">
+            <div class="field"><label>Modelo</label><select id="fp-modelo"><option value="">Selecione</option></select></div>
+            <div class="field"><label>Consumo esperado (km/L)</label><input id="fp-modelo-consumo" placeholder="Ex: 9.5"></div>
+            <div class="field"><button class="btn-primary" id="btn-save-fuelparams-modelo" style="width:100%;">Aplicar em todos desse modelo</button></div>
+          </div>
+          <div class="page-sub" id="fp-modelo-count" style="margin:-6px 0 6px;"></div>
+          <div class="err-msg" id="fp-modelo-msg"></div>
+
+          <div class="lane" style="margin:16px 0 14px;"></div>
+          <div class="card-title" style="margin-bottom:10px; font-size:13px;">Ajustar um veículo específico</div>
           <div class="field-grid-4" style="align-items:end;">
             <div class="field"><label>Veículo</label><select id="fp-vehicle"><option value="">Selecione</option></select></div>
             <div class="field"><label>Consumo esperado (km/L)</label><input id="fp-consumo" placeholder="Ex: 9.5"></div>
@@ -2015,7 +2027,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T16-00-00Z';
+  const APP_VERSION = '2026-08-09T16-20-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -3011,7 +3023,44 @@
     sel.innerHTML = '<option value="">Selecione</option>' + visibleVehicles().map(v=>`<option value="${v.id}">${v.frota?v.frota+' — ':''}${v.plate} — ${v.model}</option>`).join('');
     sel.value = visibleVehicles().some(v=>v.id===keep) ? keep : '';
     fillFuelParams();
+    populateFuelParamsModeloSelect();
   }
+  function populateFuelParamsModeloSelect(){
+    const sel = document.getElementById('fp-modelo');
+    if(!sel) return;
+    const keep = sel.value;
+    const contagem = {};
+    visibleVehicles().forEach(v=>{ const m=(v.model||'').trim(); if(m) contagem[m]=(contagem[m]||0)+1; });
+    const modelos = Object.keys(contagem).sort();
+    sel.innerHTML = '<option value="">Selecione</option>' + modelos.map(m=>`<option value="${m}">${m} (${contagem[m]} veículo${contagem[m]>1?'s':''})</option>`).join('');
+    sel.value = modelos.includes(keep) ? keep : '';
+    atualizarFpModeloCount();
+  }
+  function atualizarFpModeloCount(){
+    const modelo = document.getElementById('fp-modelo')?.value;
+    const countEl = document.getElementById('fp-modelo-count');
+    if(!countEl) return;
+    if(!modelo){ countEl.textContent=''; return; }
+    const qtd = visibleVehicles().filter(v=>(v.model||'').trim()===modelo).length;
+    countEl.textContent = `Vai atualizar ${qtd} veículo(s) desse modelo.`;
+  }
+  document.getElementById('fp-modelo')?.addEventListener('change', atualizarFpModeloCount);
+  document.getElementById('btn-save-fuelparams-modelo')?.addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('fp-modelo-msg');
+    const modelo = document.getElementById('fp-modelo').value;
+    const consumo = Number(document.getElementById('fp-modelo-consumo').value)||0;
+    if(!modelo){ msgEl.style.color='var(--danger)'; msgEl.textContent='Selecione o modelo.'; return; }
+    if(consumo<=0){ msgEl.style.color='var(--danger)'; msgEl.textContent='Informe o consumo esperado (km/L).'; return; }
+    const afetados = state.vehicles.filter(v=>(v.model||'').trim()===modelo);
+    afetados.forEach(v=>{ v.consumoEsperado = consumo; });
+    await save.vehicles();
+    msgEl.style.color='var(--go)';
+    msgEl.textContent = `Meta de ${consumo} km/L aplicada em ${afetados.length} veículo(s) do modelo "${modelo}".`;
+    document.getElementById('fp-modelo-consumo').value='';
+    logAudit('Meta de consumo por modelo', `${modelo} — ${consumo} km/L — ${afetados.length} veículo(s)`);
+    renderView('fuel'); renderView('config');
+  });
+
   function fillFuelParams(){
     const v = vehicleById(document.getElementById('fp-vehicle').value);
     document.getElementById('fp-consumo').value = v ? (v.consumoEsperado||'') : '';
