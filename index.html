@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T16-20-00Z -->
+<!-- APP_BUILD:2026-08-09T17-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1922,11 +1922,51 @@
 
         <div class="card">
           <div class="card-head"><div class="card-title">✅ Itens do Checklist</div></div>
-          <div class="page-sub" style="margin-bottom:12px;">Lista de itens que aparece pro motorista no app, na ordem daqui de cima pra baixo. Pode adicionar, editar ou remover a qualquer momento — não precisa mexer em código.</div>
-          <div class="field-grid-4" style="align-items:end;">
-            <div class="field"><label>Novo item</label><input id="ci-novo" placeholder="Ex: Pneus / calibragem"></div>
-            <div class="field"><button class="btn-primary" id="btn-add-checklist-item" style="width:100%;">+ Adicionar item</button></div>
+          <div class="page-sub" style="margin-bottom:12px;">Perguntas que aparecem pro motorista no app, na ordem daqui de cima pra baixo. Pode adicionar, editar ou remover a qualquer momento — não precisa mexer em código.</div>
+          <div class="field-grid-4">
+            <div class="field"><label>Pergunta</label><input id="ci-novo" placeholder="Ex: Estado de conservação dos pneus"></div>
+            <div class="field"><label>Tipo de resposta</label>
+              <select id="ci-tipo">
+                <option value="escolha2">Escolha entre 2 opções (Sim/Não, Bom/Ruim...)</option>
+                <option value="escala">Escala de 0 a 10</option>
+                <option value="numero">Número (ex: KM)</option>
+                <option value="texto">Texto livre</option>
+              </select>
+            </div>
+            <div class="field"><label>Obrigatória?</label>
+              <select id="ci-obrigatoria">
+                <option value="sim">Sim</option>
+                <option value="nao">Não (opcional)</option>
+              </select>
+            </div>
+            <div class="field"><label>Só aparece se a pergunta abaixo for respondida assim</label><select id="ci-depende"><option value="">Nenhuma condição — sempre aparece</option></select></div>
           </div>
+
+          <div class="field-grid-4" id="ci-opcoes-wrap">
+            <div class="field"><label>Opção 1</label><input id="ci-opcao1" placeholder="Ex: Sim"></div>
+            <div class="field"><label>Opção 2</label><input id="ci-opcao2" placeholder="Ex: Não"></div>
+            <div class="field"><label>Qual opção é considerada problema?</label>
+              <select id="ci-valor-problema">
+                <option value="0">Nenhuma (pergunta neutra)</option>
+                <option value="1">Opção 1</option>
+                <option value="2">Opção 2</option>
+              </select>
+            </div>
+            <div class="field" id="ci-depende-valor-wrap" style="display:none;"><label>Aparece quando a resposta for</label>
+              <select id="ci-depende-valor">
+                <option value="1">Opção 1 da pergunta escolhida</option>
+                <option value="2">Opção 2 da pergunta escolhida</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4" id="ci-escala-wrap" style="display:none;">
+            <div class="field"><label>Valor mínimo</label><input id="ci-escala-min" placeholder="0"></div>
+            <div class="field"><label>Valor máximo</label><input id="ci-escala-max" placeholder="10"></div>
+            <div class="field"><label>Rótulo do mínimo (opcional)</label><input id="ci-escala-label-min" placeholder="Ex: Vazio"></div>
+            <div class="field"><label>Rótulo do máximo (opcional)</label><input id="ci-escala-label-max" placeholder="Ex: Cheio"></div>
+          </div>
+
+          <button class="btn-primary" id="btn-add-checklist-item">+ Adicionar pergunta</button>
           <div class="err-msg" id="ci-err"></div>
           <div id="lista-checklist-itens" style="margin-top:14px;"></div>
         </div>
@@ -2027,7 +2067,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T16-20-00Z';
+  const APP_VERSION = '2026-08-09T17-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -6090,12 +6130,12 @@
       }
     }
 
-    // itens não conformes
+    // itens não conformes (agora considera qualquer tipo de pergunta marcada como "problema" no momento do envio)
     const okVids = frota.map(v=>v.id);
     const relevantes = checklistsDoDia.filter(c=>okVids.includes(c.vehicleId) && (!turnoFiltro||c.turno===turnoFiltro));
     const naoConformes = [];
     relevantes.forEach(c=>{
-      (c.itens||[]).filter(it=>!it.conforme).forEach(it=>{
+      (c.itens||[]).filter(it=>it.ehProblema).forEach(it=>{
         naoConformes.push({c, it});
       });
     });
@@ -6112,7 +6152,7 @@
             <td class="mono">${v?.frota||c.frota||'—'}</td>
             <td>${v?`<span class="plate">${v.plate}</span>`:(c.placa||'—')}</td>
             <td>${c.motoristaNome||'—'}</td>
-            <td style="color:var(--danger); font-weight:600;">${it.nome}</td>
+            <td style="color:var(--danger); font-weight:600;">${it.nome} — ${it.resposta}</td>
             <td>${it.obs||'—'}</td>
           </tr>`;
         }).join('');
@@ -6128,7 +6168,7 @@
       } else {
         logTbl.innerHTML = todos.map(c=>{
           const v = vehicleById(c.vehicleId);
-          const temNC = (c.itens||[]).some(it=>!it.conforme);
+          const temNC = (c.itens||[]).some(it=>it.ehProblema);
           const situacao = temNC ? '<span class="badge badge-danger">Com pendência</span>' : '<span class="badge badge-ok">Tudo conforme</span>';
           return `<tr>
             <td class="mono">${fmtDate(c.data)}</td>
@@ -6710,18 +6750,56 @@
   });
 
   /* ---------------- ITENS DO CHECKLIST (lista editável, sem mexer em código) ---------------- */
+  function populateCiDependeSelect(){
+    const sel = document.getElementById('ci-depende');
+    if(!sel) return;
+    const keep = sel.value;
+    // só pergunta do tipo "escolha2" pode ser "pai" de uma condição (Sim/Não, Bom/Ruim etc.)
+    const candidatas = state.checklistItens.filter(i=>i.tipo==='escolha2').slice().sort((a,b)=>a.ordem-b.ordem);
+    sel.innerHTML = '<option value="">Nenhuma condição — sempre aparece</option>' +
+      candidatas.map(i=>`<option value="${i.id}">${i.nome}</option>`).join('');
+    sel.value = candidatas.some(i=>i.id===keep) ? keep : '';
+  }
+  function atualizarCiCamposVisiveis(){
+    const tipo = document.getElementById('ci-tipo').value;
+    document.getElementById('ci-opcoes-wrap').style.display = tipo==='escolha2' ? 'grid' : 'none';
+    document.getElementById('ci-escala-wrap').style.display = tipo==='escala' ? 'grid' : 'none';
+    const depende = document.getElementById('ci-depende').value;
+    document.getElementById('ci-depende-valor-wrap').style.display = depende ? 'block' : 'none';
+  }
+  document.getElementById('ci-tipo')?.addEventListener('change', atualizarCiCamposVisiveis);
+  document.getElementById('ci-depende')?.addEventListener('change', atualizarCiCamposVisiveis);
+
   document.getElementById('btn-add-checklist-item')?.addEventListener('click', async ()=>{
     const errEl = document.getElementById('ci-err');
-    const input = document.getElementById('ci-novo');
-    const nome = input.value.trim();
-    if(!nome){ errEl.textContent='Digite o nome do item.'; return; }
+    const nome = document.getElementById('ci-novo').value.trim();
+    const tipo = document.getElementById('ci-tipo').value;
+    if(!nome){ errEl.textContent='Digite o texto da pergunta.'; return; }
+    const item = {
+      id: uid(), nome, tipo,
+      ordem: state.checklistItens.length,
+      obrigatoria: document.getElementById('ci-obrigatoria').value==='sim',
+      dependeDe: document.getElementById('ci-depende').value || null,
+      dependeValor: document.getElementById('ci-depende').value ? Number(document.getElementById('ci-depende-valor').value) : null
+    };
+    if(tipo==='escolha2'){
+      const opcao1 = document.getElementById('ci-opcao1').value.trim() || 'Sim';
+      const opcao2 = document.getElementById('ci-opcao2').value.trim() || 'Não';
+      item.opcao1 = opcao1; item.opcao2 = opcao2;
+      item.valorProblema = Number(document.getElementById('ci-valor-problema').value)||0;
+    } else if(tipo==='escala'){
+      item.escalaMin = Number(document.getElementById('ci-escala-min').value)||0;
+      item.escalaMax = Number(document.getElementById('ci-escala-max').value)||10;
+      item.escalaLabelMin = document.getElementById('ci-escala-label-min').value.trim();
+      item.escalaLabelMax = document.getElementById('ci-escala-label-max').value.trim();
+    }
     errEl.textContent='';
-    const ordem = state.checklistItens.length;
-    state.checklistItens.push({id:uid(), nome, ordem, ativo:true});
+    state.checklistItens.push(item);
     await save.checklistItens();
-    input.value='';
+    ['ci-novo','ci-opcao1','ci-opcao2','ci-escala-min','ci-escala-max','ci-escala-label-min','ci-escala-label-max'].forEach(id=>{ document.getElementById(id).value=''; });
+    document.getElementById('ci-depende').value='';
     renderChecklistItens();
-    logAudit('Item de checklist adicionado', nome);
+    logAudit('Pergunta de checklist adicionada', nome);
   });
   LOTS.moverChecklistItem = async (id, direcao)=>{
     const lista = state.checklistItens.slice().sort((a,b)=>a.ordem-b.ordem);
@@ -6736,23 +6814,38 @@
   };
   LOTS.deleteChecklistItem = async (id)=>{
     const item = state.checklistItens.find(i=>i.id===id);
+    // se outras perguntas dependiam dessa, remove a condição delas (senão ficam órfãs)
+    state.checklistItens.forEach(i=>{ if(i.dependeDe===id){ i.dependeDe=null; i.dependeValor=null; } });
     state.checklistItens = state.checklistItens.filter(i=>i.id!==id);
     await save.checklistItens();
     renderChecklistItens();
-    logAudit('Item de checklist excluído', item?.nome||id);
+    logAudit('Pergunta de checklist excluída', item?.nome||id);
   };
+  const TIPO_LABEL = {escolha2:'Escolha entre 2', escala:'Escala', numero:'Número', texto:'Texto livre'};
   function renderChecklistItens(){
     const wrap = document.getElementById('lista-checklist-itens');
+    populateCiDependeSelect();
+    atualizarCiCamposVisiveis();
     if(!wrap) return;
     const lista = state.checklistItens.slice().sort((a,b)=>a.ordem-b.ordem);
-    if(lista.length===0){ wrap.innerHTML = '<div class="page-sub">Nenhum item cadastrado ainda — o app dos motoristas vai ficar vazio até adicionar pelo menos um.</div>'; return; }
-    wrap.innerHTML = lista.map((item,i)=>`
-      <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line);">
-        <span style="flex:1;">${i+1}. ${item.nome}</span>
+    if(lista.length===0){ wrap.innerHTML = '<div class="page-sub">Nenhuma pergunta cadastrada ainda — o app dos motoristas vai ficar vazio até adicionar pelo menos uma.</div>'; return; }
+    wrap.innerHTML = lista.map((item,i)=>{
+      let detalhe = TIPO_LABEL[item.tipo]||item.tipo;
+      if(item.tipo==='escolha2') detalhe += ` (${item.opcao1} / ${item.opcao2}${item.valorProblema?', problema = '+(item.valorProblema===1?item.opcao1:item.opcao2):''})`;
+      if(item.tipo==='escala') detalhe += ` (${item.escalaMin} a ${item.escalaMax})`;
+      const pai = item.dependeDe ? state.checklistItens.find(x=>x.id===item.dependeDe) : null;
+      const condicao = pai ? `— só aparece se "${pai.nome}" = ${item.dependeValor===1?pai.opcao1:pai.opcao2}` : '';
+      return `
+      <div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);">
+        <div style="flex:1;">
+          <div>${i+1}. ${item.nome}${item.obrigatoria?'':' <span class="page-sub" style="display:inline;">(opcional)</span>'}</div>
+          <div class="page-sub" style="margin:2px 0 0;">${detalhe} ${condicao}</div>
+        </div>
         <button class="icon-btn" ${i===0?'disabled':''} onclick="LOTS.moverChecklistItem('${item.id}',-1)">▲</button>
         <button class="icon-btn" ${i===lista.length-1?'disabled':''} onclick="LOTS.moverChecklistItem('${item.id}',1)">▼</button>
         <button class="icon-btn danger" onclick="LOTS.deleteChecklistItem('${item.id}')">excluir</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   /* ---------------- VALOR DO COMBUSTÍVEL POR PERÍODO/POSTO ---------------- */

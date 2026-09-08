@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T16-00-00Z -->
+<!-- APP_BUILD:2026-08-09T17-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -60,6 +60,10 @@
   .toggle-btn.naoconforme.active{background:var(--danger); color:#fff; border-color:var(--danger);}
   .obs-wrap{display:none; padding:0 0 12px 0;}
   .obs-wrap.show{display:block;}
+  .escala-row{display:flex; flex-wrap:wrap; gap:6px;}
+  .escala-btn{width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); font-size:13px; font-weight:600; cursor:pointer;}
+  .escala-btn.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .escala-labels{display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:4px;}
   .progress-badge{font-size:12px; color:var(--text-muted); margin-bottom:10px;}
   .page-title{font-size:19px; font-weight:700; margin:0 0 4px;}
   .page-sub{font-size:13px; color:var(--text-muted); margin:0 0 16px;}
@@ -336,53 +340,97 @@
     const errEl = document.getElementById('ck-setup-err');
     const vehicleId = document.getElementById('ck-vehicle').value;
     if(!vehicleId){ errEl.textContent='Selecione o veículo.'; return; }
-    if(checklistItens.length===0){ errEl.textContent='Nenhum item de checklist cadastrado ainda. Fale com o administrador.'; return; }
+    if(checklistItens.length===0){ errEl.textContent='Nenhuma pergunta de checklist cadastrada ainda. Fale com o administrador.'; return; }
     errEl.textContent='';
     checklistRespostas = {};
-    checklistItens.forEach(item=>{ checklistRespostas[item.id] = {conforme:null, obs:''}; });
     renderChecklistItens();
     showView('view-checklist-itens');
   });
+  function itemVisivel(item){
+    if(!item.dependeDe) return true;
+    const paiResp = checklistRespostas[item.dependeDe];
+    if(!paiResp || paiResp.opcaoIndex==null) return false;
+    return paiResp.opcaoIndex === item.dependeValor;
+  }
+  function itemRespondido(item){
+    const r = checklistRespostas[item.id];
+    if(item.tipo==='escolha2') return r && r.opcaoIndex!=null;
+    if(item.tipo==='escala') return r && r.valor!=null;
+    if(item.tipo==='numero') return r && String(r.valor||'').trim()!=='';
+    if(item.tipo==='texto') return !item.obrigatoria || (r && String(r.valor||'').trim()!=='');
+    return true;
+  }
   function renderChecklistItens(){
     const wrap = document.getElementById('ck-itens-lista');
-    wrap.innerHTML = checklistItens.map(item=>`
-      <div class="item-row" style="flex-direction:column; align-items:stretch;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span class="item-nome">${item.nome}</span>
-          <div class="toggle-group">
-            <button type="button" class="toggle-btn conforme" data-item="${item.id}" data-val="ok">Bom</button>
-            <button type="button" class="toggle-btn naoconforme" data-item="${item.id}" data-val="nok">Ruim</button>
-          </div>
-        </div>
-        <div class="obs-wrap" id="obs-${item.id}">
-          <textarea placeholder="Descreva o problema..." data-item-obs="${item.id}"></textarea>
-        </div>
-      </div>`).join('');
+    wrap.innerHTML = checklistItens.map(item=>{
+      let campo = '';
+      if(item.tipo==='escolha2'){
+        campo = `<div class="toggle-group">
+          <button type="button" class="toggle-btn conforme" data-item="${item.id}" data-opcao="1">${item.opcao1}</button>
+          <button type="button" class="toggle-btn naoconforme" data-item="${item.id}" data-opcao="2">${item.opcao2}</button>
+        </div>`;
+      } else if(item.tipo==='escala'){
+        let botoes='';
+        for(let n=item.escalaMin; n<=item.escalaMax; n++){
+          botoes += `<button type="button" class="escala-btn" data-item="${item.id}" data-valor="${n}">${n}</button>`;
+        }
+        campo = `<div class="escala-row">${botoes}</div>` +
+          ((item.escalaLabelMin||item.escalaLabelMax) ? `<div class="escala-labels"><span>${item.escalaLabelMin||''}</span><span>${item.escalaLabelMax||''}</span></div>` : '');
+      } else if(item.tipo==='numero'){
+        campo = `<input type="number" inputmode="decimal" data-item-numero="${item.id}" placeholder="Digite o número">`;
+      } else {
+        campo = `<textarea data-item-texto="${item.id}" placeholder="Digite sua resposta"></textarea>`;
+      }
+      return `<div class="item-row" style="flex-direction:column; align-items:stretch;" id="row-${item.id}">
+        <div class="item-nome" style="margin-bottom:8px;">${item.nome}${item.obrigatoria?'':' <span style="font-weight:400; color:var(--text-muted);">(opcional)</span>'}</div>
+        ${campo}
+      </div>`;
+    }).join('');
     wrap.querySelectorAll('.toggle-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const itemId = btn.dataset.item;
-        const val = btn.dataset.val;
-        checklistRespostas[itemId].conforme = (val==='ok');
+        checklistRespostas[itemId] = {opcaoIndex: Number(btn.dataset.opcao)};
         wrap.querySelectorAll(`.toggle-btn[data-item="${itemId}"]`).forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById('obs-'+itemId).classList.toggle('show', val==='nok');
+        atualizarVisibilidadeCondicional();
         atualizarProgresso();
       });
     });
-    wrap.querySelectorAll('[data-item-obs]').forEach(ta=>{
-      ta.addEventListener('input', ()=>{ checklistRespostas[ta.dataset.itemObs].obs = ta.value; });
+    wrap.querySelectorAll('.escala-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const itemId = btn.dataset.item;
+        checklistRespostas[itemId] = {valor: Number(btn.dataset.valor)};
+        wrap.querySelectorAll(`.escala-btn[data-item="${itemId}"]`).forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        atualizarProgresso();
+      });
     });
+    wrap.querySelectorAll('[data-item-numero]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{ checklistRespostas[inp.dataset.itemNumero] = {valor: inp.value}; atualizarProgresso(); });
+    });
+    wrap.querySelectorAll('[data-item-texto]').forEach(ta=>{
+      ta.addEventListener('input', ()=>{ checklistRespostas[ta.dataset.itemTexto] = {valor: ta.value}; atualizarProgresso(); });
+    });
+    atualizarVisibilidadeCondicional();
     atualizarProgresso();
   }
+  function atualizarVisibilidadeCondicional(){
+    checklistItens.forEach(item=>{
+      const row = document.getElementById('row-'+item.id);
+      if(row) row.style.display = itemVisivel(item) ? 'flex' : 'none';
+    });
+  }
   function atualizarProgresso(){
-    const total = checklistItens.length;
-    const respondidos = Object.values(checklistRespostas).filter(r=>r.conforme!==null).length;
-    document.getElementById('ck-progress').textContent = `${respondidos} de ${total} itens avaliados`;
+    const visiveis = checklistItens.filter(itemVisivel);
+    const obrigatorios = visiveis.filter(i=>i.obrigatoria);
+    const respondidos = obrigatorios.filter(itemRespondido).length;
+    document.getElementById('ck-progress').textContent = `${respondidos} de ${obrigatorios.length} perguntas obrigatórias respondidas`;
   }
   document.getElementById('btn-submit-checklist').addEventListener('click', async ()=>{
     const errEl = document.getElementById('ck-submit-err');
-    const pendentes = Object.values(checklistRespostas).filter(r=>r.conforme===null).length;
-    if(pendentes>0){ errEl.textContent = `Ainda faltam ${pendentes} item(ns) pra avaliar.`; return; }
+    const visiveis = checklistItens.filter(itemVisivel);
+    const faltando = visiveis.filter(i=>i.obrigatoria && !itemRespondido(i));
+    if(faltando.length>0){ errEl.textContent = `Ainda falta responder: ${faltando[0].nome}`; return; }
     errEl.textContent='';
     const vehicleId = document.getElementById('ck-vehicle').value;
     const v = vehicles.find(x=>x.id===vehicleId);
@@ -390,22 +438,41 @@
     const btn = document.getElementById('btn-submit-checklist');
     btn.disabled = true; btn.textContent = 'Enviando…';
     try{
+      const itensResposta = visiveis.map(item=>{
+        const r = checklistRespostas[item.id] || {};
+        let resposta = '—', ehProblema = false;
+        if(item.tipo==='escolha2'){
+          resposta = r.opcaoIndex===1 ? item.opcao1 : (r.opcaoIndex===2 ? item.opcao2 : '—');
+          ehProblema = item.valorProblema>0 && r.opcaoIndex===item.valorProblema;
+        } else if(item.tipo==='escala'){
+          resposta = r.valor!=null ? String(r.valor) : '—';
+        } else {
+          resposta = r.valor ? String(r.valor) : '';
+        }
+        return {itemId:item.id, nome:item.nome, tipo:item.tipo, resposta, ehProblema};
+      });
+      // pra cada pergunta marcada como problema, tenta achar a pergunta-filha (texto condicional) e usa como observação
+      itensResposta.forEach(it=>{
+        if(it.ehProblema){
+          const filha = checklistItens.find(i=>i.dependeDe===it.itemId && i.tipo==='texto');
+          if(filha){
+            const respFilha = checklistRespostas[filha.id];
+            it.obs = respFilha?.valor || '';
+          }
+        }
+      });
       const rec = {
         vehicleId, frota: v?.frota||'', placa: v?.plate||'',
         motoristaId: currentMotorista.id, motoristaNome: currentMotorista.nome,
         turno, data: todayISO(),
-        itens: checklistItens.map(item=>({
-          itemId: item.id, nome: item.nome,
-          conforme: checklistRespostas[item.id].conforme,
-          obs: checklistRespostas[item.id].conforme ? '' : (checklistRespostas[item.id].obs||'')
-        })),
+        itens: itensResposta,
         criadoEm: Date.now()
       };
       await db.collection(CHECKLIST_COLLECTION).doc(uid()).set(rec);
-      const temNaoConforme = rec.itens.some(it=>!it.conforme);
-      document.getElementById('conf-titulo').textContent = temNaoConforme ? 'Checklist enviado — com pendências' : 'Checklist enviado!';
-      document.getElementById('conf-sub').textContent = temNaoConforme
-        ? 'Um ou mais itens foram marcados como não conformes. A gestão da frota já pode ver isso no painel.'
+      const temProblema = itensResposta.some(it=>it.ehProblema);
+      document.getElementById('conf-titulo').textContent = temProblema ? 'Checklist enviado — com pendências' : 'Checklist enviado!';
+      document.getElementById('conf-sub').textContent = temProblema
+        ? 'Um ou mais itens foram marcados como problema. A gestão da frota já pode ver isso no painel.'
         : 'Tudo certo com o veículo. Obrigado!';
       showView('view-confirmacao');
     }catch(e){
