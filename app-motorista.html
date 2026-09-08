@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T15-15-00Z -->
+<!-- APP_BUILD:2026-08-09T16-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -96,6 +96,25 @@
       </div>
       <button class="btn btn-primary" id="btn-login">Entrar</button>
       <div class="err" id="login-err"></div>
+    </div>
+  </div>
+
+  <!-- PERGUNTA O TURNO (só pra Apoio/Folguista, que não tem turno fixo) -->
+  <div class="view" id="view-turno-sessao">
+    <div class="center" style="margin:30px 0 24px;">
+      <div style="font-weight:700; font-size:18px;">Qual turno você está agora?</div>
+      <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">Seu cadastro é "<span id="turno-sessao-tipo"></span>" — escolha o turno de hoje.</div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>Turno</label>
+        <select id="turno-sessao-select">
+          <option value="Turno A">Turno A</option>
+          <option value="Turno B">Turno B</option>
+          <option value="Turno C">Turno C</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-confirmar-turno-sessao">Confirmar</button>
     </div>
   </div>
 
@@ -250,6 +269,7 @@
   }
 
   // ---------------- LOGIN ----------------
+  let turnoSessao = null; // turno de verdade da sessão — igual ao cadastro, exceto pra Apoio/Folguista, que escolhem na hora
   document.getElementById('btn-login').addEventListener('click', async ()=>{
     const errEl = document.getElementById('login-err');
     const matricula = document.getElementById('login-matricula').value.trim();
@@ -263,7 +283,7 @@
       if(!m){ errEl.textContent='Matrícula não encontrada, ou motorista inativo. Fale com o administrador.'; btn.disabled=false; btn.textContent='Entrar'; return; }
       currentMotorista = m;
       localStorage.setItem('lots-motorista-id', m.id);
-      entrarNoApp();
+      prosseguirAposLogin();
     }catch(e){
       console.error(e);
       errEl.textContent = 'Erro ao conectar. Verifique sua internet e tente de novo.';
@@ -275,12 +295,28 @@
   document.getElementById('btn-logout').addEventListener('click', ()=>{
     localStorage.removeItem('lots-motorista-id');
     currentMotorista = null;
+    turnoSessao = null;
     document.getElementById('login-matricula').value='';
     showView('view-login');
   });
 
+  // Apoio e Folguista não têm turno fixo — pergunta qual turno é hoje antes de liberar o app
+  function prosseguirAposLogin(){
+    if(currentMotorista.turno==='Apoio' || currentMotorista.turno==='Folguista'){
+      document.getElementById('turno-sessao-tipo').textContent = currentMotorista.turno;
+      showView('view-turno-sessao');
+    } else {
+      turnoSessao = currentMotorista.turno;
+      entrarNoApp();
+    }
+  }
+  document.getElementById('btn-confirmar-turno-sessao').addEventListener('click', ()=>{
+    turnoSessao = document.getElementById('turno-sessao-select').value;
+    entrarNoApp();
+  });
+
   function entrarNoApp(){
-    document.getElementById('home-nome').innerHTML = currentMotorista.nome + '<small>Matrícula '+currentMotorista.matricula+' — '+(currentMotorista.turno||'—')+' — '+(currentMotorista.uo||'—')+'</small>';
+    document.getElementById('home-nome').innerHTML = currentMotorista.nome + '<small>Matrícula '+currentMotorista.matricula+' — '+(turnoSessao||currentMotorista.turno||'—')+' — '+(currentMotorista.uo||'—')+'</small>';
     populateVehicleSelects();
     renderRecentes();
     showView('view-home');
@@ -350,7 +386,7 @@
     errEl.textContent='';
     const vehicleId = document.getElementById('ck-vehicle').value;
     const v = vehicles.find(x=>x.id===vehicleId);
-    const turno = currentMotorista.turno || '—';
+    const turno = turnoSessao || currentMotorista.turno || '—';
     const btn = document.getElementById('btn-submit-checklist');
     btn.disabled = true; btn.textContent = 'Enviando…';
     try{
@@ -437,7 +473,7 @@
       try{
         await carregarDadosBase();
         const m = motoristas.find(x=>x.id===savedId && x.status==='ativo');
-        if(m){ currentMotorista = m; entrarNoApp(); return; }
+        if(m){ currentMotorista = m; prosseguirAposLogin(); return; }
       }catch(e){ console.error(e); }
     }
     showView('view-login');

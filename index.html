@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T15-30-00Z -->
+<!-- APP_BUILD:2026-08-09T16-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1862,6 +1862,9 @@
                 <option value="Turno A">Turno A</option>
                 <option value="Turno B">Turno B</option>
                 <option value="Turno C">Turno C</option>
+                <option value="ADM">ADM</option>
+                <option value="Folguista">Folguista</option>
+                <option value="Apoio">Apoio</option>
               </select>
             </div>
             <div class="field"><label>UO</label><select id="mt-uo"></select></div>
@@ -1894,7 +1897,7 @@
           <div class="card-title" style="margin-bottom:10px;">Motoristas cadastrados</div>
           <div class="filter-bar">
             <div class="filter-field"><label>Buscar (nome ou matrícula)</label><input id="mtfilter-busca" placeholder="Digite pra filtrar"></div>
-            <div class="filter-field"><label>Turno</label><select id="mtfilter-turno"><option value="">Todos</option><option value="Turno A">Turno A</option><option value="Turno B">Turno B</option><option value="Turno C">Turno C</option></select></div>
+            <div class="filter-field"><label>Turno</label><select id="mtfilter-turno"><option value="">Todos</option><option value="Turno A">Turno A</option><option value="Turno B">Turno B</option><option value="Turno C">Turno C</option><option value="ADM">ADM</option><option value="Folguista">Folguista</option><option value="Apoio">Apoio</option></select></div>
             <div class="filter-field"><label>UO</label><select id="mtfilter-uo"><option value="">Todas</option></select></div>
             <div class="filter-field"><label>Status</label><select id="mtfilter-status"><option value="">Todos</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
             <button class="btn-ghost" id="btn-clear-mtfilter">Limpar</button>
@@ -2012,7 +2015,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T15-30-00Z';
+  const APP_VERSION = '2026-08-09T16-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -6630,7 +6633,10 @@
       if(turnoNorm==='a') turno = 'Turno A';
       else if(turnoNorm==='b') turno = 'Turno B';
       else if(turnoNorm==='c') turno = 'Turno C';
-      else { erros.push(`Linha ${linha}: turno "${turno}" inválido (use Turno A, Turno B ou Turno C).`); return; }
+      else if(turnoNorm==='adm') turno = 'ADM';
+      else if(turnoNorm==='folguista') turno = 'Folguista';
+      else if(turnoNorm==='apoio') turno = 'Apoio';
+      else { erros.push(`Linha ${linha}: turno "${turno}" inválido (use Turno A, Turno B, Turno C, ADM, Folguista ou Apoio).`); return; }
       if(!UO_LIST.includes(uo)){ erros.push(`Linha ${linha}: UO "${uo}" não reconhecida.`); return; }
       matriculasJaVistas.add(matricula);
       validos.push({id:uid(), nome, matricula, turno, uo, vehicleId:null, status:'ativo'});
