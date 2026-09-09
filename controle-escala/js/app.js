@@ -946,6 +946,16 @@ function buscarColaboradorPorMatricula(matricula) {
   return null;
 }
 
+// Quem é o Líder de Turno de verdade (aba Líder de Turno) responsável
+// por uma UO+turno — usado só pra sugerir o campo Líder ao cadastrar
+// um motorista em Ver Equipe, não precisa digitar/lembrar o nome.
+function buscarLiderDoTurno(unidade, turno) {
+  const ds = datasets['lideres_turno'];
+  if (!ds || !turno) return null;
+  const p = ds.colaboradores.find((c) => (!unidade || c.unidade === unidade) && c.papelNormalizado === `Turno ${turno}`);
+  return p ? p.nome : null;
+}
+
 function renderBancoHoras() {
   const app = document.getElementById('app');
   const unidadesRef = (Object.values(datasets).find((d) => d && d.unidades) || {}).unidades || [];
@@ -1800,6 +1810,24 @@ function abrirCadastroEquipe(ds, cfg, mestre) {
       document.getElementById('ceTurnoRow').style.display = (ehFolguista && !folguistaTemTurno) ? 'none' : '';
     }
     if (tipoSel) { tipoSel.addEventListener('change', atualizaPosto); atualizaPosto(); }
+
+    // Sugere o Líder de Turno responsável (da escala de Líder de Turno
+    // de verdade) pro turno escolhido — só motoristas tem essa ligação.
+    // Continua editável: só sugere enquanto a pessoa não digitar nada
+    // diferente ali na mão.
+    const liderEl = document.getElementById('ceLider');
+    let liderAutoPreenchido = cfg.id === 'motoristas' && !v.lider;
+    if (liderEl) liderEl.addEventListener('input', () => { liderAutoPreenchido = false; });
+    function atualizarLiderSugerido() {
+      if (!liderAutoPreenchido) return;
+      const turnoAtual = document.getElementById('ceTurno').value;
+      const sugestao = buscarLiderDoTurno(cfg.hasUnits ? state.unit[cfg.id] : null, turnoAtual);
+      if (sugestao) liderEl.value = sugestao;
+    }
+    if (liderAutoPreenchido) {
+      document.getElementById('ceTurno').addEventListener('change', atualizarLiderSugerido);
+      atualizarLiderSugerido();
+    }
 
     document.getElementById('ceSalvar').addEventListener('click', () => {
       const nome = document.getElementById('ceNome').value.trim();
