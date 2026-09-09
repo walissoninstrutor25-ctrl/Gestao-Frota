@@ -338,6 +338,11 @@ table.equipe-table .col-nome .nome, table.equipe-table .col-info .papel{font-wei
   border:1px solid var(--danger); background:var(--danger); color:#fff; cursor:pointer; white-space:nowrap;
 }
 .equipe-excluir-btn:hover{opacity:.85;}
+.equipe-editar-btn{
+  display:block; margin-bottom:3px; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:20px;
+  border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap;
+}
+.equipe-editar-btn:hover{opacity:.85;}
 .equip-numero-edit{cursor:pointer; border-bottom:1px dashed var(--accent-dim);}
 .equip-numero-edit:hover{color:var(--accent-strong);}
 .equip-move-select{

@@ -1367,7 +1367,7 @@ function renderPanel() {
     const viewBody = document.getElementById('viewBody');
     viewBody.innerHTML = renderEquipeHtml(ds, cfg, mestre);
     if (state.editMode) {
-      wireEquipeEdits(viewBody, ds, cfg);
+      wireEquipeEdits(viewBody, ds, cfg, monthMeta);
       if (cfg.id === 'motoristas') wireEquipeStructure(viewBody, ds, cfg);
     }
   } else {
@@ -1526,31 +1526,41 @@ function equipeExcluirBtnHtml(path, contexto, nome, matricula) {
   return `<button class="equipe-excluir-btn" data-excluir-path="${path}" data-excluir-contexto="${escAttr(contexto)}" data-excluir-nome="${escAttr(nome)}" data-excluir-matricula="${escAttr(matricula)}">🗑 Excluir</button>`;
 }
 
+// Botão "✏️ Editar" ao lado do Excluir, mesmo critério de quando
+// aparece — abre o cadastro completo (nome/matrícula/turno/grupo/líder/
+// telefone) da pessoa de verdade ligada a esse posto.
+function equipeEditarBtnHtml(path, contexto, nome, matricula) {
+  if (state.equipeSelecionado !== path || (!nome && !matricula)) return '';
+  return `<button class="equipe-editar-btn" data-editar-path="${path}" data-editar-contexto="${escAttr(contexto)}" data-editar-nome="${escAttr(nome)}" data-editar-matricula="${escAttr(matricula)}">✏️ Editar</button>`;
+}
+
 // data-was-nome/data-was-matricula guardam o valor atual (antes de
 // qualquer edição) pra wireEquipeEdits saber, no blur, se o campo nome
 // tinha alguém e ficou vazio — ver comentário lá.
-function equipePessoaHtml(p, path, contexto) {
+function equipePessoaHtml(p, path, contexto, autoPapel, autoGrupo) {
   const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
   const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
   if (state.editMode && path) {
     const selecionado = state.equipeSelecionado === path;
     return `<div class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
       ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
-      <span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>
+      ${equipeEditarBtnHtml(path, contexto, nome, matricula)}
+      <span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}" data-auto-papel="${escAttr(autoPapel)}" data-auto-grupo="${escAttr(autoGrupo)}">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>
     </div>`;
   }
   if (!nome && !matricula) return '<span class="equipe-vazio">—</span>';
   return `<span class="equipe-nome">${nome || '—'}</span>${matricula ? `<span class="equipe-mat">Mat. ${matricula}</span>` : ''}`;
 }
 
-function equipePessoaText(p, path, contexto) {
+function equipePessoaText(p, path, contexto, autoPapel, autoGrupo) {
   const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
   const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
   if (state.editMode && path) {
     const selecionado = state.equipeSelecionado === path;
     return `<span class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
       ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
-      <span contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)
+      ${equipeEditarBtnHtml(path, contexto, nome, matricula)}
+      <span contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}" data-auto-papel="${escAttr(autoPapel)}" data-auto-grupo="${escAttr(autoGrupo)}">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)
     </span>`;
   }
   if (!nome && !matricula) return '—';
@@ -1559,7 +1569,7 @@ function equipePessoaText(p, path, contexto) {
 
 function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, apoio) {
   const rows = ['A', 'B', 'C'].map((t) => `
-    <tr><td class="col-info"><span class="papel">Turno ${t}</span></td><td>${equipePessoaHtml(turnos && turnos[t], `${basePath}|turno|${t}`, `${titulo} · Turno ${t}`)}</td></tr>
+    <tr><td class="col-info"><span class="papel">Turno ${t}</span></td><td>${equipePessoaHtml(turnos && turnos[t], `${basePath}|turno|${t}`, `${titulo} · Turno ${t}`, `Turno ${t}`, null)}</td></tr>
   `).join('');
   const showFolguistas = folguistaPath || (apoio && apoio.length);
   return `
@@ -1571,8 +1581,8 @@ function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, ap
       </table></div>
       ${showFolguistas ? `
         <div class="equipe-folguistas">
-          ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath, `${titulo} · Folguista`)}</div>` : ''}
-          ${(apoio || []).map((a) => `<div class="equipe-folguista"><b>Apoio ${a.turno}</b> ${equipePessoaText(a, `${basePath}|apoio|${a.turno}`, `${titulo} · Apoio ${a.turno}`)}</div>`).join('')}
+          ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath, `${titulo} · Folguista`, 'Folguista', null)}</div>` : ''}
+          ${(apoio || []).map((a) => `<div class="equipe-folguista"><b>Apoio ${a.turno}</b> ${equipePessoaText(a, `${basePath}|apoio|${a.turno}`, `${titulo} · Apoio ${a.turno}`, `Apoio ${a.turno}`, null)}</div>`).join('')}
         </div>` : ''}
     </div>`;
 }
@@ -1592,9 +1602,9 @@ function equipeGrupoHtml(g, allGrupos) {
         ${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}
         ${state.editMode ? moveSelect(e.numero) : ''}
       </td>
-      <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`, `${g.grupo} · Equip. ${e.numero} · Turno A`)}</td>
-      <td>${equipePessoaHtml(e.turnos.B, `motoristas|equip|${e.numero}|B`, `${g.grupo} · Equip. ${e.numero} · Turno B`)}</td>
-      <td>${equipePessoaHtml(e.turnos.C, `motoristas|equip|${e.numero}|C`, `${g.grupo} · Equip. ${e.numero} · Turno C`)}</td>
+      <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`, `${g.grupo} · Equip. ${e.numero} · Turno A`, 'Turno A', g.grupo)}</td>
+      <td>${equipePessoaHtml(e.turnos.B, `motoristas|equip|${e.numero}|B`, `${g.grupo} · Equip. ${e.numero} · Turno B`, 'Turno B', g.grupo)}</td>
+      <td>${equipePessoaHtml(e.turnos.C, `motoristas|equip|${e.numero}|C`, `${g.grupo} · Equip. ${e.numero} · Turno C`, 'Turno C', g.grupo)}</td>
     </tr>`).join('');
   const temFolguistas = state.editMode || ['A', 'B', 'C'].some((t) => g.folguistas[t]);
   const folguistaBase = `motoristas|grupo|${g.grupo}`;
@@ -1609,7 +1619,7 @@ function equipeGrupoHtml(g, allGrupos) {
       ${state.editMode ? `<button class="icon-btn equip-add-btn" data-grupo="${g.grupo}">+ Adicionar equipamento</button>` : ''}
       ${temFolguistas ? `
         <div class="equipe-folguistas">
-          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${folguistaBase}|folguista|${t}`, `${g.grupo} · Folguista ${t}`)}</div>` : '').join('')}
+          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${folguistaBase}|folguista|${t}`, `${g.grupo} · Folguista ${t}`, `Folguista ${t}`, g.grupo)}</div>` : '').join('')}
         </div>` : ''}
     </div>`;
 }
@@ -1647,14 +1657,22 @@ function renderEquipeHtml(ds, cfg, mestre) {
 // histórico (aba Exclusões). Compartilhada pelo botão "🗑 Excluir" e
 // por apagar o nome direto no campo (ver wireEquipeEdits) — os dois são
 // a mesma operação pro usuário, só o gatilho muda.
+// Acha, dentro de UM ds, quem um nome/matrícula de um slot de Ver
+// Equipe representa na escala de verdade — por matrícula (identificador
+// confiável) ou por nome quando não tem matrícula. Pode devolver mais
+// de uma pessoa no caso raro de nome duplicado sem matrícula.
+function acharPessoasLigadas(ds, nome, matricula) {
+  const matriculaBusca = matricula ? String(matricula).trim() : '';
+  const nomeBusca = normText(nome || '');
+  return ds.colaboradores.filter((p) => (
+    matriculaBusca ? String(p.matricula || '').trim() === matriculaBusca : (nomeBusca && normText(p.nome) === nomeBusca)
+  ));
+}
+
 function executarExclusaoSlot(ds, cfg, path, contexto, nome, matricula, motivo) {
   edits.equipe[path] = { ...edits.equipe[path], nome: '', matricula: '' };
 
-  const matriculaBusca = matricula ? String(matricula).trim() : '';
-  const nomeBusca = normText(nome || '');
-  const encontrados = ds.colaboradores.filter((p) => (
-    matriculaBusca ? String(p.matricula || '').trim() === matriculaBusca : (nomeBusca && normText(p.nome) === nomeBusca)
-  ));
+  const encontrados = acharPessoasLigadas(ds, nome, matricula);
   const pks = encontrados.map((p) => personKey(cfg.id, p));
   pks.forEach((pk) => { if (!edits.colaboradoresExcluidos.includes(pk)) edits.colaboradoresExcluidos.push(pk); });
   if (encontrados.length) ds.colaboradores = ds.colaboradores.filter((p) => !encontrados.includes(p));
@@ -1666,7 +1684,28 @@ function executarExclusaoSlot(ds, cfg, path, contexto, nome, matricula, motivo) 
   });
 }
 
-function wireEquipeEdits(container, ds, cfg) {
+// Registra de verdade, na escala (ds.colaboradores + edits.novosColaboradores
+// — mesmo mecanismo do "+ Adicionar colaborador"), alguém digitado num
+// slot vazio de Ver Equipe — usa o turno/grupo que o próprio slot já
+// indica (não precisa perguntar de novo) e entra automaticamente na
+// contagem do Dashboard e na tabela de escala.
+function criarColaboradorNoSlot(ds, cfg, nome, matricula, papel, grupo) {
+  const novo = {
+    nome, matricula: as_int_or_null(matricula),
+    papelNormalizado: papel || null,
+    grupo: grupo || null,
+    lider: null, telefone: null,
+    unidade: cfg.hasUnits ? state.unit[cfg.id] : null,
+    __pk: `${cfg.id}|novo|${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    escala: buildAutoEscala(ds, cfg),
+  };
+  ds.colaboradores.push(novo);
+  edits.novosColaboradores[cfg.id] = edits.novosColaboradores[cfg.id] || [];
+  edits.novosColaboradores[cfg.id].push({ __pk: novo.__pk, nome: novo.nome, matricula: novo.matricula, papelNormalizado: novo.papelNormalizado, grupo: novo.grupo, lider: novo.lider, telefone: novo.telefone, unidade: novo.unidade });
+  return novo;
+}
+
+function wireEquipeEdits(container, ds, cfg, monthMeta) {
   container.querySelectorAll('[data-edit-path]').forEach((el) => {
     el.addEventListener('blur', async () => {
       const path = el.dataset.editPath;
@@ -1682,6 +1721,22 @@ function wireEquipeEdits(container, ds, cfg) {
         if (motivo === null) { el.textContent = el.dataset.wasNome; return; } // cancelou: devolve o nome
         executarExclusaoSlot(ds, cfg, path, el.dataset.contexto || '', el.dataset.wasNome, el.dataset.wasMatricula || '', motivo);
         persistEdits();
+        renderPanel();
+        return;
+      }
+      // Nome novo apareceu num posto que estava vazio: registra de
+      // verdade na escala (turno/grupo já vêm do próprio posto — ver
+      // data-auto-papel/data-auto-grupo), a não ser que a matrícula
+      // digitada já seja de alguém que existe (aí é só colocar essa
+      // pessoa nesse posto, não duplicar). Assim já aparece contando no
+      // Dashboard e na tabela de escala, sem precisar cadastrar de novo.
+      if (field === 'nome' && novoValor && !el.dataset.wasNome) {
+        const matEl = container.querySelector(`[data-edit-path="${CSS.escape(path)}"][data-edit-field="matricula"]`);
+        const matriculaAtual = matEl ? matEl.textContent.trim() : '';
+        const jaExiste = matriculaAtual && acharPessoasLigadas(ds, novoValor, matriculaAtual).length > 0;
+        if (!jaExiste) criarColaboradorNoSlot(ds, cfg, novoValor, matriculaAtual, el.dataset.autoPapel || null, el.dataset.autoGrupo || null);
+        equipeEditSet(path, field, novoValor); // já persiste
+        el.dataset.wasNome = novoValor;
         renderPanel();
         return;
       }
@@ -1714,9 +1769,9 @@ function wireEquipeEdits(container, ds, cfg) {
       nomeEl.dataset.wasNome = found.nome;
     });
   });
-  // Clicar em cima do nome seleciona o slot (mostra o botão Excluir);
-  // clicar de novo no mesmo desmarca. Não atrapalha a edição normal do
-  // texto (contenteditable continua funcionando do mesmo jeito).
+  // Clicar em cima do nome seleciona o slot (mostra os botões Editar/
+  // Excluir); clicar de novo no mesmo desmarca. Não atrapalha a edição
+  // normal do texto (contenteditable continua funcionando do mesmo jeito).
   container.querySelectorAll('[data-select-path]').forEach((el) => {
     el.addEventListener('click', () => {
       const path = el.dataset.selectPath;
@@ -1734,6 +1789,35 @@ function wireEquipeEdits(container, ds, cfg) {
       state.equipeSelecionado = null;
       persistEdits();
       renderPanel();
+    });
+  });
+  // Abre o cadastro completo (nome/matrícula/turno/grupo/líder/telefone)
+  // da pessoa de verdade ligada a esse posto — permite mudar turno e
+  // grupo, não só nome/matrícula. Se turno ou grupo mudar, o posto
+  // antigo aqui em Ver Equipe não faz mais sentido pra essa pessoa (ela
+  // foi pra outro lugar), então é esvaziado — quem edita re-posiciona
+  // no posto novo, já que um turno/grupo pode ter mais de um lugar
+  // livre pra escolher.
+  container.querySelectorAll('.equipe-editar-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const { editarPath, editarContexto, editarNome, editarMatricula } = btn.dataset;
+      const encontrados = acharPessoasLigadas(ds, editarNome, editarMatricula);
+      if (!encontrados.length) {
+        alert(`"${editarNome}" só existe aqui no quadro de Ver Equipe, sem um registro correspondente na escala — não tem o que editar. Se essa pessoa já está cadastrada na escala, corrija a matrícula nesse posto pra ligar os dois; senão, exclua e cadastre de novo digitando o nome no campo.`);
+        return;
+      }
+      const p = encontrados[0];
+      const papelAntes = p.papelNormalizado, grupoAntes = p.grupo;
+      state.equipeSelecionado = null;
+      openModal(p, monthMeta, cfg, ds, false, () => {
+        if (p.papelNormalizado === papelAntes && p.grupo === grupoAntes) {
+          edits.equipe[editarPath] = { ...edits.equipe[editarPath], nome: p.nome, matricula: p.matricula };
+        } else {
+          edits.equipe[editarPath] = { ...edits.equipe[editarPath], nome: '', matricula: '' };
+          alert(`Turno/grupo de "${p.nome}" foi alterado. O posto antigo em Ver Equipe (${editarContexto}) foi esvaziado — encontre e cadastre essa pessoa no turno/grupo novo aqui em Ver Equipe.`);
+        }
+      });
     });
   });
 }
@@ -2230,7 +2314,7 @@ function personRowHtml(p, days, monthMeta, ds, todayDay, cfg, bhLookup) {
 /*  Person modal                                                       */
 /* ------------------------------------------------------------------ */
 
-function openModal(p, monthMeta, cfg, ds, isNew) {
+function openModal(p, monthMeta, cfg, ds, isNew, onSaved) {
   if (!p && !isNew) return;
   if (isNew) p = { nome: '', matricula: null, grupo: '', papelNormalizado: '', lider: null, telefone: null, escala: {} };
   const { w, o } = countWorkOff(p.escala[monthMeta.chave]);
@@ -2284,12 +2368,14 @@ function openModal(p, monthMeta, cfg, ds, isNew) {
         ds.colaboradores.push(novo);
         edits.novosColaboradores[cfg.id] = edits.novosColaboradores[cfg.id] || [];
         edits.novosColaboradores[cfg.id].push({ __pk: novo.__pk, nome: novo.nome, matricula: novo.matricula, papelNormalizado: novo.papelNormalizado, grupo: novo.grupo, lider: novo.lider, telefone: novo.telefone, unidade: novo.unidade });
+        if (onSaved) onSaved(novo);
         persistEdits();
       } else {
         values.nome = values.nome || p.nome;
         const pk = personKey(cfg.id, p);
         Object.assign(p, values);
         edits.contato[pk] = { ...edits.contato[pk], ...values };
+        if (onSaved) onSaved(p);
         persistEdits();
       }
       close();
