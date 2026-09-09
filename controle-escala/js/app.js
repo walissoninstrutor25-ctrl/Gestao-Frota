@@ -64,7 +64,6 @@ const state = {
   month: {},      // tabId -> chave do mes selecionado
   unit: {},        // tabId -> 'MNS' | 'PRA'
   view: {},        // tabId -> 'escala' | 'equipe'
-  equipeSelecionado: null, // path do slot selecionado em Ver Equipe (aguardando confirmar Excluir)
   search: '',
   grupo: 'todos',
   papel: 'todos',
@@ -263,7 +262,7 @@ function applyClearedFilter(ds, cfg) {
   ds.colaboradores = ds.colaboradores.filter((p) => !edits.limpo[clearKey(cfg, p.unidade)]);
 }
 
-// Colaboradores excluídos em "Ver Equipe" (ver wireEquipeEdits) somem
+// Colaboradores excluídos em "Ver Equipe" (ver abrirExcluirEquipe) somem
 // daqui — ds.colaboradores é a mesma lista usada pra contar "Atual" no
 // Dashboard e pra montar a tabela de escala, então isso basta pra
 // refletir a saída nos dois lugares de uma vez. Roda depois de
@@ -1351,7 +1350,8 @@ function renderPanel() {
         ${isEquipe ? '' : renderPapelSelect(ds, cfg)}
         ${!isEquipe && cfg.hasGroups ? `<button class="icon-btn" id="toggleGroups">Recolher grupos</button>` : ''}
         ${mestre ? `<button class="icon-btn" id="equipeBtn">${isEquipe ? '📅 Ver escala' : '👥 Ver equipe'}</button>` : ''}
-        ${!isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
+        ${isEquipe && state.editMode ? `<button class="icon-btn" id="addColaboradorBtn">+ Adicionar colaborador</button>` : ''}
+        ${isEquipe && state.editMode ? `<button class="danger-mini-btn" id="excluirColaboradorBtn">🗑 Excluir colaborador</button>` : ''}
         ${!isEquipe && state.editMode ? `<button class="danger-mini-btn" id="clearDataBtn" title="Apaga todos os colaboradores${cfg.hasUnits ? ' da UO ' + state.unit[cfg.id] : ''} — ação drástica, dá pra restaurar depois">limpar dados${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${!isEquipe && state.editMode && edits.limpo[clearKey(cfg, cfg.hasUnits ? state.unit[cfg.id] : undefined)] ? `<button class="icon-btn" id="restoreClearedBtn">↺ Restaurar dados originais${cfg.hasUnits ? ' (UO ' + state.unit[cfg.id] + ')' : ''}</button>` : ''}
         ${isEquipe ? '' : `<button class="icon-btn" id="exportBtn" title="Baixa nome, matrícula, turno e UO da lista atual (respeita os filtros)">⬇️ Exportar</button>`}
@@ -1366,10 +1366,7 @@ function renderPanel() {
   if (isEquipe) {
     const viewBody = document.getElementById('viewBody');
     viewBody.innerHTML = renderEquipeHtml(ds, cfg, mestre);
-    if (state.editMode) {
-      wireEquipeEdits(viewBody, ds, cfg, monthMeta);
-      if (cfg.id === 'motoristas') wireEquipeStructure(viewBody, ds, cfg);
-    }
+    if (state.editMode && cfg.id === 'motoristas') wireEquipeStructure(viewBody, ds, cfg);
   } else {
     document.getElementById('viewBody').innerHTML = `
       <div id="todayStrip"></div>
@@ -1408,7 +1405,9 @@ function renderPanel() {
   const exportBtn = document.getElementById('exportBtn');
   if (exportBtn) exportBtn.addEventListener('click', () => exportarListaCsv(cfg));
   const addColaboradorBtn = document.getElementById('addColaboradorBtn');
-  if (addColaboradorBtn) addColaboradorBtn.addEventListener('click', () => openModal(null, monthMeta, cfg, ds, true));
+  if (addColaboradorBtn) addColaboradorBtn.addEventListener('click', () => abrirCadastroEquipe(ds, cfg, mestre));
+  const excluirColaboradorBtn = document.getElementById('excluirColaboradorBtn');
+  if (excluirColaboradorBtn) excluirColaboradorBtn.addEventListener('click', () => abrirExcluirEquipe(ds, cfg, mestre));
   const clearBtn = document.getElementById('clearDataBtn');
   if (clearBtn) clearBtn.addEventListener('click', async () => {
     const escopo = cfg.hasUnits ? `da UO ${state.unit[cfg.id]}` : 'desta aba';
@@ -1517,59 +1516,28 @@ function renderPapelSelect(ds, cfg) {
 // aqui antes de embutir num atributo HTML.
 function escAttr(v) { return String(v || '').replace(/"/g, '&quot;'); }
 
-// Botão "🗑 Excluir" que aparece só pro slot selecionado (clicou em cima
-// do nome) — evita excluir sem querer, já que fica escondido o resto do
-// tempo. contexto é só pro registro no histórico (aba Exclusões), não
-// afeta a busca/edição em si.
-function equipeExcluirBtnHtml(path, contexto, nome, matricula) {
-  if (state.equipeSelecionado !== path || (!nome && !matricula)) return '';
-  return `<button class="equipe-excluir-btn" data-excluir-path="${path}" data-excluir-contexto="${escAttr(contexto)}" data-excluir-nome="${escAttr(nome)}" data-excluir-matricula="${escAttr(matricula)}">🗑 Excluir</button>`;
-}
-
-// Botão "✏️ Editar" ao lado do Excluir, mesmo critério de quando
-// aparece — abre o cadastro completo (nome/matrícula/turno/grupo/líder/
-// telefone) da pessoa de verdade ligada a esse posto.
-function equipeEditarBtnHtml(path, contexto, nome, matricula) {
-  if (state.equipeSelecionado !== path || (!nome && !matricula)) return '';
-  return `<button class="equipe-editar-btn" data-editar-path="${path}" data-editar-contexto="${escAttr(contexto)}" data-editar-nome="${escAttr(nome)}" data-editar-matricula="${escAttr(matricula)}">✏️ Editar</button>`;
-}
-
-// data-was-nome/data-was-matricula guardam o valor atual (antes de
-// qualquer edição) pra wireEquipeEdits saber, no blur, se o campo nome
-// tinha alguém e ficou vazio — ver comentário lá.
-function equipePessoaHtml(p, path, contexto, autoPapel, autoGrupo) {
+// Ver Equipe é só consulta de quem está em cada posto — cadastrar e
+// excluir colaborador têm botões à parte (ver abrirCadastroEquipe e
+// abrirExcluirEquipe), não é mais clicando em cima do nome aqui. Só a
+// estrutura (número do equipamento, mover de grupo, +Adicionar
+// equipamento/grupo) continua editável direto nessa tela.
+function equipePessoaHtml(p, path, contexto) {
   const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
   const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
-  if (state.editMode && path) {
-    const selecionado = state.equipeSelecionado === path;
-    return `<div class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
-      ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
-      ${equipeEditarBtnHtml(path, contexto, nome, matricula)}
-      <span class="equipe-nome" contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}" data-auto-papel="${escAttr(autoPapel)}" data-auto-grupo="${escAttr(autoGrupo)}">${nome || ''}</span><span class="equipe-mat">Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span></span>
-    </div>`;
-  }
   if (!nome && !matricula) return '<span class="equipe-vazio">—</span>';
   return `<span class="equipe-nome">${nome || '—'}</span>${matricula ? `<span class="equipe-mat">Mat. ${matricula}</span>` : ''}`;
 }
 
-function equipePessoaText(p, path, contexto, autoPapel, autoGrupo) {
+function equipePessoaText(p, path, contexto) {
   const nome = path ? equipeEditGet(path, 'nome', p ? p.nome : null) : (p ? p.nome : null);
   const matricula = path ? equipeEditGet(path, 'matricula', p ? p.matricula : null) : (p ? p.matricula : null);
-  if (state.editMode && path) {
-    const selecionado = state.equipeSelecionado === path;
-    return `<span class="equipe-pessoa-edit ${selecionado ? 'selecionado' : ''}">
-      ${equipeExcluirBtnHtml(path, contexto, nome, matricula)}
-      ${equipeEditarBtnHtml(path, contexto, nome, matricula)}
-      <span contenteditable="true" data-edit-path="${path}" data-edit-field="nome" data-select-path="${path}" data-contexto="${escAttr(contexto)}" data-was-nome="${escAttr(nome)}" data-was-matricula="${escAttr(matricula)}" data-auto-papel="${escAttr(autoPapel)}" data-auto-grupo="${escAttr(autoGrupo)}">${nome || ''}</span> (Mat. <span contenteditable="true" data-edit-path="${path}" data-edit-field="matricula">${matricula || ''}</span>)
-    </span>`;
-  }
   if (!nome && !matricula) return '—';
   return `${nome || '—'}${matricula ? ` (Mat. ${matricula})` : ''}`;
 }
 
 function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, apoio) {
   const rows = ['A', 'B', 'C'].map((t) => `
-    <tr><td class="col-info"><span class="papel">Turno ${t}</span></td><td>${equipePessoaHtml(turnos && turnos[t], `${basePath}|turno|${t}`, `${titulo} · Turno ${t}`, `Turno ${t}`, null)}</td></tr>
+    <tr><td class="col-info"><span class="papel">Turno ${t}</span></td><td>${equipePessoaHtml(turnos && turnos[t], `${basePath}|turno|${t}`, `${titulo} · Turno ${t}`)}</td></tr>
   `).join('');
   const showFolguistas = folguistaPath || (apoio && apoio.length);
   return `
@@ -1581,8 +1549,8 @@ function equipeTurnosHtml(titulo, basePath, turnos, folguistaPath, folguista, ap
       </table></div>
       ${showFolguistas ? `
         <div class="equipe-folguistas">
-          ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath, `${titulo} · Folguista`, 'Folguista', null)}</div>` : ''}
-          ${(apoio || []).map((a) => `<div class="equipe-folguista"><b>Apoio ${a.turno}</b> ${equipePessoaText(a, `${basePath}|apoio|${a.turno}`, `${titulo} · Apoio ${a.turno}`, `Apoio ${a.turno}`, null)}</div>`).join('')}
+          ${folguistaPath ? `<div class="equipe-folguista"><b>Folguista</b> ${equipePessoaText(folguista, folguistaPath, `${titulo} · Folguista`)}</div>` : ''}
+          ${(apoio || []).map((a) => `<div class="equipe-folguista"><b>Apoio ${a.turno}</b> ${equipePessoaText(a, `${basePath}|apoio|${a.turno}`, `${titulo} · Apoio ${a.turno}`)}</div>`).join('')}
         </div>` : ''}
     </div>`;
 }
@@ -1602,9 +1570,9 @@ function equipeGrupoHtml(g, allGrupos) {
         ${e.status ? `<span class="equipe-mat">${e.status}</span>` : ''}
         ${state.editMode ? moveSelect(e.numero) : ''}
       </td>
-      <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`, `${g.grupo} · Equip. ${e.numero} · Turno A`, 'Turno A', g.grupo)}</td>
-      <td>${equipePessoaHtml(e.turnos.B, `motoristas|equip|${e.numero}|B`, `${g.grupo} · Equip. ${e.numero} · Turno B`, 'Turno B', g.grupo)}</td>
-      <td>${equipePessoaHtml(e.turnos.C, `motoristas|equip|${e.numero}|C`, `${g.grupo} · Equip. ${e.numero} · Turno C`, 'Turno C', g.grupo)}</td>
+      <td>${equipePessoaHtml(e.turnos.A, `motoristas|equip|${e.numero}|A`, `${g.grupo} · Equip. ${e.numero} · Turno A`)}</td>
+      <td>${equipePessoaHtml(e.turnos.B, `motoristas|equip|${e.numero}|B`, `${g.grupo} · Equip. ${e.numero} · Turno B`)}</td>
+      <td>${equipePessoaHtml(e.turnos.C, `motoristas|equip|${e.numero}|C`, `${g.grupo} · Equip. ${e.numero} · Turno C`)}</td>
     </tr>`).join('');
   const temFolguistas = state.editMode || ['A', 'B', 'C'].some((t) => g.folguistas[t]);
   const folguistaBase = `motoristas|grupo|${g.grupo}`;
@@ -1619,7 +1587,7 @@ function equipeGrupoHtml(g, allGrupos) {
       ${state.editMode ? `<button class="icon-btn equip-add-btn" data-grupo="${g.grupo}">+ Adicionar equipamento</button>` : ''}
       ${temFolguistas ? `
         <div class="equipe-folguistas">
-          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${folguistaBase}|folguista|${t}`, `${g.grupo} · Folguista ${t}`, `Folguista ${t}`, g.grupo)}</div>` : '').join('')}
+          ${['A', 'B', 'C'].map((t) => (g.folguistas[t] || state.editMode) ? `<div class="equipe-folguista"><b>Folguista ${t}</b> ${equipePessoaText(g.folguistas[t], `${folguistaBase}|folguista|${t}`, `${g.grupo} · Folguista ${t}`)}</div>` : '').join('')}
         </div>` : ''}
     </div>`;
 }
@@ -1650,13 +1618,6 @@ function renderEquipeHtml(ds, cfg, mestre) {
   return `<div class="equipe-wrap">${equipeTurnosHtml(ds.titulo, basePath, mestre.turnos, `${basePath}|folguista`, mestre.folguista, mestre.apoio)}</div>`;
 }
 
-// Executa a exclusão de verdade: limpa o slot em Ver Equipe, acha quem
-// esse slot representa na escala real (por matrícula — identificador
-// confiável — ou por nome quando não tem matrícula) pra também sumir da
-// contagem "Atual" do Dashboard e da tabela de escala, e grava no
-// histórico (aba Exclusões). Compartilhada pelo botão "🗑 Excluir" e
-// por apagar o nome direto no campo (ver wireEquipeEdits) — os dois são
-// a mesma operação pro usuário, só o gatilho muda.
 // Acha, dentro de UM ds, quem um nome/matrícula de um slot de Ver
 // Equipe representa na escala de verdade — por matrícula (identificador
 // confiável) ou por nome quando não tem matrícula. Pode devolver mais
@@ -1669,8 +1630,60 @@ function acharPessoasLigadas(ds, nome, matricula) {
   ));
 }
 
-function executarExclusaoSlot(ds, cfg, path, contexto, nome, matricula, motivo) {
-  edits.equipe[path] = { ...edits.equipe[path], nome: '', matricula: '' };
+// Busca livre (matrícula OU nome, num campo só) pro botão Excluir de
+// Ver Equipe — tenta matrícula exata primeiro, senão nome parcial.
+function buscarPessoasPorTexto(ds, texto) {
+  const t = String(texto || '').trim();
+  if (!t) return [];
+  const porMatricula = ds.colaboradores.filter((p) => String(p.matricula || '').trim() === t);
+  if (porMatricula.length) return porMatricula;
+  const q = normText(t);
+  return ds.colaboradores.filter((p) => normText(p.nome).includes(q));
+}
+
+// Todos os postos de Ver Equipe da aba atual, com quem ocupa cada um
+// agora (já considerando edições salvas) — usado pra achar em qual(is)
+// posto(s) uma pessoa está, a partir só do nome/matrícula dela (ver
+// encontrarPostosDaPessoa), sem precisar clicar em cima dela.
+function todosPostosDoTab(cfg, mestre) {
+  const postos = [];
+  const add = (path, p) => {
+    const nome = equipeEditGet(path, 'nome', p ? p.nome : null);
+    const matricula = equipeEditGet(path, 'matricula', p ? p.matricula : null);
+    if (nome || matricula) postos.push({ path, nome, matricula });
+  };
+  if (cfg.id === 'motoristas') {
+    (mestre || []).forEach((g) => {
+      g.equipamentos.forEach((e) => {
+        ['A', 'B', 'C'].forEach((t) => add(`motoristas|equip|${e.numero}|${t}`, e.turnos[t]));
+      });
+      ['A', 'B', 'C'].forEach((t) => add(`motoristas|grupo|${g.grupo}|folguista|${t}`, g.folguistas[t]));
+    });
+  } else if (cfg.id === 'master_driver') {
+    const basePath = `master_driver|${state.unit[cfg.id]}`;
+    ['A', 'B', 'C'].forEach((t) => add(`${basePath}|turno|${t}`, mestre && mestre.turnos && mestre.turnos[t]));
+  } else if (mestre) {
+    const basePath = cfg.id;
+    ['A', 'B', 'C'].forEach((t) => add(`${basePath}|turno|${t}`, mestre.turnos && mestre.turnos[t]));
+    add(`${basePath}|folguista`, mestre.folguista);
+    (mestre.apoio || []).forEach((a) => add(`${basePath}|apoio|${a.turno}`, a));
+  }
+  return postos;
+}
+
+function encontrarPostosDaPessoa(cfg, mestre, nome, matricula) {
+  const matriculaBusca = matricula ? String(matricula).trim() : '';
+  const nomeBusca = normText(nome || '');
+  return todosPostosDoTab(cfg, mestre).filter((posto) => (
+    matriculaBusca ? String(posto.matricula || '').trim() === matriculaBusca : (nomeBusca && normText(posto.nome) === nomeBusca)
+  ));
+}
+
+// Exclui de verdade: some da contagem "Atual" do Dashboard e da tabela
+// de escala (ds.colaboradores), limpa todo posto de Ver Equipe onde a
+// pessoa apareça, e grava no histórico (aba Exclusões).
+function executarExclusaoPessoa(ds, cfg, paths, contexto, nome, matricula, motivo) {
+  paths.forEach((path) => { edits.equipe[path] = { ...edits.equipe[path], nome: '', matricula: '' }; });
 
   const encontrados = acharPessoasLigadas(ds, nome, matricula);
   const pks = encontrados.map((p) => personKey(cfg.id, p));
@@ -1689,12 +1702,12 @@ function executarExclusaoSlot(ds, cfg, path, contexto, nome, matricula, motivo) 
 // slot vazio de Ver Equipe — usa o turno/grupo que o próprio slot já
 // indica (não precisa perguntar de novo) e entra automaticamente na
 // contagem do Dashboard e na tabela de escala.
-function criarColaboradorNoSlot(ds, cfg, nome, matricula, papel, grupo) {
+function criarColaboradorNoSlot(ds, cfg, nome, matricula, papel, grupo, lider, telefone) {
   const novo = {
     nome, matricula: as_int_or_null(matricula),
     papelNormalizado: papel || null,
     grupo: grupo || null,
-    lider: null, telefone: null,
+    lider: lider || null, telefone: telefone || null,
     unidade: cfg.hasUnits ? state.unit[cfg.id] : null,
     __pk: `${cfg.id}|novo|${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     escala: buildAutoEscala(ds, cfg),
@@ -1705,121 +1718,219 @@ function criarColaboradorNoSlot(ds, cfg, nome, matricula, papel, grupo) {
   return novo;
 }
 
-function wireEquipeEdits(container, ds, cfg, monthMeta) {
-  container.querySelectorAll('[data-edit-path]').forEach((el) => {
-    el.addEventListener('blur', async () => {
-      const path = el.dataset.editPath;
-      const field = el.dataset.editField;
-      const novoValor = el.textContent.trim();
-      // Apagar o nome direto no campo (selecionar o texto e excluir) é,
-      // na prática, o mesmo gesto que clicar em "🗑 Excluir" — só que
-      // sem passar pelo botão dedicado. Trata igual: pede o motivo e
-      // reflete no Dashboard/escala também, em vez de só esvaziar o
-      // quadro silenciosamente (que deixava "Atual" errado).
-      if (field === 'nome' && !novoValor && el.dataset.wasNome) {
-        const motivo = await promptMotivoExclusao(el.dataset.wasNome);
-        if (motivo === null) { el.textContent = el.dataset.wasNome; return; } // cancelou: devolve o nome
-        executarExclusaoSlot(ds, cfg, path, el.dataset.contexto || '', el.dataset.wasNome, el.dataset.wasMatricula || '', motivo);
-        persistEdits();
-        renderPanel();
-        return;
-      }
-      // Nome novo apareceu num posto que estava vazio: registra de
-      // verdade na escala (turno/grupo já vêm do próprio posto — ver
-      // data-auto-papel/data-auto-grupo), a não ser que a matrícula
-      // digitada já seja de alguém que existe (aí é só colocar essa
-      // pessoa nesse posto, não duplicar). Assim já aparece contando no
-      // Dashboard e na tabela de escala, sem precisar cadastrar de novo.
-      if (field === 'nome' && novoValor && !el.dataset.wasNome) {
-        const matEl = container.querySelector(`[data-edit-path="${CSS.escape(path)}"][data-edit-field="matricula"]`);
-        const matriculaAtual = matEl ? matEl.textContent.trim() : '';
-        const jaExiste = matriculaAtual && acharPessoasLigadas(ds, novoValor, matriculaAtual).length > 0;
-        if (!jaExiste) criarColaboradorNoSlot(ds, cfg, novoValor, matriculaAtual, el.dataset.autoPapel || null, el.dataset.autoGrupo || null);
-        equipeEditSet(path, field, novoValor); // já persiste
-        el.dataset.wasNome = novoValor;
-        renderPanel();
-        return;
-      }
-      equipeEditSet(path, field, novoValor);
-      // Mantém data-was-* em dia sem precisar re-renderizar tudo a cada
-      // campo editado — senão limpar o nome logo depois de renomear (ou
-      // de trocar a matrícula) nessa mesma sessão de edição comparava
-      // contra um valor antigo na hora de excluir.
-      if (field === 'nome') {
-        el.dataset.wasNome = novoValor;
-      } else if (field === 'matricula') {
-        const nomeEl = container.querySelector(`[data-edit-path="${CSS.escape(path)}"][data-edit-field="nome"]`);
-        if (nomeEl) nomeEl.dataset.wasMatricula = novoValor;
-      }
-    });
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
-    });
-  });
-  // Digitou uma matrícula que já existe em algum lugar do sistema
-  // (Efetivos ou a escala de verdade, ver buscarColaboradorPorMatricula)?
-  // Preenche o nome sozinho, sem precisar digitar de novo.
-  container.querySelectorAll('[data-edit-field="matricula"]').forEach((matEl) => {
-    const nomeEl = container.querySelector(`[data-edit-path="${CSS.escape(matEl.dataset.editPath)}"][data-edit-field="nome"]`);
-    if (nomeEl) matEl.addEventListener('blur', () => {
-      const found = buscarColaboradorPorMatricula(matEl.textContent.trim());
-      if (!found) return;
-      nomeEl.textContent = found.nome;
-      equipeEditSet(nomeEl.dataset.editPath, 'nome', found.nome);
-      nomeEl.dataset.wasNome = found.nome;
-    });
-  });
-  // Clicar em cima do nome seleciona o slot (mostra os botões Editar/
-  // Excluir); clicar de novo no mesmo desmarca. Não atrapalha a edição
-  // normal do texto (contenteditable continua funcionando do mesmo jeito).
-  container.querySelectorAll('[data-select-path]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const path = el.dataset.selectPath;
-      state.equipeSelecionado = state.equipeSelecionado === path ? null : path;
-      renderPanel();
-    });
-  });
-  container.querySelectorAll('.equipe-excluir-btn').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const { excluirPath, excluirContexto, excluirNome, excluirMatricula } = btn.dataset;
-      const motivo = await promptMotivoExclusao(excluirNome);
-      if (motivo === null) { state.equipeSelecionado = null; renderPanel(); return; } // cancelado — volta pro estado neutro
-      executarExclusaoSlot(ds, cfg, excluirPath, excluirContexto, excluirNome, excluirMatricula, motivo);
-      state.equipeSelecionado = null;
-      persistEdits();
-      renderPanel();
-    });
-  });
-  // Abre o cadastro completo (nome/matrícula/turno/grupo/líder/telefone)
-  // da pessoa de verdade ligada a esse posto — permite mudar turno e
-  // grupo, não só nome/matrícula. Se turno ou grupo mudar, o posto
-  // antigo aqui em Ver Equipe não faz mais sentido pra essa pessoa (ela
-  // foi pra outro lugar), então é esvaziado — quem edita re-posiciona
-  // no posto novo, já que um turno/grupo pode ter mais de um lugar
-  // livre pra escolher.
-  container.querySelectorAll('.equipe-editar-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const { editarPath, editarContexto, editarNome, editarMatricula } = btn.dataset;
-      const encontrados = acharPessoasLigadas(ds, editarNome, editarMatricula);
-      if (!encontrados.length) {
-        alert(`"${editarNome}" só existe aqui no quadro de Ver Equipe, sem um registro correspondente na escala — não tem o que editar. Se essa pessoa já está cadastrada na escala, corrija a matrícula nesse posto pra ligar os dois; senão, exclua e cadastre de novo digitando o nome no campo.`);
-        return;
-      }
-      const p = encontrados[0];
-      const papelAntes = p.papelNormalizado, grupoAntes = p.grupo;
-      state.equipeSelecionado = null;
-      openModal(p, monthMeta, cfg, ds, false, () => {
-        if (p.papelNormalizado === papelAntes && p.grupo === grupoAntes) {
-          edits.equipe[editarPath] = { ...edits.equipe[editarPath], nome: p.nome, matricula: p.matricula };
+// "+ Adicionar colaborador" de Ver Equipe: pergunta grupo/turno/frota
+// (equipamento) ou folguista+turno, valida se o posto escolhido já
+// está ocupado, e ao salvar registra a pessoa de verdade na escala
+// (ver criarColaboradorNoSlot) já naquele posto exato — sem precisar
+// digitar direto num campo vazio.
+function abrirCadastroEquipe(ds, cfg, mestre) {
+  const backdrop = document.getElementById('modalBackdrop');
+  const grupos = cfg.id === 'motoristas' ? mestre.map((g) => g.grupo) : [];
+  // lideres_turno/lideres_patio têm um único posto de folguista (sem
+  // turno); motoristas tem folguista por turno (A/B/C); master_driver
+  // não tem folguista.
+  const temFolguista = cfg.id === 'motoristas' || cfg.id === 'lideres_turno' || cfg.id === 'lideres_patio';
+  const folguistaTemTurno = cfg.id === 'motoristas';
+  const temFrota = cfg.id === 'motoristas';
+
+  // v guarda o que já foi digitado/escolhido, pra um erro (ex.: posto
+  // ocupado) não obrigar a preencher tudo de novo — só reabre o forms
+  // com os mesmos valores e a pessoa troca só o turno/equipamento.
+  const render = (errorMsg, v) => {
+    v = v || {};
+    backdrop.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <button class="modal-close" id="modalClose">✕</button>
+          <h3>Adicionar colaborador</h3>
+          <span>${cfg.hasUnits ? (ds.unidades.find((u) => u.codigo === state.unit[cfg.id]) || {}).label || '' : ''}</span>
+        </div>
+        <div class="modal-body">
+          <div class="modal-row edit"><span class="k">Nome</span><input class="modal-input" id="ceNome" value="${escAttr(v.nome)}"></div>
+          <div class="modal-row edit"><span class="k">Matrícula</span><input class="modal-input" id="ceMatricula" value="${escAttr(v.matricula)}"></div>
+          ${grupos.length ? `<div class="modal-row edit"><span class="k">Grupo</span><select class="modal-input" id="ceGrupo">${grupos.map((g) => `<option value="${escAttr(g)}" ${v.grupo === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>` : ''}
+          ${temFolguista ? `
+            <div class="modal-row edit"><span class="k">Posto</span><select class="modal-input" id="ceTipo">
+              <option value="titular" ${v.tipo !== 'folguista' ? 'selected' : ''}>Titular${temFrota ? ' (equipamento)' : ''}</option>
+              <option value="folguista" ${v.tipo === 'folguista' ? 'selected' : ''}>Folguista</option>
+            </select></div>` : ''}
+          ${temFrota ? `<div id="ceEquipRow" class="modal-row edit"><span class="k">Frota (equipamento)</span><select class="modal-input" id="ceEquipamento"></select></div>` : ''}
+          <div id="ceTurnoRow" class="modal-row edit"><span class="k">Turno</span><select class="modal-input" id="ceTurno">
+            <option value="A" ${v.turno === 'A' ? 'selected' : ''}>Turno A</option>
+            <option value="B" ${v.turno === 'B' ? 'selected' : ''}>Turno B</option>
+            <option value="C" ${v.turno === 'C' ? 'selected' : ''}>Turno C</option>
+          </select></div>
+          <div class="modal-row edit"><span class="k">Líder</span><input class="modal-input" id="ceLider" value="${escAttr(v.lider)}"></div>
+          <div class="modal-row edit"><span class="k">Telefone</span><input class="modal-input" id="ceTelefone" value="${escAttr(v.telefone)}"></div>
+          ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn" id="ceCancel">Cancelar</button>
+          <button class="icon-btn primary" id="ceSalvar">Salvar</button>
+        </div>
+      </div>
+    `;
+    backdrop.classList.add('open');
+    const close = () => closeModal();
+    document.getElementById('modalClose').addEventListener('click', close);
+    document.getElementById('ceCancel').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); }, { once: true });
+    wireMatriculaLookup(document.getElementById('ceMatricula'), document.getElementById('ceNome'));
+
+    const grupoSel = document.getElementById('ceGrupo');
+    const equipSel = document.getElementById('ceEquipamento');
+    function popularEquipamentos() {
+      if (!equipSel) return;
+      const g = grupoSel ? mestre.find((x) => x.grupo === grupoSel.value) : mestre[0];
+      const equipamentos = (g && g.equipamentos) || [];
+      equipSel.innerHTML = equipamentos.length
+        ? equipamentos.map((e) => `<option value="${e.numero}" ${v.equipamento === String(e.numero) ? 'selected' : ''}>Equip. ${e.numero}</option>`).join('')
+        : `<option value="">(sem equipamento nesse grupo — adicione um em Ver Equipe primeiro)</option>`;
+    }
+    if (temFrota) {
+      popularEquipamentos();
+      if (grupoSel) grupoSel.addEventListener('change', popularEquipamentos);
+    }
+
+    const tipoSel = document.getElementById('ceTipo');
+    function atualizaPosto() {
+      const ehFolguista = tipoSel && tipoSel.value === 'folguista';
+      const equipRow = document.getElementById('ceEquipRow');
+      if (equipRow) equipRow.style.display = ehFolguista ? 'none' : '';
+      document.getElementById('ceTurnoRow').style.display = (ehFolguista && !folguistaTemTurno) ? 'none' : '';
+    }
+    if (tipoSel) { tipoSel.addEventListener('change', atualizaPosto); atualizaPosto(); }
+
+    document.getElementById('ceSalvar').addEventListener('click', () => {
+      const nome = document.getElementById('ceNome').value.trim();
+      const matricula = document.getElementById('ceMatricula').value.trim();
+      const grupo = grupoSel ? grupoSel.value : null;
+      const ehFolguista = tipoSel ? tipoSel.value === 'folguista' : false;
+      const turno = document.getElementById('ceTurno').value;
+      const equipamento = equipSel ? equipSel.value : null;
+      const lider = document.getElementById('ceLider').value.trim();
+      const telefone = document.getElementById('ceTelefone').value.trim();
+      const valoresAtuais = { nome, matricula, grupo, tipo: ehFolguista ? 'folguista' : 'titular', turno, equipamento, lider, telefone };
+
+      if (!nome) { render('Informe o nome do colaborador.', valoresAtuais); return; }
+
+      let path, papel;
+      if (cfg.id === 'motoristas') {
+        if (ehFolguista) {
+          path = `motoristas|grupo|${grupo}|folguista|${turno}`;
+          papel = `Folguista ${turno}`;
         } else {
-          edits.equipe[editarPath] = { ...edits.equipe[editarPath], nome: '', matricula: '' };
-          alert(`Turno/grupo de "${p.nome}" foi alterado. O posto antigo em Ver Equipe (${editarContexto}) foi esvaziado — encontre e cadastre essa pessoa no turno/grupo novo aqui em Ver Equipe.`);
+          if (!equipamento) { render('Esse grupo ainda não tem equipamento cadastrado — adicione um em Ver Equipe primeiro, ou escolha "Folguista".', valoresAtuais); return; }
+          path = `motoristas|equip|${equipamento}|${turno}`;
+          papel = `Turno ${turno}`;
         }
-      });
+      } else if (cfg.id === 'master_driver') {
+        path = `master_driver|${state.unit[cfg.id]}|turno|${turno}`;
+        papel = `Turno ${turno}`;
+      } else if (ehFolguista) {
+        path = `${cfg.id}|folguista`;
+        papel = 'Folguista';
+      } else {
+        path = `${cfg.id}|turno|${turno}`;
+        papel = `Turno ${turno}`;
+      }
+
+      // Confere quem ocupa esse posto agora (cobre tanto quem veio da
+      // planilha original quanto quem já foi editado aqui).
+      const postoAtual = todosPostosDoTab(cfg, mestre).find((posto) => posto.path === path);
+      if (postoAtual) {
+        render(`Esse posto já está ocupado por "${postoAtual.nome}". Escolha outro${temFrota && !ehFolguista ? ' turno/equipamento' : ' turno'}, ou exclua essa pessoa antes.`, valoresAtuais);
+        return;
+      }
+
+      const jaExiste = matricula && acharPessoasLigadas(ds, nome, matricula).length > 0;
+      if (!jaExiste) criarColaboradorNoSlot(ds, cfg, nome, matricula, papel, grupo, lider, telefone);
+      equipeEditSet(path, 'nome', nome);
+      equipeEditSet(path, 'matricula', matricula);
+      close();
+      renderPanel();
     });
-  });
+  };
+  render(null, null);
+}
+
+// "🗑 Excluir colaborador" de Ver Equipe: pede matrícula ou nome pra
+// buscar (sem precisar clicar em cima de ninguém), confirma quem é (se
+// achar mais de uma pessoa com o mesmo nome, deixa escolher), pede o
+// motivo e exclui de vez — some da contagem "Atual" do Dashboard, da
+// escala, e de qualquer posto onde essa pessoa apareça em Ver Equipe.
+function abrirExcluirEquipe(ds, cfg, mestre) {
+  const backdrop = document.getElementById('modalBackdrop');
+  let termo = '';
+  let resultados = [];
+
+  const renderBusca = (errorMsg) => {
+    backdrop.innerHTML = `
+      <div class="modal confirm-modal">
+        <div class="modal-body">
+          <p class="confirm-msg">Excluir colaborador — digite a matrícula ou o nome pra buscar.</p>
+          <input type="text" class="modal-input" id="ceExcluirBusca" placeholder="Matrícula ou nome" value="${escAttr(termo)}" autocomplete="off">
+          ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn" id="ceExcluirCancelar">Cancelar</button>
+          <button class="icon-btn primary" id="ceExcluirBuscarBtn">Buscar</button>
+        </div>
+      </div>`;
+    backdrop.classList.add('open');
+    const input = document.getElementById('ceExcluirBusca');
+    input.focus();
+    document.getElementById('ceExcluirCancelar').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); }, { once: true });
+    const buscar = () => {
+      termo = input.value.trim();
+      if (!termo) { renderBusca('Digite a matrícula ou o nome.'); return; }
+      resultados = buscarPessoasPorTexto(ds, termo);
+      if (!resultados.length) { renderBusca(`Ninguém encontrado com "${termo}" nessa aba.`); return; }
+      renderConfirma();
+    };
+    document.getElementById('ceExcluirBuscarBtn').addEventListener('click', buscar);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); buscar(); } });
+  };
+
+  const renderConfirma = () => {
+    const multi = resultados.length > 1;
+    backdrop.innerHTML = `
+      <div class="modal confirm-modal">
+        <div class="modal-body">
+          <p class="confirm-msg">${multi ? `Achei ${resultados.length} pessoas com "${termo}" — escolha quem excluir:` : 'Confirma excluir esta pessoa?'}</p>
+          ${multi ? `
+            <select class="modal-input" id="ceExcluirSelect">
+              ${resultados.map((p, i) => `<option value="${i}">${p.nome}${p.matricula ? ` (Mat. ${p.matricula})` : ''} — ${p.papelNormalizado || '—'}${p.grupo ? ' · ' + p.grupo : ''}</option>`).join('')}
+            </select>` : `
+            <div class="modal-row"><span class="k">Nome</span><span class="v">${resultados[0].nome}</span></div>
+            ${resultados[0].matricula ? `<div class="modal-row"><span class="k">Matrícula</span><span class="v">${resultados[0].matricula}</span></div>` : ''}
+            <div class="modal-row"><span class="k">Turno</span><span class="v">${resultados[0].papelNormalizado || '—'}${resultados[0].grupo ? ' · ' + resultados[0].grupo : ''}</span></div>
+          `}
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn" id="ceExcluirVoltar">Voltar</button>
+          <button class="icon-btn primary danger" id="ceExcluirConfirmar">Continuar</button>
+        </div>
+      </div>`;
+    backdrop.classList.add('open');
+    document.getElementById('ceExcluirVoltar').addEventListener('click', () => renderBusca(null));
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); }, { once: true });
+    document.getElementById('ceExcluirConfirmar').addEventListener('click', async () => {
+      const idx = multi ? Number(document.getElementById('ceExcluirSelect').value) : 0;
+      const p = resultados[idx];
+      const motivo = await promptMotivoExclusao(p.nome);
+      if (motivo === null) return; // cancelou: fica na tela de confirmação
+      const postos = encontrarPostosDaPessoa(cfg, mestre, p.nome, p.matricula);
+      const contexto = postos.length ? postos.map((posto) => posto.path).join(', ') : `${cfg.label} (sem posto em Ver Equipe)`;
+      executarExclusaoPessoa(ds, cfg, postos.map((posto) => posto.path), contexto, p.nome, p.matricula, motivo);
+      persistEdits();
+      closeModal();
+      renderPanel();
+    });
+  };
+
+  renderBusca(null);
 }
 
 // Pergunta o motivo antes de excluir alguém de um slot de Ver Equipe —
