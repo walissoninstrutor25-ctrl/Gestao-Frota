@@ -1,0 +1,25 @@
+{
+  "name": "Finanças Pessoais",
+  "short_name": "Finanças",
+  "description": "Gestão financeira pessoal e familiar: contas fixas, cartões, parcelamentos, metas e relatórios.",
+  "start_url": "./app-financas.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5fb",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/financas-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/financas-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

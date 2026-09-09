@@ -1,0 +1,44 @@
+rules_version = '2';
+// Regras de segurança do Firestore para o app Finanças Pessoais (app-financas.html).
+//
+// Como aplicar:
+// 1. Abra o Console do Firebase do projeto "lots-gestao-frota"
+// 2. Vá em Firestore Database > Regras
+// 3. As regras abaixo cuidam apenas das coleções "fin_users" e "fin_households"
+//    usadas por este app. Se o projeto já tiver outras regras (do app de frota),
+//    combine os blocos "match" dentro do mesmo "service cloud.firestore { match /databases/{database}/documents { ... } }".
+//
+// Modelo: cada "lar" (household) é um documento cujo ID é o próprio código de
+// convite de 6 caracteres. Só quem está no array "members" do lar pode ler/escrever
+// os dados financeiros dele. Qualquer pessoa autenticada pode "get" um lar pelo
+// código exato (para poder entrar usando o convite), mas não pode listar/descobrir
+// os lares de outras pessoas.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isMember(hh) {
+      return signedIn() &&
+        request.auth.uid in get(/databases/$(database)/documents/fin_households/$(hh)).data.members;
+    }
+
+    match /fin_users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /fin_households/{hh} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.auth.uid in request.resource.data.members;
+      allow update: if signedIn() && (isMember(hh) || request.auth.uid in request.resource.data.members);
+      allow delete: if false;
+
+      match /{collection}/{docId} {
+        allow read, write: if isMember(hh);
+      }
+    }
+  }
+}
