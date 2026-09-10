@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T17-15-00Z -->
+<!-- APP_BUILD:2026-08-09T17-45-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
@@ -1720,7 +1721,7 @@
         <div class="card">
           <div class="card-head"><div class="card-title">Itens não conformes reportados</div></div>
           <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
-            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th></tr></thead>
+            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th><th>Foto</th></tr></thead>
             <tbody id="tbl-checklist-naoconforme"></tbody></table>
           </div>
         </div>
@@ -2037,6 +2038,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
+  const storage = firebase.storage();
   db.enablePersistence({synchronizeTabs:true}).catch(err=>{
     console.warn('Persistência offline não ativada:', err.code);
   });
@@ -2067,7 +2069,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T17-15-00Z';
+  const APP_VERSION = '2026-08-09T17-45-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -6158,7 +6160,7 @@
     const ncTbl = document.getElementById('tbl-checklist-naoconforme');
     if(ncTbl){
       if(naoConformes.length===0){
-        ncTbl.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhum item não conforme reportado no período.</td></tr>';
+        ncTbl.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum item não conforme reportado no período.</td></tr>';
       } else {
         ncTbl.innerHTML = naoConformes.map(({c,it})=>{
           const v = vehicleById(c.vehicleId);
@@ -6170,6 +6172,7 @@
             <td>${c.motoristaNome||'—'}</td>
             <td style="color:var(--danger); font-weight:600;">${it.nome} — ${it.resposta}</td>
             <td>${it.obs||'—'}</td>
+            <td>${it.fotoUrl ? `<img src="${it.fotoUrl}" alt="Foto do problema" class="anexo-thumb" onclick="LOTS.viewAnexo('${it.fotoUrl.replace(/'/g,"\\'")}','${(it.nome||'Foto').replace(/'/g,"\\'")}')">` : '—'}</td>
           </tr>`;
         }).join('');
       }

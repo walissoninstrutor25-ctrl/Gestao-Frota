@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T17-00-00Z -->
+<!-- APP_BUILD:2026-08-09T17-45-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -12,6 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <style>
   :root{
     --bg:#eef4f0; --surface:#ffffff; --surface-2:#f3f7f4; --line:#e0e6e2;
@@ -64,6 +65,9 @@
   .escala-btn{width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); font-size:13px; font-weight:600; cursor:pointer;}
   .escala-btn.active{background:var(--accent); color:#fff; border-color:var(--accent);}
   .escala-labels{display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:4px;}
+  .foto-wrap{margin-top:6px; padding:10px; background:var(--danger-dim); border-radius:10px;}
+  .foto-wrap input[type=file]{font-size:12.5px; padding:8px;}
+  .foto-preview img{max-width:100%; max-height:180px; border-radius:8px; margin-top:8px; display:block;}
   .progress-badge{font-size:12px; color:var(--text-muted); margin-bottom:10px;}
   .page-title{font-size:19px; font-weight:700; margin:0 0 4px;}
   .page-sub{font-size:13px; color:var(--text-muted); margin:0 0 16px;}
@@ -221,6 +225,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
+  const storage = firebase.storage();
   const COLLECTION = 'lots-frota';
   const FUEL_COLLECTION = 'lots-frota-fuel-entries';
   const CHECKLIST_COLLECTION = 'lots-checklists';
@@ -336,6 +341,7 @@
     showView('view-checklist-setup');
   });
   let checklistRespostas = {};
+  let checklistFotos = {};
   document.getElementById('btn-start-checklist').addEventListener('click', ()=>{
     const errEl = document.getElementById('ck-setup-err');
     const vehicleId = document.getElementById('ck-vehicle').value;
@@ -343,6 +349,7 @@
     if(checklistItens.length===0){ errEl.textContent='Nenhuma pergunta de checklist cadastrada ainda. Fale com o administrador.'; return; }
     errEl.textContent='';
     checklistRespostas = {};
+    checklistFotos = {};
     renderChecklistItens();
     showView('view-checklist-itens');
   });
@@ -368,6 +375,11 @@
         campo = `<div class="toggle-group">
           <button type="button" class="toggle-btn conforme" data-item="${item.id}" data-opcao="1">${item.opcao1}</button>
           <button type="button" class="toggle-btn naoconforme" data-item="${item.id}" data-opcao="2">${item.opcao2}</button>
+        </div>
+        <div class="foto-wrap" id="foto-wrap-${item.id}" style="display:none;">
+          <label style="font-size:12px; color:var(--danger); font-weight:600; margin-top:10px; display:block;">📷 Anexa uma foto do problema (opcional, mas ajuda muito)</label>
+          <input type="file" accept="image/*" capture="environment" data-item-foto="${item.id}">
+          <div class="foto-preview" id="foto-preview-${item.id}"></div>
         </div>`;
       } else if(item.tipo==='escala'){
         let botoes='';
@@ -389,11 +401,33 @@
     wrap.querySelectorAll('.toggle-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const itemId = btn.dataset.item;
-        checklistRespostas[itemId] = {opcaoIndex: Number(btn.dataset.opcao)};
+        const item = checklistItens.find(i=>i.id===itemId);
+        const opcao = Number(btn.dataset.opcao);
+        checklistRespostas[itemId] = {...checklistRespostas[itemId], opcaoIndex: opcao};
         wrap.querySelectorAll(`.toggle-btn[data-item="${itemId}"]`).forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
+        const fotoWrap = document.getElementById('foto-wrap-'+itemId);
+        if(fotoWrap){
+          const ehProblema = item.valorProblema>0 && opcao===item.valorProblema;
+          fotoWrap.style.display = ehProblema ? 'block' : 'none';
+          if(!ehProblema){ checklistFotos[itemId] = null; document.getElementById('foto-preview-'+itemId).innerHTML=''; }
+        }
         atualizarVisibilidadeCondicional();
         atualizarProgresso();
+      });
+    });
+    wrap.querySelectorAll('[data-item-foto]').forEach(inp=>{
+      inp.addEventListener('change', (e)=>{
+        const itemId = inp.dataset.itemFoto;
+        const file = e.target.files[0];
+        checklistFotos[itemId] = file || null;
+        const prevEl = document.getElementById('foto-preview-'+itemId);
+        if(file){
+          const url = URL.createObjectURL(file);
+          prevEl.innerHTML = `<img src="${url}" alt="Foto anexada">`;
+        } else {
+          prevEl.innerHTML = '';
+        }
       });
     });
     wrap.querySelectorAll('.escala-btn').forEach(btn=>{
@@ -438,6 +472,7 @@
     const btn = document.getElementById('btn-submit-checklist');
     btn.disabled = true; btn.textContent = 'Enviando…';
     try{
+      const checklistId = uid();
       const itensResposta = visiveis.map(item=>{
         const r = checklistRespostas[item.id] || {};
         let resposta = '—', ehProblema = false;
@@ -461,6 +496,20 @@
           }
         }
       });
+      // sobe as fotos anexadas (só dos itens marcados como problema) pro Firebase Storage
+      btn.textContent = 'Enviando fotos…';
+      for(const it of itensResposta){
+        const file = checklistFotos[it.itemId];
+        if(it.ehProblema && file){
+          try{
+            const path = `checklist-fotos/${checklistId}/${it.itemId}_${Date.now()}.jpg`;
+            const ref = storage.ref().child(path);
+            await ref.put(file);
+            it.fotoUrl = await ref.getDownloadURL();
+          }catch(e){ console.error('erro ao subir foto', e); /* segue sem a foto, não trava o envio do checklist */ }
+        }
+      }
+      btn.textContent = 'Enviando…';
       const rec = {
         vehicleId, frota: v?.frota||'', placa: v?.plate||'',
         motoristaId: currentMotorista.id, motoristaNome: currentMotorista.nome,
@@ -468,7 +517,7 @@
         itens: itensResposta,
         criadoEm: Date.now()
       };
-      await db.collection(CHECKLIST_COLLECTION).doc(uid()).set(rec);
+      await db.collection(CHECKLIST_COLLECTION).doc(checklistId).set(rec);
       const temProblema = itensResposta.some(it=>it.ehProblema);
       document.getElementById('conf-titulo').textContent = temProblema ? 'Checklist enviado — com pendências' : 'Checklist enviado!';
       document.getElementById('conf-sub').textContent = temProblema
