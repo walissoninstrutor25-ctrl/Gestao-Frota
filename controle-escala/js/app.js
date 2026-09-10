@@ -1707,6 +1707,49 @@ function executarExclusaoPessoa(ds, cfg, paths, contexto, nome, matricula, motiv
   });
 }
 
+// Acha o dia de folga (epochDay) que já rege a rotação 5x1/6x2 de
+// alguém — usa edits.rotacao se tiver, senão acha o primeiro 'O'
+// marcado na escala dela nesse ano (qualquer dia de folga real serve
+// como âncora, já que o padrão se repete a cada 6 dias).
+function anchorAtualDe(ds, cfg, p) {
+  const pk = personKey(cfg.id, p);
+  if (edits.rotacao[pk] !== undefined) return edits.rotacao[pk];
+  for (const m of ds.meses) {
+    const s = p.escala[m.chave];
+    const idx = s ? s.indexOf('O') : -1;
+    if (idx >= 0) return epochDay(ds.ano, m.numero, idx + 1);
+  }
+  return null;
+}
+
+// Regra do grupo: o 1º equipamento (pelo número) de cada grupo folga
+// no mesmo dia que o 1º de qualquer outro grupo; o 2º folga um dia
+// depois do 1º, o 3º um dia depois do 2º, e assim por diante; o
+// folguista do turno folga um dia depois do último titular. Pra
+// cadastrar alguém já dentro desse padrão, copia de quem já existe no
+// mesmo grupo+turno (não inventa um dia novo do nada).
+function calcularAnchorRotacao(ds, cfg, mestre, grupo, turno, numeroEquip) {
+  if (cfg.id !== 'motoristas' || !grupo || !Array.isArray(mestre)) return null;
+  const g = mestre.find((x) => x.grupo === grupo);
+  if (!g) return null;
+  const equipsOrdenados = [...g.equipamentos].sort((a, b) => a.numero - b.numero);
+  const posicaoAlvo = numeroEquip != null
+    ? equipsOrdenados.findIndex((e) => String(e.numero) === String(numeroEquip)) + 1
+    : equipsOrdenados.length + 1; // folguista: uma posição depois do último titular
+  if (posicaoAlvo <= 0) return null;
+
+  for (let i = 0; i < equipsOrdenados.length; i++) {
+    const ocupante = equipsOrdenados[i].turnos[turno];
+    if (!ocupante || !ocupante.nome) continue;
+    const peers = acharPessoasLigadas(ds, ocupante.nome, ocupante.matricula);
+    if (!peers.length) continue;
+    const anchorPeer = anchorAtualDe(ds, cfg, peers[0]);
+    if (anchorPeer == null) continue;
+    return anchorPeer + (posicaoAlvo - (i + 1));
+  }
+  return null; // ninguém no grupo/turno ainda tem um padrão real pra copiar
+}
+
 // Registra de verdade, na escala (ds.colaboradores + edits.novosColaboradores
 // — mesmo mecanismo do "+ Adicionar colaborador"), alguém digitado num
 // slot vazio de Ver Equipe — usa o turno/grupo que o próprio slot já
@@ -1872,7 +1915,16 @@ function abrirCadastroEquipe(ds, cfg, mestre) {
       }
 
       const jaExiste = matricula && acharPessoasLigadas(ds, nome, matricula).length > 0;
-      if (!jaExiste) criarColaboradorNoSlot(ds, cfg, nome, matricula, papel, grupo, lider, telefone);
+      if (!jaExiste) {
+        const novo = criarColaboradorNoSlot(ds, cfg, nome, matricula, papel, grupo, lider, telefone);
+        // Já entra na rotação escalonada do grupo (ver calcularAnchorRotacao)
+        // em vez de nascer com a escala toda em branco (tudo "trabalha").
+        const anchor = calcularAnchorRotacao(ds, cfg, mestre, grupo, turno, ehFolguista ? null : equipamento);
+        if (anchor != null) {
+          edits.rotacao[personKey(cfg.id, novo)] = anchor;
+          applyRotation(ds, cfg, novo, anchor);
+        }
+      }
       equipeEditSet(path, 'nome', nome);
       equipeEditSet(path, 'matricula', matricula);
       close();
