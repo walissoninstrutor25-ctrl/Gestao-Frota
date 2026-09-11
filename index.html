@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T18-30-00Z -->
+<!-- APP_BUILD:2026-08-09T19-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1925,6 +1925,7 @@
           <div class="page-sub" style="margin-bottom:12px;">Perguntas que aparecem pro motorista no app, na ordem daqui de cima pra baixo. Pode adicionar, editar ou remover a qualquer momento — não precisa mexer em código.</div>
           <div class="field-grid-4">
             <div class="field"><label>Pergunta</label><input id="ci-novo" placeholder="Ex: Estado de conservação dos pneus"></div>
+            <div class="field"><label>Seção (agrupa as perguntas na tela do motorista)</label><input id="ci-secao" placeholder="Ex: Itens Externos" list="ci-secao-lista"><datalist id="ci-secao-lista"></datalist></div>
             <div class="field"><label>Tipo de resposta</label>
               <select id="ci-tipo">
                 <option value="escolha2">Escolha entre 2 opções (Sim/Não, Bom/Ruim...)</option>
@@ -1939,6 +1940,8 @@
                 <option value="nao">Não (opcional)</option>
               </select>
             </div>
+          </div>
+          <div class="field-grid-4">
             <div class="field"><label>Só aparece se a pergunta abaixo for respondida assim</label><select id="ci-depende"><option value="">Nenhuma condição — sempre aparece</option></select></div>
           </div>
 
@@ -2081,7 +2084,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T18-30-00Z';
+  const APP_VERSION = '2026-08-09T19-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -6791,6 +6794,11 @@
     sel.innerHTML = '<option value="">Nenhuma condição — sempre aparece</option>' +
       candidatas.map(i=>`<option value="${i.id}">${i.nome}</option>`).join('');
     sel.value = candidatas.some(i=>i.id===keep) ? keep : '';
+    const secaoList = document.getElementById('ci-secao-lista');
+    if(secaoList){
+      const secoes = [...new Set(state.checklistItens.map(i=>i.secao).filter(Boolean))];
+      secaoList.innerHTML = secoes.map(s=>`<option value="${s}">`).join('');
+    }
   }
   function atualizarCiCamposVisiveis(){
     const tipo = document.getElementById('ci-tipo').value;
@@ -6809,6 +6817,7 @@
     if(!nome){ errEl.textContent='Digite o texto da pergunta.'; return; }
     const item = {
       id: uid(), nome, tipo,
+      secao: document.getElementById('ci-secao').value.trim() || null,
       ordem: state.checklistItens.length,
       obrigatoria: document.getElementById('ci-obrigatoria').value==='sim',
       dependeDe: document.getElementById('ci-depende').value || null,
@@ -6883,13 +6892,13 @@
     ];
     const novos = [];
     let ordem = 0;
-    function addPar(nome, pedeFoto){
-      const pai = {id:uid(), nome, tipo:'escolha2', ordem:ordem++, obrigatoria:true, opcao1:'Conforme', opcao2:'Não Conforme', valorProblema:2, pedeFoto: !!pedeFoto, dependeDe:null, dependeValor:null};
+    function addPar(nome, pedeFoto, secao){
+      const pai = {id:uid(), nome, tipo:'escolha2', secao, ordem:ordem++, obrigatoria:true, opcao1:'Conforme', opcao2:'Não Conforme', valorProblema:2, pedeFoto: !!pedeFoto, dependeDe:null, dependeValor:null};
       novos.push(pai);
-      novos.push({id:uid(), nome:'Observação — '+nome, tipo:'texto', ordem:ordem++, obrigatoria:false, dependeDe:pai.id, dependeValor:2});
+      novos.push({id:uid(), nome:'Observação — '+nome, tipo:'texto', secao, ordem:ordem++, obrigatoria:false, dependeDe:pai.id, dependeValor:2});
     }
-    externos.forEach(it=>addPar(it.nome, it.pedeFoto));
-    internos.forEach(nome=>addPar(nome, false));
+    externos.forEach(it=>addPar(it.nome, it.pedeFoto, 'Itens Externos'));
+    internos.forEach(nome=>addPar(nome, false, 'Itens Internos'));
     state.checklistItens = novos;
     await save.checklistItens();
     renderChecklistItens();
@@ -6909,7 +6918,10 @@
       if(item.tipo==='escala') detalhe += ` (${item.escalaMin} a ${item.escalaMax})`;
       const pai = item.dependeDe ? state.checklistItens.find(x=>x.id===item.dependeDe) : null;
       const condicao = pai ? `— só aparece se "${pai.nome}" = ${item.dependeValor===1?pai.opcao1:pai.opcao2}` : '';
-      return `
+      const secaoAnterior = i>0 ? (lista[i-1].secao||null) : '__inicio__';
+      const cabecalhoSecao = (item.secao||null)!==secaoAnterior && item.secao
+        ? `<div style="font-weight:700; font-size:13px; margin:${i>0?'14px':'0'} 0 4px; padding-top:${i>0?'8px':'0'};">${item.secao}</div>` : '';
+      return `${cabecalhoSecao}
       <div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);">
         <div style="flex:1;">
           <div>${i+1}. ${item.nome}${item.obrigatoria?'':' <span class="page-sub" style="display:inline;">(opcional)</span>'}</div>
