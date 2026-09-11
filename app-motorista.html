@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T18-00-00Z -->
+<!-- APP_BUILD:2026-08-09T18-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -395,12 +395,12 @@
         campo = `<div class="toggle-group">
           <button type="button" class="toggle-btn conforme" data-item="${item.id}" data-opcao="1">${item.opcao1}</button>
           <button type="button" class="toggle-btn naoconforme" data-item="${item.id}" data-opcao="2">${item.opcao2}</button>
-        </div>
+        </div>` + (item.pedeFoto ? `
         <div class="foto-wrap" id="foto-wrap-${item.id}" style="display:none;">
-          <label style="font-size:12px; color:var(--danger); font-weight:600; margin-top:10px; display:block;">📷 Anexa uma foto do problema (opcional, mas ajuda muito)</label>
+          <label style="font-size:12px; color:var(--danger); font-weight:600; margin-top:10px; display:block;">📷 Anexa uma foto do problema</label>
           <input type="file" accept="image/*" capture="environment" data-item-foto="${item.id}">
           <div class="foto-preview" id="foto-preview-${item.id}"></div>
-        </div>`;
+        </div>` : '');
       } else if(item.tipo==='escala'){
         let botoes='';
         for(let n=item.escalaMin; n<=item.escalaMax; n++){
@@ -427,7 +427,7 @@
         wrap.querySelectorAll(`.toggle-btn[data-item="${itemId}"]`).forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         const fotoWrap = document.getElementById('foto-wrap-'+itemId);
-        if(fotoWrap){
+        if(fotoWrap && item.pedeFoto){
           const ehProblema = item.valorProblema>0 && opcao===item.valorProblema;
           fotoWrap.style.display = ehProblema ? 'block' : 'none';
           if(!ehProblema){ checklistFotos[itemId] = null; document.getElementById('foto-preview-'+itemId).innerHTML=''; }

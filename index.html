@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T18-00-00Z -->
+<!-- APP_BUILD:2026-08-09T18-30-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1952,7 +1952,15 @@
                 <option value="2">Opção 2</option>
               </select>
             </div>
-            <div class="field" id="ci-depende-valor-wrap" style="display:none;"><label>Aparece quando a resposta for</label>
+            <div class="field"><label>Pede foto quando marcar problema?</label>
+              <select id="ci-pede-foto">
+                <option value="nao">Não — só pede observação</option>
+                <option value="sim">Sim — pede observação e foto</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid-4" id="ci-depende-valor-wrap" style="display:none;">
+            <div class="field"><label>Aparece quando a resposta for</label>
               <select id="ci-depende-valor">
                 <option value="1">Opção 1 da pergunta escolhida</option>
                 <option value="2">Opção 2 da pergunta escolhida</option>
@@ -1968,6 +1976,12 @@
 
           <button class="btn-primary" id="btn-add-checklist-item">+ Adicionar pergunta</button>
           <div class="err-msg" id="ci-err"></div>
+
+          <div class="lane" style="margin:18px 0 14px;"></div>
+          <div class="card-title" style="margin-bottom:8px; font-size:13px;">Checklist pronto (itens externos/internos)</div>
+          <div class="page-sub" style="margin-bottom:10px;">Carrega de uma vez as 23 perguntas padrão de vistoria (Parachoque, Carroceria, Capô, Retrovisores, Faróis... até Macaco), com "Conforme/Não Conforme" e observação — e foto obrigatória só nos itens externos mais sensíveis (Parachoque, Carroceria, Capô e Teto, Tampa Traseira, Placas, Parabrisa, Pneus e Rodas).</div>
+          <button class="btn-ghost" id="btn-seed-checklist-padrao">📋 Carregar este checklist</button>
+
           <div id="lista-checklist-itens" style="margin-top:14px;"></div>
         </div>
 
@@ -2067,7 +2081,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T18-00-00Z';
+  const APP_VERSION = '2026-08-09T18-30-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -6805,6 +6819,7 @@
       const opcao2 = document.getElementById('ci-opcao2').value.trim() || 'Não';
       item.opcao1 = opcao1; item.opcao2 = opcao2;
       item.valorProblema = Number(document.getElementById('ci-valor-problema').value)||0;
+      item.pedeFoto = document.getElementById('ci-pede-foto').value==='sim';
     } else if(tipo==='escala'){
       item.escalaMin = Number(document.getElementById('ci-escala-min').value)||0;
       item.escalaMax = Number(document.getElementById('ci-escala-max').value)||10;
@@ -6815,6 +6830,7 @@
     state.checklistItens.push(item);
     await save.checklistItens();
     ['ci-novo','ci-opcao1','ci-opcao2','ci-escala-min','ci-escala-max','ci-escala-label-min','ci-escala-label-max'].forEach(id=>{ document.getElementById(id).value=''; });
+    document.getElementById('ci-pede-foto').value='nao';
     document.getElementById('ci-depende').value='';
     renderChecklistItens();
     logAudit('Pergunta de checklist adicionada', nome);
@@ -6840,6 +6856,46 @@
     logAudit('Pergunta de checklist excluída', item?.nome||id);
   };
   const TIPO_LABEL = {escolha2:'Escolha entre 2', escala:'Escala', numero:'Número', texto:'Texto livre'};
+  document.getElementById('btn-seed-checklist-padrao')?.addEventListener('click', async ()=>{
+    if(state.checklistItens.length>0){
+      if(!confirm('Isso substitui TODAS as perguntas de checklist já cadastradas pelas 23 perguntas padrão. Quer continuar?')) return;
+    }
+    // itens externos: têm coluna "Foto" — os marcados com pedeFoto:true são os destacados de amarelo
+    const externos = [
+      {nome:'Parachoque (Dianteiro/Traseiro)', pedeFoto:true},
+      {nome:'Carroceria (LE/LD)', pedeFoto:true},
+      {nome:'Capô e Teto', pedeFoto:true},
+      {nome:'Tampa Traseira', pedeFoto:true},
+      {nome:'Retrovisores (LE/LD)', pedeFoto:false},
+      {nome:'Faróis e Lanternas', pedeFoto:false},
+      {nome:'Luz (Freio/Seta/Ré)', pedeFoto:false},
+      {nome:'Placas (Dianteira/Traseira)', pedeFoto:true},
+      {nome:'Parabrisa', pedeFoto:true},
+      {nome:'Vidros (laterais e traseiro)', pedeFoto:false},
+      {nome:'Pneus e Rodas (Pneus ruins/rodas se estão amassadas)', pedeFoto:true},
+      {nome:'Estepe', pedeFoto:false}
+    ];
+    // itens internos: só Conforme/Não Conforme + observação, sem foto
+    const internos = [
+      'Maçanetas internas das portas (LE/LD)', 'Forro das portas (LE/LD)', 'Rádio CD', 'Rádio de comunicação',
+      'Rastreador (Trimble)', 'Bancos', 'Tapeçaria', 'CRLV/Exercício '+new Date().getFullYear(),
+      'Extintor', 'Chave de roda', 'Macaco'
+    ];
+    const novos = [];
+    let ordem = 0;
+    function addPar(nome, pedeFoto){
+      const pai = {id:uid(), nome, tipo:'escolha2', ordem:ordem++, obrigatoria:true, opcao1:'Conforme', opcao2:'Não Conforme', valorProblema:2, pedeFoto: !!pedeFoto, dependeDe:null, dependeValor:null};
+      novos.push(pai);
+      novos.push({id:uid(), nome:'Observação — '+nome, tipo:'texto', ordem:ordem++, obrigatoria:false, dependeDe:pai.id, dependeValor:2});
+    }
+    externos.forEach(it=>addPar(it.nome, it.pedeFoto));
+    internos.forEach(nome=>addPar(nome, false));
+    state.checklistItens = novos;
+    await save.checklistItens();
+    renderChecklistItens();
+    logAudit('Checklist padrão carregado', `${externos.length+internos.length} perguntas (externos/internos)`);
+    toast('Checklist carregado com sucesso.');
+  });
   function renderChecklistItens(){
     const wrap = document.getElementById('lista-checklist-itens');
     populateCiDependeSelect();
@@ -6849,7 +6905,7 @@
     if(lista.length===0){ wrap.innerHTML = '<div class="page-sub">Nenhuma pergunta cadastrada ainda — o app dos motoristas vai ficar vazio até adicionar pelo menos uma.</div>'; return; }
     wrap.innerHTML = lista.map((item,i)=>{
       let detalhe = TIPO_LABEL[item.tipo]||item.tipo;
-      if(item.tipo==='escolha2') detalhe += ` (${item.opcao1} / ${item.opcao2}${item.valorProblema?', problema = '+(item.valorProblema===1?item.opcao1:item.opcao2):''})`;
+      if(item.tipo==='escolha2') detalhe += ` (${item.opcao1} / ${item.opcao2}${item.valorProblema?', problema = '+(item.valorProblema===1?item.opcao1:item.opcao2):''}${item.pedeFoto?' 📷 pede foto':''})`;
       if(item.tipo==='escala') detalhe += ` (${item.escalaMin} a ${item.escalaMax})`;
       const pai = item.dependeDe ? state.checklistItens.find(x=>x.id===item.dependeDe) : null;
       const condicao = pai ? `— só aparece se "${pai.nome}" = ${item.dependeValor===1?pai.opcao1:pai.opcao2}` : '';
