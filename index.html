@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T17-45-00Z -->
+<!-- APP_BUILD:2026-08-09T18-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -14,7 +14,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
@@ -2038,7 +2037,6 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
-  const storage = firebase.storage();
   db.enablePersistence({synchronizeTabs:true}).catch(err=>{
     console.warn('Persistência offline não ativada:', err.code);
   });
@@ -2069,7 +2067,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T17-45-00Z';
+  const APP_VERSION = '2026-08-09T18-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;

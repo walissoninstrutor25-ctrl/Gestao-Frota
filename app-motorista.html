@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T17-45-00Z -->
+<!-- APP_BUILD:2026-08-09T18-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -12,7 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
 <style>
   :root{
     --bg:#eef4f0; --surface:#ffffff; --surface-2:#f3f7f4; --line:#e0e6e2;
@@ -225,13 +225,33 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
-  const storage = firebase.storage();
   const COLLECTION = 'lots-frota';
   const FUEL_COLLECTION = 'lots-frota-fuel-entries';
   const CHECKLIST_COLLECTION = 'lots-checklists';
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,9); }
   function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  // comprime a foto no próprio celular antes de enviar — fica pequena o bastante pra guardar
+  // direto no banco de dados, sem precisar de armazenamento de arquivo pago
+  function fileToCompressedDataUrl(file, maxDim=900, quality=0.6){
+    return new Promise((resolve)=>{
+      if(!file || !file.type.startsWith('image/')){ resolve(null); return; }
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w>h && w>maxDim){ h = Math.round(h*maxDim/w); w = maxDim; }
+        else if(h>maxDim){ w = Math.round(w*maxDim/h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
   function fmtDate(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
   function toast(msg){
     const el = document.getElementById('toast');
@@ -496,17 +516,15 @@
           }
         }
       });
-      // sobe as fotos anexadas (só dos itens marcados como problema) pro Firebase Storage
-      btn.textContent = 'Enviando fotos…';
+      // comprime e guarda as fotos anexadas (só dos itens marcados como problema) direto no checklist
+      btn.textContent = 'Processando fotos…';
       for(const it of itensResposta){
         const file = checklistFotos[it.itemId];
         if(it.ehProblema && file){
           try{
-            const path = `checklist-fotos/${checklistId}/${it.itemId}_${Date.now()}.jpg`;
-            const ref = storage.ref().child(path);
-            await ref.put(file);
-            it.fotoUrl = await ref.getDownloadURL();
-          }catch(e){ console.error('erro ao subir foto', e); /* segue sem a foto, não trava o envio do checklist */ }
+            const dataUrl = await fileToCompressedDataUrl(file);
+            if(dataUrl) it.fotoUrl = dataUrl;
+          }catch(e){ console.error('erro ao processar foto', e); /* segue sem a foto, não trava o envio do checklist */ }
         }
       }
       btn.textContent = 'Enviando…';
