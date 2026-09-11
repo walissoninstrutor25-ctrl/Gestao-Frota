@@ -698,6 +698,40 @@ function cargoDoEfetivo(matricula, driverEntry) {
   return null;
 }
 
+// Tira alguém da escala/Dashboard enquanto estiver afastado — mesma
+// mecânica de excluir (some de ds.colaboradores e do posto em Ver
+// Equipe), só que sem histórico de Exclusões: isso é reversível pelo
+// "✔ Retornou", não uma saída definitiva. Guarda em driversDb de qual
+// aba/pk/UO a pessoa saiu, pra "Retornou" saber quem recolocar onde.
+function afastarDaEscala(matricula) {
+  const chave = String(matricula).trim();
+  for (const cfg of TABS) {
+    const ds = datasets[cfg.id];
+    if (!ds) continue;
+    const encontrados = ds.colaboradores.filter((p) => String(p.matricula || '').trim() === chave);
+    if (!encontrados.length) continue;
+    const p = encontrados[0];
+    const pk = personKey(cfg.id, p);
+    edits.driversDb[chave].tabId = cfg.id;
+    edits.driversDb[chave].pk = pk;
+    edits.driversDb[chave].unidadeAntes = p.unidade || null;
+    edits.driversDb[chave].grupoAntes = p.grupo || null;
+    edits.driversDb[chave].turnoAntes = p.papelNormalizado || null;
+
+    const mestreDaPessoa = mestreParaUnidade(ds, cfg, p.unidade);
+    if (mestreDaPessoa) {
+      encontrarPostosDaPessoa(cfg, mestreDaPessoa, p.nome, p.matricula, p.unidade).forEach((posto) => {
+        edits.equipe[posto.path] = { ...edits.equipe[posto.path], nome: '', matricula: '' };
+      });
+    }
+
+    const pks = encontrados.map((x) => personKey(cfg.id, x));
+    pks.forEach((k) => { if (!edits.colaboradoresExcluidos.includes(k)) edits.colaboradoresExcluidos.push(k); });
+    ds.colaboradores = ds.colaboradores.filter((x) => !encontrados.includes(x));
+    return;
+  }
+}
+
 function renderEfetivosTable() {
   // Afastados ficam de fora daqui — têm aba própria (Afastados), separada
   // do cadastro ativo, por pedido.
@@ -732,9 +766,10 @@ function renderEfetivosTable() {
     btn.addEventListener('click', async () => {
       const mat = btn.dataset.mat;
       const nome = edits.driversDb[mat] ? edits.driversDb[mat].nome : '';
-      const ok = await showConfirmModal(`Marcar "${nome}" como afastado? Ele sai daqui e passa a aparecer na aba Afastados, onde dá pra colocar o motivo e a previsão de retorno.`, { confirmLabel: 'Marcar afastado' });
+      const ok = await showConfirmModal(`Marcar "${nome}" como afastado? Ele sai da escala e do Dashboard (some da contagem "Atual") enquanto estiver afastado, e passa a aparecer na aba Afastados, onde dá pra colocar o motivo e a previsão de retorno.`, { confirmLabel: 'Marcar afastado' });
       if (!ok || !edits.driversDb[mat]) return;
       edits.driversDb[mat].afastado = true;
+      afastarDaEscala(mat);
       persistEdits();
       renderEfetivosTable();
     });
@@ -1114,16 +1149,7 @@ function renderAfastados() {
   registros.forEach(([mat]) => {
     const btn = document.getElementById(`af-fim-${mat}`);
     if (!btn) return;
-    btn.addEventListener('click', async () => {
-      const nome = edits.driversDb[mat] ? edits.driversDb[mat].nome : '';
-      const ok = await showConfirmModal(`Encerrar o afastamento de "${nome}"? Ele volta a aparecer como ativo em Efetivos.`, { confirmLabel: 'Encerrar afastamento' });
-      if (!ok || !edits.driversDb[mat]) return;
-      edits.driversDb[mat].afastado = false;
-      delete edits.driversDb[mat].motivo;
-      delete edits.driversDb[mat].dataRetorno;
-      persistEdits();
-      renderAfastados();
-    });
+    btn.addEventListener('click', () => abrirRetornoAfastamento(mat));
   });
 }
 
@@ -1453,6 +1479,14 @@ function renderPanel() {
 }
 
 function currentMestre(ds, cfg) {
+  return mestreParaUnidade(ds, cfg, state.unit[cfg.id]);
+}
+
+// Mesma lógica de currentMestre, mas pra uma UO explícita em vez da
+// selecionada agora na tela — usado quando é preciso mexer no quadro
+// de Ver Equipe de alguém que não está necessariamente na UO ativa
+// (ex.: dar o retorno de um afastamento).
+function mestreParaUnidade(ds, cfg, unidade) {
   if (!ds.mestre) return null;
   if (Array.isArray(ds.mestre)) {
     // Grupos de equipamentos (Motoristas): cada grupo carrega sua própria
@@ -1460,17 +1494,17 @@ function currentMestre(ds, cfg) {
     // vazio) pra manter o botão "Ver equipe" visível e permitir cadastrar
     // do zero (+ Adicionar grupo/equipamento) numa UO que ainda não tem
     // nada, em vez de emprestar dados de outra UO.
-    return cfg.hasUnits ? ds.mestre.filter((g) => g.unidade === state.unit[cfg.id]) : ds.mestre;
+    return cfg.hasUnits ? ds.mestre.filter((g) => g.unidade === unidade) : ds.mestre;
   }
   // objeto dividido por UO (ex.: master_driver.mestre = {MNS:{...}, PRA:{...}})
-  if (cfg.hasUnits && Object.prototype.hasOwnProperty.call(ds.mestre, state.unit[cfg.id])) {
-    return ds.mestre[state.unit[cfg.id]] || null;
+  if (cfg.hasUnits && Object.prototype.hasOwnProperty.call(ds.mestre, unidade)) {
+    return ds.mestre[unidade] || null;
   }
   // objeto único, com sua própria UO (ex.: Líder de Turno/Pátio, cuja
   // planilha só cobre o lado MNS) — só aparece na UO a que pertence, pra
   // não mostrar o mesmo conteúdo como se fosse de outra UO.
   if (cfg.hasUnits && ds.mestre.unidade) {
-    return ds.mestre.unidade === state.unit[cfg.id] ? ds.mestre : null;
+    return ds.mestre.unidade === unidade ? ds.mestre : null;
   }
   return ds.mestre;
 }
@@ -1655,7 +1689,13 @@ function buscarPessoasPorTexto(ds, texto) {
 // agora (já considerando edições salvas) — usado pra achar em qual(is)
 // posto(s) uma pessoa está, a partir só do nome/matrícula dela (ver
 // encontrarPostosDaPessoa), sem precisar clicar em cima dela.
-function todosPostosDoTab(cfg, mestre) {
+// unidade só importa pro master_driver (é a única aba que embute a UO
+// dentro do próprio path do posto) — nas demais o path não depende da
+// UO, então passar undefined não muda nada. Precisa ser explícito (não
+// dá pra usar state.unit[cfg.id] aqui dentro) porque quem chama pode
+// estar tratando de alguém de uma UO diferente da que está na tela
+// (ex.: recolocar alguém de um afastamento, ver abrirRetornoAfastamento).
+function todosPostosDoTab(cfg, mestre, unidade) {
   const postos = [];
   const add = (path, p) => {
     const nome = equipeEditGet(path, 'nome', p ? p.nome : null);
@@ -1670,7 +1710,7 @@ function todosPostosDoTab(cfg, mestre) {
       ['A', 'B', 'C'].forEach((t) => add(`motoristas|grupo|${g.grupo}|folguista|${t}`, g.folguistas[t]));
     });
   } else if (cfg.id === 'master_driver') {
-    const basePath = `master_driver|${state.unit[cfg.id]}`;
+    const basePath = `master_driver|${unidade}`;
     ['A', 'B', 'C'].forEach((t) => add(`${basePath}|turno|${t}`, mestre && mestre.turnos && mestre.turnos[t]));
   } else if (mestre) {
     const basePath = cfg.id;
@@ -1681,10 +1721,10 @@ function todosPostosDoTab(cfg, mestre) {
   return postos;
 }
 
-function encontrarPostosDaPessoa(cfg, mestre, nome, matricula) {
+function encontrarPostosDaPessoa(cfg, mestre, nome, matricula, unidade) {
   const matriculaBusca = matricula ? String(matricula).trim() : '';
   const nomeBusca = normText(nome || '');
-  return todosPostosDoTab(cfg, mestre).filter((posto) => (
+  return todosPostosDoTab(cfg, mestre, unidade).filter((posto) => (
     matriculaBusca ? String(posto.matricula || '').trim() === matriculaBusca : (nomeBusca && normText(posto.nome) === nomeBusca)
   ));
 }
@@ -1908,7 +1948,7 @@ function abrirCadastroEquipe(ds, cfg, mestre) {
 
       // Confere quem ocupa esse posto agora (cobre tanto quem veio da
       // planilha original quanto quem já foi editado aqui).
-      const postoAtual = todosPostosDoTab(cfg, mestre).find((posto) => posto.path === path);
+      const postoAtual = todosPostosDoTab(cfg, mestre, state.unit[cfg.id]).find((posto) => posto.path === path);
       if (postoAtual) {
         render(`Esse posto já está ocupado por "${postoAtual.nome}". Escolha outro${temFrota && !ehFolguista ? ' turno/equipamento' : ' turno'}, ou exclua essa pessoa antes.`, valoresAtuais);
         return;
@@ -2001,7 +2041,7 @@ function abrirExcluirEquipe(ds, cfg, mestre) {
       const p = resultados[idx];
       const motivo = await promptMotivoExclusao(p.nome);
       if (motivo === null) return; // cancelou: fica na tela de confirmação
-      const postos = encontrarPostosDaPessoa(cfg, mestre, p.nome, p.matricula);
+      const postos = encontrarPostosDaPessoa(cfg, mestre, p.nome, p.matricula, state.unit[cfg.id]);
       const contexto = postos.length ? postos.map((posto) => posto.path).join(', ') : `${cfg.label} (sem posto em Ver Equipe)`;
       executarExclusaoPessoa(ds, cfg, postos.map((posto) => posto.path), contexto, p.nome, p.matricula, motivo);
       persistEdits();
@@ -2011,6 +2051,179 @@ function abrirExcluirEquipe(ds, cfg, mestre) {
   };
 
   renderBusca(null);
+}
+
+// Deduz a letra do turno (A/B/C) a partir de um papelNormalizado salvo
+// (ex.: "Turno B", "Folguista C") — usado só pra pré-selecionar um turno
+// plausível no formulário de retorno de afastamento.
+function turnoLetra(papelNormalizado) {
+  const m = /([A-C])$/.exec(papelNormalizado || '');
+  return m ? m[1] : 'A';
+}
+
+// "✔ Retornou": em vez de só marcar afastado=false, pergunta onde
+// recolocar a pessoa (grupo/turno/frota, ou folguista) — igual ao "+
+// Adicionar colaborador", mas reaproveitando o pk original (afastarDaEscala
+// guardou tabId/pk/unidadeAntes/grupoAntes/turnoAntes em edits.driversDb)
+// pra edits.dias/edits.contato/bancoHoras já ligados a essa pessoa não
+// ficarem órfãos. location.reload() no fim é necessário porque
+// ds.colaboradores foi reconstruído do zero a partir de edits (mesma
+// lógica do boot()), igual ao "↺ Restaurar" de Exclusões.
+function abrirRetornoAfastamento(mat) {
+  const v0 = edits.driversDb[mat];
+  if (!v0) return;
+  const cfg = TABS.find((t) => t.id === v0.tabId);
+  const ds = cfg ? datasets[cfg.id] : null;
+
+  // Afastamento de antes dessa função existir: a pessoa nunca chegou a
+  // sair de ds.colaboradores/Ver Equipe de verdade, então não tem
+  // tabId/pk salvos — não dá pra saber onde recolocar. Só encerra o
+  // afastamento sem perguntar nada (comportamento antigo).
+  if (!v0.tabId || !v0.pk || !cfg || !ds) {
+    encerrarAfastamentoSemPosto(mat);
+    return;
+  }
+
+  const mestre = mestreParaUnidade(ds, cfg, v0.unidadeAntes);
+  const grupos = cfg.id === 'motoristas' ? mestre.map((g) => g.grupo) : [];
+  const temFolguista = cfg.id === 'motoristas' || cfg.id === 'lideres_turno' || cfg.id === 'lideres_patio';
+  const folguistaTemTurno = cfg.id === 'motoristas';
+  const temFrota = cfg.id === 'motoristas';
+  const ehFolguistaAntes = /^Folguista/.test(v0.turnoAntes || '');
+
+  const backdrop = document.getElementById('modalBackdrop');
+  const render = (errorMsg, v) => {
+    v = v || { grupo: v0.grupoAntes, tipo: ehFolguistaAntes ? 'folguista' : 'titular', turno: turnoLetra(v0.turnoAntes) };
+    backdrop.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <button class="modal-close" id="raClose">✕</button>
+          <h3>Retorno de afastamento</h3>
+          <span>${v0.nome}${cfg.hasUnits ? ' · UO ' + v0.unidadeAntes : ''}</span>
+        </div>
+        <div class="modal-body">
+          ${grupos.length ? `<div class="modal-row edit"><span class="k">Grupo</span><select class="modal-input" id="raGrupo">${grupos.map((g) => `<option value="${escAttr(g)}" ${v.grupo === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>` : ''}
+          ${temFolguista ? `
+            <div class="modal-row edit"><span class="k">Posto</span><select class="modal-input" id="raTipo">
+              <option value="titular" ${v.tipo !== 'folguista' ? 'selected' : ''}>Titular${temFrota ? ' (equipamento)' : ''}</option>
+              <option value="folguista" ${v.tipo === 'folguista' ? 'selected' : ''}>Folguista</option>
+            </select></div>` : ''}
+          ${temFrota ? `<div id="raEquipRow" class="modal-row edit"><span class="k">Frota (equipamento)</span><select class="modal-input" id="raEquipamento"></select></div>` : ''}
+          <div id="raTurnoRow" class="modal-row edit"><span class="k">Turno</span><select class="modal-input" id="raTurno">
+            <option value="A" ${v.turno === 'A' ? 'selected' : ''}>Turno A</option>
+            <option value="B" ${v.turno === 'B' ? 'selected' : ''}>Turno B</option>
+            <option value="C" ${v.turno === 'C' ? 'selected' : ''}>Turno C</option>
+          </select></div>
+          ${errorMsg ? `<p class="pw-error">${errorMsg}</p>` : ''}
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn" id="raCancel">Cancelar</button>
+          <button class="icon-btn primary" id="raSalvar">Confirmar retorno</button>
+        </div>
+      </div>
+    `;
+    backdrop.classList.add('open');
+    const close = () => closeModal();
+    document.getElementById('raClose').addEventListener('click', close);
+    document.getElementById('raCancel').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); }, { once: true });
+
+    const grupoSel = document.getElementById('raGrupo');
+    const equipSel = document.getElementById('raEquipamento');
+    function popularEquipamentos() {
+      if (!equipSel) return;
+      const g = grupoSel ? mestre.find((x) => x.grupo === grupoSel.value) : mestre[0];
+      const equipamentos = (g && g.equipamentos) || [];
+      equipSel.innerHTML = equipamentos.length
+        ? equipamentos.map((e) => `<option value="${e.numero}" ${v.equipamento === String(e.numero) ? 'selected' : ''}>Equip. ${e.numero}</option>`).join('')
+        : `<option value="">(sem equipamento nesse grupo — adicione um em Ver Equipe primeiro)</option>`;
+    }
+    if (temFrota) {
+      popularEquipamentos();
+      if (grupoSel) grupoSel.addEventListener('change', popularEquipamentos);
+    }
+
+    const tipoSel = document.getElementById('raTipo');
+    function atualizaPosto() {
+      const ehFolguista = tipoSel && tipoSel.value === 'folguista';
+      const equipRow = document.getElementById('raEquipRow');
+      if (equipRow) equipRow.style.display = ehFolguista ? 'none' : '';
+      document.getElementById('raTurnoRow').style.display = (ehFolguista && !folguistaTemTurno) ? 'none' : '';
+    }
+    if (tipoSel) { tipoSel.addEventListener('change', atualizaPosto); atualizaPosto(); }
+
+    document.getElementById('raSalvar').addEventListener('click', () => {
+      // Sem select de grupo (não-motoristas) preserva o que já tinha antes
+      // (ex.: "MASTER" do master_driver) em vez de apagar — não tem opção
+      // nova pra escolher, então não tem por que perder a antiga.
+      const grupo = grupoSel ? grupoSel.value : v0.grupoAntes;
+      const ehFolguista = tipoSel ? tipoSel.value === 'folguista' : false;
+      const turno = document.getElementById('raTurno').value;
+      const equipamento = equipSel ? equipSel.value : null;
+      const valoresAtuais = { grupo, tipo: ehFolguista ? 'folguista' : 'titular', turno, equipamento };
+
+      let path, papel;
+      if (cfg.id === 'motoristas') {
+        if (ehFolguista) {
+          path = `motoristas|grupo|${grupo}|folguista|${turno}`;
+          papel = `Folguista ${turno}`;
+        } else {
+          if (!equipamento) { render('Esse grupo ainda não tem equipamento cadastrado — adicione um em Ver Equipe primeiro, ou escolha "Folguista".', valoresAtuais); return; }
+          path = `motoristas|equip|${equipamento}|${turno}`;
+          papel = `Turno ${turno}`;
+        }
+      } else if (cfg.id === 'master_driver') {
+        path = `master_driver|${v0.unidadeAntes}|turno|${turno}`;
+        papel = `Turno ${turno}`;
+      } else if (ehFolguista) {
+        path = `${cfg.id}|folguista`;
+        papel = 'Folguista';
+      } else {
+        path = `${cfg.id}|turno|${turno}`;
+        papel = `Turno ${turno}`;
+      }
+
+      const postoAtual = todosPostosDoTab(cfg, mestre, v0.unidadeAntes).find((posto) => posto.path === path);
+      if (postoAtual) {
+        render(`Esse posto já está ocupado por "${postoAtual.nome}". Escolha outro${temFrota && !ehFolguista ? ' turno/equipamento' : ' turno'}.`, valoresAtuais);
+        return;
+      }
+
+      const pk = v0.pk;
+      edits.contato[pk] = { ...edits.contato[pk], grupo, papelNormalizado: papel };
+      const anchor = calcularAnchorRotacao(ds, cfg, mestre, grupo, turno, ehFolguista ? null : equipamento);
+      if (anchor != null) edits.rotacao[pk] = anchor;
+      edits.equipe[path] = { ...edits.equipe[path], nome: v0.nome, matricula: mat };
+      edits.colaboradoresExcluidos = edits.colaboradoresExcluidos.filter((k) => k !== pk);
+
+      edits.driversDb[mat].afastado = false;
+      delete edits.driversDb[mat].motivo;
+      delete edits.driversDb[mat].dataRetorno;
+      delete edits.driversDb[mat].tabId;
+      delete edits.driversDb[mat].pk;
+      delete edits.driversDb[mat].unidadeAntes;
+      delete edits.driversDb[mat].grupoAntes;
+      delete edits.driversDb[mat].turnoAntes;
+
+      persistEdits();
+      location.reload(); // reconstrói ds.colaboradores do zero (mesma lógica do boot())
+    });
+  };
+  render(null, null);
+}
+
+// Encerra um afastamento antigo (de antes do retorno perguntar onde
+// recolocar) sem picker — só volta a marcar como ativo em Efetivos,
+// já que essa pessoa nunca chegou a sair de verdade da escala/Ver Equipe.
+async function encerrarAfastamentoSemPosto(mat) {
+  const nome = edits.driversDb[mat] ? edits.driversDb[mat].nome : '';
+  const ok = await showConfirmModal(`Encerrar o afastamento de "${nome}"? Esse afastamento é de antes dessa tela perguntar onde recolocar a pessoa — ele só volta a aparecer como ativo em Efetivos, sem mexer em grupo/turno/equipe (confira em Ver Equipe se precisar ajustar).`, { confirmLabel: 'Encerrar afastamento' });
+  if (!ok || !edits.driversDb[mat]) return;
+  edits.driversDb[mat].afastado = false;
+  delete edits.driversDb[mat].motivo;
+  delete edits.driversDb[mat].dataRetorno;
+  persistEdits();
+  renderAfastados();
 }
 
 // Pergunta o motivo antes de excluir alguém de um slot de Ver Equipe —
