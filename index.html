@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T20-00-00Z -->
+<!-- APP_BUILD:2026-08-09T20-20-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1717,11 +1717,16 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><div class="card-title">Itens não conformes reportados</div></div>
+          <div class="card-head">
+            <div class="card-title">Itens não conformes reportados</div>
+            <button class="btn-ghost btn-sm" id="btn-toggle-naoconforme">🙈 Ocultar</button>
+          </div>
           <div class="page-sub" style="margin-bottom:6px;">Mostra TODOS os itens reportados como problema, de qualquer data — não é filtrado pela data acima (senão um item "em atraso" sumiria da lista com o passar dos dias). O filtro de Turno e UO continuam valendo. Ordenado com os mais atrasados primeiro.</div>
-          <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
-            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th><th>Foto</th><th>P.A.</th></tr></thead>
-            <tbody id="tbl-checklist-naoconforme"></tbody></table>
+          <div id="naoconforme-wrap">
+            <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
+              <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th><th>Foto</th><th>P.A.</th></tr></thead>
+              <tbody id="tbl-checklist-naoconforme"></tbody></table>
+            </div>
           </div>
         </div>
 
@@ -2084,7 +2089,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T20-00-00Z';
+  const APP_VERSION = '2026-08-09T20-20-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -6121,6 +6126,12 @@
     wrap.style.display = abrindo ? 'block' : 'none';
     e.target.textContent = abrindo ? '🙈 Ocultar' : '👁️ Ver todos';
   });
+  document.getElementById('btn-toggle-naoconforme')?.addEventListener('click', (e)=>{
+    const wrap = document.getElementById('naoconforme-wrap');
+    const abrindo = wrap.style.display==='none';
+    wrap.style.display = abrindo ? 'block' : 'none';
+    e.target.textContent = abrindo ? '🙈 Ocultar' : '👁️ Ver itens não conformes';
+  });
   LOTS.deleteChecklist = async (id)=>{
     const c = state.checklists.find(x=>x.id===id);
     const v = c ? vehicleById(c.vehicleId) : null;
@@ -6135,15 +6146,19 @@
   };
   /* ---------------- PLANO DE AÇÃO (P.A.) — pros itens não conformes do checklist ---------------- */
   function paKey(c, it){ return c.id + '_' + it.itemId; }
-  function paStatusBadge(pa){
-    if(!pa || !pa.status) return '<span class="page-sub" style="margin:0;">Sem P.A.</span>';
+  function diasEntre(de, ate){ return Math.round((new Date(ate+'T00:00:00') - new Date(de+'T00:00:00'))/86400000); }
+  function paStatusBadge(pa, dataReportado){
+    const hoje = todayISO();
+    if(!pa || !pa.status){
+      const dias = dataReportado ? diasEntre(dataReportado, hoje) : null;
+      return `<span class="badge badge-danger">Sem P.A.${dias!=null?' — '+dias+' dia(s) pendente':''}</span>`;
+    }
     if(pa.status==='tratado'){
       return `<span class="badge badge-ok">Tratado em ${fmtDate(pa.dataTratativa)}</span>`;
     }
     if(pa.status==='programado'){
-      const hoje = todayISO();
       if(pa.dataPrevisto && pa.dataPrevisto<hoje){
-        const dias = Math.round((new Date(hoje+'T00:00:00') - new Date(pa.dataPrevisto+'T00:00:00'))/86400000);
+        const dias = diasEntre(pa.dataPrevisto, hoje);
         return `<span class="badge badge-danger">Em atraso — ${dias} dia(s)</span>`;
       }
       return `<span class="badge badge-pending">Programado p/ ${fmtDate(pa.dataPrevisto)}</span>`;
@@ -6252,17 +6267,17 @@
       const hoje = todayISO();
       function peso({c,it}){
         const pa = state.planosAcao.find(p=>p.key===paKey(c,it));
-        if(!pa || !pa.status) return {grupo:1, ordem:0};
+        if(!pa || !pa.status) return {grupo:1, ordem:c.data}; // sem P.A. — ordena pela data do reporte
         if(pa.status==='tratado') return {grupo:3, ordem:0};
         if(pa.status==='programado'){
           if(pa.dataPrevisto && pa.dataPrevisto<hoje) return {grupo:0, ordem: pa.dataPrevisto}; // em atraso
           return {grupo:2, ordem: pa.dataPrevisto||''};
         }
-        return {grupo:1, ordem:0};
+        return {grupo:1, ordem:c.data};
       }
       const pa1 = peso(a), pa2 = peso(b);
       if(pa1.grupo!==pa2.grupo) return pa1.grupo-pa2.grupo;
-      if(pa1.grupo===0) return String(pa1.ordem).localeCompare(String(pa2.ordem)); // mais atrasado (data mais antiga) primeiro
+      if(pa1.grupo===0 || pa1.grupo===1) return String(pa1.ordem).localeCompare(String(pa2.ordem)); // mais antigo (mais dias pendente) primeiro
       return String(b.c.data).localeCompare(String(a.c.data)); // mais recente primeiro
     });
     const ncTbl = document.getElementById('tbl-checklist-naoconforme');
@@ -6283,7 +6298,7 @@
             <td style="color:var(--danger); font-weight:600;">${it.nome} — ${it.resposta}</td>
             <td>${it.obs||'—'}</td>
             <td>${it.fotoUrl ? `<img src="${it.fotoUrl}" alt="Foto do problema" class="anexo-thumb" onclick="LOTS.viewAnexo('${it.fotoUrl.replace(/'/g,"\\'")}','${(it.nome||'Foto').replace(/'/g,"\\'")}')">` : '—'}</td>
-            <td>${paStatusBadge(pa)}<br><button class="icon-btn" style="margin-top:4px;" onclick="LOTS.abrirPlanoAcao('${key}','${(it.nome||'').replace(/'/g,"\\'")}')">${pa?'editar':'+ criar'}</button></td>
+            <td>${paStatusBadge(pa, c.data)}<br><button class="icon-btn" style="margin-top:4px;" onclick="LOTS.abrirPlanoAcao('${key}','${(it.nome||'').replace(/'/g,"\\'")}')">${pa?'editar':'+ criar'}</button></td>
           </tr>`;
         }).join('');
       }
