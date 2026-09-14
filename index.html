@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T19-40-00Z -->
+<!-- APP_BUILD:2026-08-09T20-00-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1718,6 +1718,7 @@
 
         <div class="card">
           <div class="card-head"><div class="card-title">Itens não conformes reportados</div></div>
+          <div class="page-sub" style="margin-bottom:6px;">Mostra TODOS os itens reportados como problema, de qualquer data — não é filtrado pela data acima (senão um item "em atraso" sumiria da lista com o passar dos dias). O filtro de Turno e UO continuam valendo. Ordenado com os mais atrasados primeiro.</div>
           <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
             <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th><th>Foto</th><th>P.A.</th></tr></thead>
             <tbody id="tbl-checklist-naoconforme"></tbody></table>
@@ -2083,7 +2084,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T19-40-00Z';
+  const APP_VERSION = '2026-08-09T20-00-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -6234,19 +6235,40 @@
       }
     }
 
-    // itens não conformes (agora considera qualquer tipo de pergunta marcada como "problema" no momento do envio)
+    // itens não conformes (considera qualquer tipo de pergunta marcada como "problema" no momento do envio)
+    // IMPORTANTE: essa lista NÃO é restrita pela data do filtro — ela precisa mostrar itens de qualquer dia,
+    // senão um problema que ficou "em atraso" depois de alguns dias simplesmente sumiria da tela.
+    // Só o quadro de "pendências do dia" acima (quem fez/não fez o checklist) é que usa a data do filtro.
     const okVids = frota.map(v=>v.id);
-    const relevantes = checklistsDoDia.filter(c=>okVids.includes(c.vehicleId) && (!turnoFiltro||c.turno===turnoFiltro));
+    const relevantes = state.checklists.filter(c=>okVids.includes(c.vehicleId) && (!turnoFiltro||c.turno===turnoFiltro));
     const naoConformes = [];
     relevantes.forEach(c=>{
       (c.itens||[]).filter(it=>it.ehProblema).forEach(it=>{
         naoConformes.push({c, it});
       });
     });
+    // ordena: em atraso primeiro (mais atrasado no topo), depois programados (mais próximo no topo), depois sem P.A., tratados por último
+    naoConformes.sort((a,b)=>{
+      const hoje = todayISO();
+      function peso({c,it}){
+        const pa = state.planosAcao.find(p=>p.key===paKey(c,it));
+        if(!pa || !pa.status) return {grupo:1, ordem:0};
+        if(pa.status==='tratado') return {grupo:3, ordem:0};
+        if(pa.status==='programado'){
+          if(pa.dataPrevisto && pa.dataPrevisto<hoje) return {grupo:0, ordem: pa.dataPrevisto}; // em atraso
+          return {grupo:2, ordem: pa.dataPrevisto||''};
+        }
+        return {grupo:1, ordem:0};
+      }
+      const pa1 = peso(a), pa2 = peso(b);
+      if(pa1.grupo!==pa2.grupo) return pa1.grupo-pa2.grupo;
+      if(pa1.grupo===0) return String(pa1.ordem).localeCompare(String(pa2.ordem)); // mais atrasado (data mais antiga) primeiro
+      return String(b.c.data).localeCompare(String(a.c.data)); // mais recente primeiro
+    });
     const ncTbl = document.getElementById('tbl-checklist-naoconforme');
     if(ncTbl){
       if(naoConformes.length===0){
-        ncTbl.innerHTML = '<tr class="empty-row"><td colspan="9">Nenhum item não conforme reportado no período.</td></tr>';
+        ncTbl.innerHTML = '<tr class="empty-row"><td colspan="9">Nenhum item não conforme reportado.</td></tr>';
       } else {
         ncTbl.innerHTML = naoConformes.map(({c,it})=>{
           const v = vehicleById(c.vehicleId);
@@ -6302,7 +6324,7 @@
         {label:'Veículos ativos', val: frota.length},
         {label:'Checklists feitos', val: feitos+' / '+totalEsperado},
         {label:'% concluído no período', val: pct.toFixed(0)+'%', color: pct>=90?'var(--go)':(pct>=50?'#e0a800':'var(--danger)')},
-        {label:'Itens não conformes', val: naoConformes.length, color: naoConformes.length>0?'var(--danger)':''},
+        {label:'Itens não conformes (total)', val: naoConformes.length, color: naoConformes.length>0?'var(--danger)':''},
         {label:'Planos de ação em atraso', val: planosEmAtraso, color: planosEmAtraso>0?'var(--danger)':''}
       ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
     }
