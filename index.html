@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- APP_BUILD:2026-08-09T19-00-00Z -->
+<!-- APP_BUILD:2026-08-09T19-40-00Z -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -507,7 +507,6 @@
         <div class="subtab" data-view="fines">Multas</div>
         <div class="subtab" data-view="ranking">Premiação</div>
         <div class="subtab" data-view="bu">BU</div>
-        <div class="subtab" data-view="tires">Controle de Pneus</div>
         <div class="subtab" data-view="checklist">Checklist</div>
       </div>
       <div class="subtab-bar" id="subtabs-heavy" style="display:none;">
@@ -1720,7 +1719,7 @@
         <div class="card">
           <div class="card-head"><div class="card-title">Itens não conformes reportados</div></div>
           <div class="table-scroll-y" style="max-height:420px; overflow-y:auto;">
-            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th><th>Foto</th></tr></thead>
+            <table><thead><tr><th>Data</th><th>Turno</th><th>Frota</th><th>Placa</th><th>Motorista</th><th>Item</th><th>Observação</th><th>Foto</th><th>P.A.</th></tr></thead>
             <tbody id="tbl-checklist-naoconforme"></tbody></table>
           </div>
         </div>
@@ -2084,7 +2083,7 @@
   }
 
   /* ---------------- atualização forçada: detecta nova versão publicada e recarrega sozinho ---------------- */
-  const APP_VERSION = '2026-08-09T19-00-00Z';
+  const APP_VERSION = '2026-08-09T19-40-00Z';
   let atualizandoApp = false;
   async function checkForAppUpdate(){
     if(atualizandoApp) return;
@@ -2317,7 +2316,7 @@
     users:[], vehicles:[], fuel:[], costs:[], fines:[], sinistros:[], heavyVehicles:[],
     heavyCosts:[], heavyFines:[], heavySinistros:[], lotsGoEntries:[], lotsGoBudget:{}, lotsGoBudgetGrid:{}, premiacaoBudget:{}, auditLog:[],
     transfers:[], fornecedores:[], tires:[], conjuntos:[], heavyDocs:[],
-    motoristasApp:[], checklistItens:[], checklists:[], fuelPriceHistory:[],
+    motoristasApp:[], checklistItens:[], checklists:[], fuelPriceHistory:[], planosAcao:[],
     currentProfile:null
   };
 
@@ -2354,6 +2353,7 @@
     state.motoristasApp = await loadShared('lots-motoristas-app', []);
     state.checklistItens = await loadShared('lots-checklist-itens', []);
     state.fuelPriceHistory = await loadShared('lots-fuel-price-history', []);
+    state.planosAcao = await loadShared('lots-planos-acao', []);
     state.checklists = await loadChecklists();
     state.heavyDocs = await loadShared('lots-heavy-docs', []);
     setLoadingProgress(76, 'Carregando custos (pesada)…');
@@ -2418,6 +2418,7 @@
     motoristasApp: () => saveShared('lots-motoristas-app', state.motoristasApp),
     checklistItens: () => saveShared('lots-checklist-itens', state.checklistItens),
     fuelPriceHistory: () => saveShared('lots-fuel-price-history', state.fuelPriceHistory),
+    planosAcao: () => saveShared('lots-planos-acao', state.planosAcao),
     heavyDocs: () => saveShared('lots-heavy-docs', state.heavyDocs),
     heavyCosts: () => saveShared('lots-heavy-costs', state.heavyCosts),
     heavyFines: () => saveShared('lots-heavy-fines', state.heavyFines),
@@ -6131,6 +6132,76 @@
       toast('Checklist excluído.');
     }catch(e){ /* já mostrou o toast de erro dentro de deleteChecklistEntry */ }
   };
+  /* ---------------- PLANO DE AÇÃO (P.A.) — pros itens não conformes do checklist ---------------- */
+  function paKey(c, it){ return c.id + '_' + it.itemId; }
+  function paStatusBadge(pa){
+    if(!pa || !pa.status) return '<span class="page-sub" style="margin:0;">Sem P.A.</span>';
+    if(pa.status==='tratado'){
+      return `<span class="badge badge-ok">Tratado em ${fmtDate(pa.dataTratativa)}</span>`;
+    }
+    if(pa.status==='programado'){
+      const hoje = todayISO();
+      if(pa.dataPrevisto && pa.dataPrevisto<hoje){
+        const dias = Math.round((new Date(hoje+'T00:00:00') - new Date(pa.dataPrevisto+'T00:00:00'))/86400000);
+        return `<span class="badge badge-danger">Em atraso — ${dias} dia(s)</span>`;
+      }
+      return `<span class="badge badge-pending">Programado p/ ${fmtDate(pa.dataPrevisto)}</span>`;
+    }
+    return '—';
+  }
+  LOTS.abrirPlanoAcao = (key, nomeItem)=>{
+    const pa = state.planosAcao.find(p=>p.key===key);
+    openModal(`
+      <div class="modal-title">Plano de Ação — ${nomeItem}</div>
+      <div class="field"><label>Status</label>
+        <select id="pa-status">
+          <option value="programado" ${pa?.status==='programado'?'selected':''}>Programado</option>
+          <option value="tratado" ${pa?.status==='tratado'?'selected':''}>Tratado</option>
+        </select>
+      </div>
+      <div class="field" id="pa-previsto-wrap"><label>Data prevista</label><input type="date" id="pa-data-previsto" value="${pa?.dataPrevisto||''}"></div>
+      <div class="field" id="pa-tratativa-wrap"><label>Data da tratativa</label><input type="date" id="pa-data-tratativa" value="${pa?.dataTratativa||todayISO()}"></div>
+      <div class="err-msg" id="pa-err"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="LOTS.salvarPlanoAcao('${key}')">Salvar</button>
+        ${pa ? `<button class="btn-ghost" style="color:var(--danger);" onclick="LOTS.excluirPlanoAcao('${key}')">Excluir P.A.</button>` : ''}
+        <button class="btn-ghost" onclick="closeModalGlobal()">Cancelar</button>
+      </div>
+    `);
+    const atualizaCampos = ()=>{
+      const status = document.getElementById('pa-status').value;
+      document.getElementById('pa-previsto-wrap').style.display = status==='programado' ? 'block' : 'none';
+      document.getElementById('pa-tratativa-wrap').style.display = status==='tratado' ? 'block' : 'none';
+    };
+    document.getElementById('pa-status').addEventListener('change', atualizaCampos);
+    atualizaCampos();
+  };
+  LOTS.salvarPlanoAcao = async (key)=>{
+    const errEl = document.getElementById('pa-err');
+    const status = document.getElementById('pa-status').value;
+    const dataPrevisto = document.getElementById('pa-data-previsto').value;
+    const dataTratativa = document.getElementById('pa-data-tratativa').value;
+    if(status==='programado' && !dataPrevisto){ errEl.textContent='Informe a data prevista.'; return; }
+    if(status==='tratado' && !dataTratativa){ errEl.textContent='Informe a data da tratativa.'; return; }
+    const existente = state.planosAcao.find(p=>p.key===key);
+    const registro = {key, status, dataPrevisto: status==='programado'?dataPrevisto:(existente?.dataPrevisto||null), dataTratativa: status==='tratado'?dataTratativa:null, atualizadoEm: Date.now(), atualizadoPor: currentUser()?.name||''};
+    if(existente){ Object.assign(existente, registro); }
+    else { state.planosAcao.push(registro); }
+    await save.planosAcao();
+    closeModal();
+    renderView('checklist');
+    logAudit('Plano de ação atualizado', `${key} — ${status}`);
+    toast('Plano de ação salvo.');
+  };
+  LOTS.excluirPlanoAcao = async (key)=>{
+    if(!confirm('Excluir esse plano de ação?')) return;
+    state.planosAcao = state.planosAcao.filter(p=>p.key!==key);
+    await save.planosAcao();
+    closeModal();
+    renderView('checklist');
+    toast('Plano de ação excluído.');
+  };
+
   function renderChecklist(){
     populateCkFilters();
     const data = document.getElementById('ckfilter-date').value || todayISO();
@@ -6175,10 +6246,12 @@
     const ncTbl = document.getElementById('tbl-checklist-naoconforme');
     if(ncTbl){
       if(naoConformes.length===0){
-        ncTbl.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum item não conforme reportado no período.</td></tr>';
+        ncTbl.innerHTML = '<tr class="empty-row"><td colspan="9">Nenhum item não conforme reportado no período.</td></tr>';
       } else {
         ncTbl.innerHTML = naoConformes.map(({c,it})=>{
           const v = vehicleById(c.vehicleId);
+          const key = paKey(c,it);
+          const pa = state.planosAcao.find(p=>p.key===key);
           return `<tr>
             <td class="mono">${fmtDate(c.data)}</td>
             <td>${c.turno}</td>
@@ -6188,6 +6261,7 @@
             <td style="color:var(--danger); font-weight:600;">${it.nome} — ${it.resposta}</td>
             <td>${it.obs||'—'}</td>
             <td>${it.fotoUrl ? `<img src="${it.fotoUrl}" alt="Foto do problema" class="anexo-thumb" onclick="LOTS.viewAnexo('${it.fotoUrl.replace(/'/g,"\\'")}','${(it.nome||'Foto').replace(/'/g,"\\'")}')">` : '—'}</td>
+            <td>${paStatusBadge(pa)}<br><button class="icon-btn" style="margin-top:4px;" onclick="LOTS.abrirPlanoAcao('${key}','${(it.nome||'').replace(/'/g,"\\'")}')">${pa?'editar':'+ criar'}</button></td>
           </tr>`;
         }).join('');
       }
@@ -6222,11 +6296,14 @@
       const totalEsperado = frota.length * turnosAvaliados.length;
       const feitos = totalEsperado - pendentes.length;
       const pct = totalEsperado>0 ? (feitos/totalEsperado*100) : 0;
+      const hoje = todayISO();
+      const planosEmAtraso = state.planosAcao.filter(p=>p.status==='programado' && p.dataPrevisto && p.dataPrevisto<hoje).length;
       kpiGrid.innerHTML = [
         {label:'Veículos ativos', val: frota.length},
         {label:'Checklists feitos', val: feitos+' / '+totalEsperado},
         {label:'% concluído no período', val: pct.toFixed(0)+'%', color: pct>=90?'var(--go)':(pct>=50?'#e0a800':'var(--danger)')},
-        {label:'Itens não conformes', val: naoConformes.length, color: naoConformes.length>0?'var(--danger)':''}
+        {label:'Itens não conformes', val: naoConformes.length, color: naoConformes.length>0?'var(--danger)':''},
+        {label:'Planos de ação em atraso', val: planosEmAtraso, color: planosEmAtraso>0?'var(--danger)':''}
       ].map(k=>`<div class="kpi"><div><div class="kpi-val" style="${k.color?`color:${k.color};`:''}">${k.val}</div><div class="kpi-label">${k.label}</div></div></div>`).join('');
     }
   }
@@ -7048,6 +7125,7 @@
   listenShared('lots-motoristas-app', d => state.motoristasApp = d);
   listenShared('lots-checklist-itens', d => state.checklistItens = d);
   listenShared('lots-fuel-price-history', d => state.fuelPriceHistory = d);
+  listenShared('lots-planos-acao', d => state.planosAcao = d);
   listenChecklists();
   listenShared('lots-heavy-docs', d => state.heavyDocs = d);
   listenShared('lots-heavy-costs', d => state.heavyCosts = d);
