@@ -2360,6 +2360,15 @@ function renderMonthPills(ds, cfg, monthMeta) {
   });
 }
 
+// No dia a dia, um folguista cobrindo o turno conta pro turno igual um
+// titular — não faz sentido abrir um quadro "Folguista A" à parte do
+// "Turno A" no resumo de Hoje. Só sobra separado quando não dá pra saber
+// de qual turno é (ex.: o folguista sem letra de líder de turno/pátio).
+function papelParaContagemHoje(papelNormalizado) {
+  const m = /^Folguista\s*([A-C])$/.exec(papelNormalizado || '');
+  return m ? `Turno ${m[1]}` : (papelNormalizado || '—');
+}
+
 function renderTodayStrip(ds, cfg, monthMeta) {
   const now = new Date();
   const el = document.getElementById('todayStrip');
@@ -2379,7 +2388,7 @@ function renderTodayStrip(ds, cfg, monthMeta) {
   // showTurnoDetalheModal).
   const grupos = new Map();
   pool.forEach((p) => {
-    const papel = p.papelNormalizado || '—';
+    const papel = papelParaContagemHoje(p.papelNormalizado);
     if (!grupos.has(papel)) grupos.set(papel, { trabalhando: [], folga: [], bh: [], dsr: [], falta: [], atestado: [] });
     const g = grupos.get(papel);
     const sched = p.escala[curKey];
